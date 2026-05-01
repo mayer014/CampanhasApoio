@@ -327,6 +327,10 @@ export type Database = {
         Returns: undefined
       }
       unaccent: { Args: { "": string }; Returns: string }
+      unset_active_template: {
+        Args: { _template_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "candidate"
