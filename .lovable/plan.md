@@ -1,85 +1,64 @@
-# Migração do Profile Pic Creator
+# Plano: Sistema de Templates para Foto de Perfil de Campanha
 
-Migrar tudo do projeto **Profile Pic Creator** (workspace) para este projeto novo, mantendo a stack TanStack Start + Supabase.
+## Visão Geral
+Plataforma com 3 tipos de uso:
+1. **Super Admin (você)** — gerencia candidatos, monta templates, controla pagamentos no mini-CRM.
+2. **Candidato** — entra no painel, escolhe qual template fica ativo no link público, copia o link e envia para os eleitores. Vê estatísticas de uso.
+3. **Eleitor (público, sem login)** — abre o link, preenche dados de contato, envia foto, ajusta enquadramento e baixa o PNG 1080x1080 final.
 
-## 1. Banco de dados (migration única)
+## Papéis e Acessos
 
-Replicar exatamente o schema do projeto original:
+**Super Admin**
+- Cria/edita/bloqueia candidatos (define login + senha inicial)
+- Monta templates: faz upload das 4 camadas decorativas (background, círculo base, elemento, logo) e configura posição X/Y e zoom de cada uma sobre o canvas 1080x1080
+- Define qual é o "buraco" da foto (posição X/Y, tamanho do círculo onde a foto do eleitor entra)
+- Vê todos os candidatos, todos os leads de eleitores, todas as estatísticas
+- Mini-CRM: status (ativo/bloqueado), histórico de pagamentos, valores, observações, lembretes de vencimento
 
-- **Enum** `app_role` ('admin', 'candidate')
-- **Tabelas** (todas com RLS habilitado):
-  - `user_roles` — papéis dos usuários
-  - `candidate_profiles` — dados do candidato + slug público + flag bloqueado
-  - `templates` — camadas (background/círculo/elemento/logo) com transforms JSONB + photo_circle + contador
-  - `voter_leads` — nome, telefone, rua, número, bairro
-  - `payments` — valor, data, método, observação
-  - `subscriptions` — status, vencimento, valor mensal
-- **Funções** (todas SECURITY DEFINER, search_path fixo):
-  - `has_role(uuid, app_role)` → boolean
-  - `set_active_template(uuid)` → garante 1 template ativo por candidato
-  - `increment_template_generation(uuid)` → contador público
-  - `touch_updated_at()` → trigger genérico
-- **Triggers** `tg_*_updated` em candidate_profiles, templates, subscriptions
-- **RLS policies** completas:
-  - Admin gerencia tudo via `has_role`
-  - Candidato lê/atualiza só os próprios registros
-  - Público (anon) lê candidatos não bloqueados, lê templates ativos, insere leads
-- **Grants** restritos: `has_role`/`set_active_template` → authenticated; `increment_template_generation` → anon + authenticated
-- **Storage bucket** `template-layers` (público), com policies: leitura pública por arquivo, escrita/update/delete só admin
+**Candidato**
+- Login com email + senha
+- Vê seus templates configurados pelo admin
+- Escolhe **um template ativo** que vai aparecer no link público (pode trocar quando quiser)
+- Copia link único: `/p/{slug-do-candidato}`
+- Vê contador de fotos geradas por template
+- Vê lista/exporta os leads coletados (nome, telefone, endereço completo)
+- Vê status da própria assinatura (vencimento)
 
-## 2. Edge Functions → Server Functions (TanStack Start)
+**Eleitor (link público)**
+- Abre o link, vê preview do template ativo
+- Preenche formulário: nome, telefone, rua, número, bairro (obrigatórios)
+- Faz upload da foto, arrasta/dá zoom para posicionar dentro do círculo
+- Clica gerar e baixa o PNG 1080x1080
+- Sem login, sem cota, sem rate limit
 
-Converter as 2 edge functions Deno em `createServerFn` usando `supabaseAdmin`:
+## Estrutura de Templates
 
-- `src/server/admin.functions.ts`:
-  - `bootstrapAdmin()` — promove o usuário atual a admin se ainda não existir nenhum admin
-  - `adminCreateCandidate({ email, password, full_name, phone, slug, monthly_amount, due_date })` — protegida por `requireSupabaseAuth` + verificação `has_role('admin')`, cria usuário via `supabaseAdmin.auth.admin.createUser` (email_confirm: true), insere em `candidate_profiles`, `user_roles`, `subscriptions`
-- `src/server/admin.server.ts` — helpers internos (validação Zod, criação)
-
-## 3. Frontend
-
-Copiar arquivos do projeto original para cá, ajustando imports onde necessário:
-
-- **Rotas** (`src/routes/`):
-  - `index.tsx`, `login.tsx`, `p.$slug.tsx`
-  - `admin.tsx` (layout) + `admin.index.tsx`, `admin.candidatos.index.tsx`, `admin.candidatos.$id.tsx`, `admin.candidatos.$id.template.$tplId.tsx`
-  - `painel.tsx` (layout) + `painel.index.tsx`, `painel.templates.tsx`, `painel.leads.tsx`, `painel.link.tsx`
-  - Substituir chamadas a `supabase.functions.invoke('bootstrap-admin'|'admin-create-candidate')` pelas server functions novas
-- **Componentes**: `src/components/template-canvas.tsx`
-- **Lib**: `src/lib/template-renderer.ts`
-- **Hook**: `src/hooks/use-auth.ts`
-- **Plano**: `.lovable/plan.md`
-- **Supabase client**: usar o `src/integrations/supabase/client.ts` já existente neste projeto (não copiar do antigo, pois aponta para outro projeto Supabase)
-
-## 4. Dependências npm
-
-Instalar via `bun add` o que faltar (provavelmente já está tudo aqui, validar):
-`@hookform/resolvers`, `react-hook-form`, `zod`, `date-fns`, `sonner`, demais Radix usados pelos componentes shadcn já existentes.
-
-## 5. Auth
-
-- Email/Password já vem habilitado por padrão no Supabase
-- **Google OAuth** e **desligar auto-confirm de email** precisam ser configurados manualmente no Dashboard do Supabase (não dá pra fazer via código). Vou deixar instruções claras no final com os links diretos:
-  - https://supabase.com/dashboard/project/pfppmkqsdqawvykkgafe/auth/providers (habilitar Google)
-  - https://supabase.com/dashboard/project/pfppmkqsdqawvykkgafe/auth/providers (desligar "Confirm email" no provider Email)
-
-## 6. Ordem de execução
+Cada template tem 5 camadas empilhadas (de baixo para cima), todas configuráveis com posição X/Y e zoom:
 
 ```text
-1. Rodar migration (schema + funções + RLS + storage bucket + policies)
-2. Criar src/server/admin.{server,functions}.ts
-3. Copiar lib/template-renderer.ts, hooks/use-auth.ts, components/template-canvas.tsx
-4. Copiar todas as rotas, ajustando os 2 pontos onde havia .functions.invoke()
-5. Copiar .lovable/plan.md
-6. Verificar build
-7. Instruir usuário a configurar Google OAuth e desligar auto-confirm
+Camada 5: Logo                    (PNG configurado pelo admin)
+Camada 4: Elemento                (PNG configurado pelo admin)
+Camada 3: FOTO DO ELEITOR         (vai dentro de um círculo definido)
+Camada 2: Círculo base            (PNG configurado pelo admin)
+Camada 1: Background 1080x1080    (PNG configurado pelo admin)
 ```
 
-## Detalhes técnicos
+A composição final é renderizada em canvas no navegador do eleitor e baixada como PNG quadrado.
 
-- Loaders TanStack são isomórficos → toda chamada que precise de service_role vai em `createServerFn`
-- `supabaseAdmin` só em arquivos `*.server.ts` / dentro de `.handler()` de server functions
-- `bootstrap-admin` original era pública (sem auth) e só funcionava se nenhum admin existisse — manter essa semântica e proteger com check no handler
-- `admin-create-candidate` original exigia JWT de admin — usar `requireSupabaseAuth` + verificação `has_role('admin')` no contexto
-- Não copiar `src/integrations/supabase/client.ts` do projeto antigo (aponta para outro Supabase) — usar o já existente neste projeto
-- Não copiar `supabase/config.toml`, `package.json`, `vite.config.ts`, `routeTree.gen.ts` (gerado), `styles.css` (manter o atual e só ajustar tokens se necessário)
+## Detalhes Técnicos
+
+- **Stack**: TanStack Start + Tailwind + Supabase (externo)
+- **Auth**: Email + senha + Google para admin/candidato. Sem auth para eleitor (link público).
+- **Backend**: Server functions do TanStack Start (`createServerFn`) usando `supabaseAdmin` para operações privilegiadas (criação de candidato, bootstrap admin)
+- **Banco** (Supabase com RLS):
+  - `candidate_profiles`, `user_roles`, `templates`, `voter_leads`, `payments`, `subscriptions`
+- **Storage**: bucket público `template-layers` (write apenas admin, read público por arquivo)
+- **Editor de imagem**: canvas HTML5 nativo, exporta PNG via `canvas.toBlob`
+
+## Fora do Escopo (v1)
+
+- Pagamento online / checkout (gerenciado manualmente)
+- Cobrança recorrente automática
+- Notificações por email/SMS
+- Edição das camadas decorativas pelo candidato
+- Armazenamento das fotos geradas
