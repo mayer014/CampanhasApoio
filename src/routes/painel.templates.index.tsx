@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TemplateCanvas } from "@/components/template-canvas";
 import { toast } from "sonner";
 import type { TemplateData } from "@/lib/template-renderer";
-import { Check, Plus, Pencil, Trash2, Info } from "lucide-react";
+import { Check, Plus, Pencil, Trash2, Info, MessageCircle, Layers, Image as ImageIcon, Move, Save, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/painel/templates/")({
@@ -87,6 +87,85 @@ function TemplatesPage() {
             Marque quais ficam <strong>disponíveis</strong> e o eleitor escolhe qual usar no link público.
             Você pode deixar de 0 a {LIMIT} ativos ao mesmo tempo.
           </p>
+        </div>
+      </Card>
+
+      <Card className="mt-4 p-5">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold">Como criar um template</h2>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Cada template tem 5 camadas. Monte na ordem abaixo para um resultado profissional:
+        </p>
+        <ol className="mt-4 grid gap-3 sm:grid-cols-2">
+          <li className="flex gap-3 rounded-md border bg-card p-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">1</span>
+            <div className="text-sm">
+              <p className="font-medium flex items-center gap-1"><ImageIcon className="h-3.5 w-3.5" /> Fundo (1080×1080)</p>
+              <p className="text-muted-foreground">Imagem de base do template. Use PNG ou JPG quadrado em alta resolução.</p>
+            </div>
+          </li>
+          <li className="flex gap-3 rounded-md border bg-card p-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">2</span>
+            <div className="text-sm">
+              <p className="font-medium flex items-center gap-1"><Layers className="h-3.5 w-3.5" /> Círculo base</p>
+              <p className="text-muted-foreground">Moldura que aparece <strong>atrás</strong> da foto do eleitor (PNG com transparência).</p>
+            </div>
+          </li>
+          <li className="flex gap-3 rounded-md border bg-card p-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">3</span>
+            <div className="text-sm">
+              <p className="font-medium flex items-center gap-1"><Move className="h-3.5 w-3.5" /> Círculo da foto</p>
+              <p className="text-muted-foreground">Define <strong>onde</strong> e em que tamanho a foto do eleitor será recortada. Ajuste X, Y e raio.</p>
+            </div>
+          </li>
+          <li className="flex gap-3 rounded-md border bg-card p-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">4</span>
+            <div className="text-sm">
+              <p className="font-medium flex items-center gap-1"><Layers className="h-3.5 w-3.5" /> Elemento</p>
+              <p className="text-muted-foreground">Camada decorativa <strong>por cima</strong> da foto (faixas, números, slogans).</p>
+            </div>
+          </li>
+          <li className="flex gap-3 rounded-md border bg-card p-3 sm:col-span-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">5</span>
+            <div className="text-sm">
+              <p className="font-medium flex items-center gap-1"><ImageIcon className="h-3.5 w-3.5" /> Logo</p>
+              <p className="text-muted-foreground">Logotipo da campanha — fica na camada mais alta. Posicione com os controles de X, Y e zoom.</p>
+            </div>
+          </li>
+        </ol>
+        <div className="mt-4 rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
+          <p className="font-semibold text-foreground flex items-center gap-1"><Save className="h-3.5 w-3.5" /> Dica final</p>
+          <p className="mt-1">
+            Arraste as camadas direto no canvas para posicionar. Após salvar, clique em <strong>“Disponibilizar para eleitor”</strong> para o template aparecer no link público.
+          </p>
+        </div>
+      </Card>
+
+      <Card className="mt-4 overflow-hidden border-[#25D366]/40 bg-gradient-to-br from-[#25D366]/10 to-transparent p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white">
+              <MessageCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Quer que a gente monte o template para você?</h3>
+              <p className="text-sm text-muted-foreground">
+                Nossa equipe cria seu template profissional sob medida. <strong>Valor a combinar</strong> conforme a complexidade.
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://wa.me/5567992773931?text=Ol%C3%A1!%20Quero%20que%20voc%C3%AAs%20montem%20um%20template%20para%20minha%20campanha."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0"
+          >
+            <Button className="bg-[#25D366] text-white hover:bg-[#1ebe5d]">
+              <MessageCircle className="mr-2 h-4 w-4" /> Falar no WhatsApp
+            </Button>
+          </a>
         </div>
       </Card>
 
