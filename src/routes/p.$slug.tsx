@@ -289,10 +289,11 @@ function EditorStep({ template, candidateName }: { template: Template; candidate
       <div className="space-y-4">
         <Card className="p-4">
           <Label>Sua foto</Label>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
-          <Button variant="outline" className="mt-2 w-full" onClick={() => fileRef.current?.click()}>
-            <Upload className="mr-2 h-4 w-4" />{photo ? "Trocar foto" : "Enviar foto"}
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+          <Button variant="outline" className="mt-2 w-full" onClick={() => fileRef.current?.click()} disabled={converting}>
+            <Upload className="mr-2 h-4 w-4" />{converting ? "Convertendo..." : photo ? "Trocar foto" : "Enviar foto"}
           </Button>
+          <p className="mt-2 text-xs text-muted-foreground">Aceita JPG, PNG, WebP e HEIC (iPhone). Até 15 MB.</p>
         </Card>
 
         {photo && (
