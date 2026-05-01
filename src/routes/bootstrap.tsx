@@ -26,7 +26,9 @@ function BootstrapPage() {
   const handlePromote = async () => {
     setSubmitting(true);
     try {
-      await bootstrapAdmin();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
+      await bootstrapAdmin({ data: { access_token: session.access_token } });
       setDone(true);
       toast.success("Você agora é admin! Faça logout e login novamente.");
     } catch (e: unknown) {
