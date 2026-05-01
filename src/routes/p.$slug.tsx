@@ -17,6 +17,33 @@ export const Route = createFileRoute("/p/$slug")({
 
 type Template = TemplateData & { id: string; name: string };
 
+function TemplatePicker({ templates, onPick }: { templates: Template[]; onPick: (t: Template) => void }) {
+  return (
+    <div>
+      <h2 className="text-2xl font-bold">Escolha sua arte</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{templates.length} {templates.length === 1 ? "opção disponível" : "opções disponíveis"}.</p>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {templates.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onPick(t)}
+            className="group overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary hover:shadow-lg"
+          >
+            <div className="bg-muted">
+              <TemplateCanvas template={t} className="aspect-square w-full" />
+            </div>
+            <div className="p-3">
+              <div className="font-semibold group-hover:text-primary">{t.name}</div>
+              <div className="text-xs text-muted-foreground">Toque para usar</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PublicPage() {
   const { slug } = Route.useParams();
   const [candidate, setCandidate] = useState<{ id: string; full_name: string } | null>(null);
