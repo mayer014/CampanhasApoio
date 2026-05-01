@@ -89,11 +89,11 @@ function TemplateEditor() {
     }
   };
 
-  const layers: { key: LayerKey; label: string; transformKey: keyof TemplateData; urlKey: keyof TemplateData }[] = [
-    { key: "background", label: "Fundo (1080x1080)", transformKey: "background_transform", urlKey: "background_url" },
-    { key: "base_circle", label: "Círculo base", transformKey: "base_circle_transform", urlKey: "base_circle_url" },
-    { key: "element", label: "Elemento", transformKey: "element_transform", urlKey: "element_url" },
-    { key: "logo", label: "Logo", transformKey: "logo_transform", urlKey: "logo_url" },
+  const layers: { key: LayerKey; label: string; hint?: string; transformKey: keyof TemplateData; urlKey: keyof TemplateData }[] = [
+    { key: "background", label: "1. Fundo (1080x1080)", hint: "Camada inferior — imagem de fundo do template.", transformKey: "background_transform", urlKey: "background_url" },
+    { key: "base_circle", label: "2. Círculo base", hint: "Moldura/base que fica ATRÁS da foto do eleitor.", transformKey: "base_circle_transform", urlKey: "base_circle_url" },
+    { key: "element", label: "4. Elemento (acima da foto)", hint: "Camada decorativa que fica POR CIMA da foto do eleitor (ex: moldura com texto curvo).", transformKey: "element_transform", urlKey: "element_url" },
+    { key: "logo", label: "5. Logo", hint: "Camada superior — logotipo da campanha.", transformKey: "logo_transform", urlKey: "logo_url" },
   ];
 
   const demoPhoto = { src: "https://api.dicebear.com/9.x/personas/png?seed=demo", x: data.photo_circle.x, y: data.photo_circle.y, scale: 1 };
@@ -118,17 +118,12 @@ function TemplateEditor() {
             <Input value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} />
           </Card>
 
-          <Card className="space-y-3 p-4">
-            <Label className="font-semibold">Círculo da foto do eleitor</Label>
-            <p className="text-xs text-muted-foreground">Posição e raio (em px de 0 a 1080) onde a foto será inserida.</p>
-            <div className="grid grid-cols-3 gap-2">
-              <div><Label className="text-xs">X</Label><Input type="number" value={data.photo_circle.x} onChange={(e) => setPhoto({ ...data.photo_circle, x: Number(e.target.value) })} /></div>
-              <div><Label className="text-xs">Y</Label><Input type="number" value={data.photo_circle.y} onChange={(e) => setPhoto({ ...data.photo_circle, y: Number(e.target.value) })} /></div>
-              <div><Label className="text-xs">Raio</Label><Input type="number" value={data.photo_circle.radius} onChange={(e) => setPhoto({ ...data.photo_circle, radius: Number(e.target.value) })} /></div>
-            </div>
-          </Card>
+          <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/30 p-3 text-xs text-muted-foreground">
+            <p className="font-semibold text-foreground">Ordem das camadas (de baixo para cima):</p>
+            <p>1. Fundo → 2. Círculo base → <span className="text-primary font-medium">3. Foto do eleitor (recortada no círculo)</span> → 4. Elemento → 5. Logo</p>
+          </div>
 
-          {layers.map(({ key, label, transformKey, urlKey }) => {
+          {layers.slice(0, 2).map(({ key, label, hint, transformKey, urlKey }) => {
             const t = data[transformKey] as Transform;
             const url = data[urlKey] as string | null;
             return (
@@ -140,6 +135,46 @@ function TemplateEditor() {
                   </Button>
                   <input ref={(el) => { fileRefs.current[key] = el; }} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(key, e.target.files[0])} />
                 </div>
+                {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+                {url && <img src={url} alt={label} className="h-16 rounded border bg-muted object-contain" />}
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label className="text-xs">X</Label><Input type="number" value={t.x} onChange={(e) => setTransform(key, { ...t, x: Number(e.target.value) })} /></div>
+                  <div><Label className="text-xs">Y</Label><Input type="number" value={t.y} onChange={(e) => setTransform(key, { ...t, y: Number(e.target.value) })} /></div>
+                </div>
+                <div>
+                  <Label className="text-xs">Zoom: {t.scale.toFixed(2)}x</Label>
+                  <Slider value={[t.scale]} min={0.1} max={3} step={0.05} onValueChange={(v) => setTransform(key, { ...t, scale: v[0] })} />
+                </div>
+              </Card>
+            );
+          })}
+
+          <Card className="space-y-3 p-4 border-primary/40">
+            <Label className="font-semibold">3. Círculo da foto do eleitor</Label>
+            <p className="text-xs text-muted-foreground">
+              Define a posição (X, Y) e o raio do círculo onde a foto enviada pelo eleitor será recortada.
+              Esta camada fica ENTRE o círculo base e o elemento decorativo.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <div><Label className="text-xs">X</Label><Input type="number" value={data.photo_circle.x} onChange={(e) => setPhoto({ ...data.photo_circle, x: Number(e.target.value) })} /></div>
+              <div><Label className="text-xs">Y</Label><Input type="number" value={data.photo_circle.y} onChange={(e) => setPhoto({ ...data.photo_circle, y: Number(e.target.value) })} /></div>
+              <div><Label className="text-xs">Raio</Label><Input type="number" value={data.photo_circle.radius} onChange={(e) => setPhoto({ ...data.photo_circle, radius: Number(e.target.value) })} /></div>
+            </div>
+          </Card>
+
+          {layers.slice(2).map(({ key, label, hint, transformKey, urlKey }) => {
+            const t = data[transformKey] as Transform;
+            const url = data[urlKey] as string | null;
+            return (
+              <Card key={key} className="space-y-3 p-4">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold">{label}</Label>
+                  <Button size="sm" variant="outline" onClick={() => fileRefs.current[key]?.click()}>
+                    <Upload className="mr-2 h-3 w-3" />{url ? "Trocar" : "Enviar"}
+                  </Button>
+                  <input ref={(el) => { fileRefs.current[key] = el; }} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(key, e.target.files[0])} />
+                </div>
+                {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
                 {url && <img src={url} alt={label} className="h-16 rounded border bg-muted object-contain" />}
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label className="text-xs">X</Label><Input type="number" value={t.x} onChange={(e) => setTransform(key, { ...t, x: Number(e.target.value) })} /></div>
