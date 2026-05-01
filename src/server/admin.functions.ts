@@ -1,17 +1,31 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { uniqueSlug } from "./admin.server";
+import type { Database } from "@/integrations/supabase/types";
+
+async function getUserIdFromToken(token: string): Promise<string> {
+  const SUPABASE_URL = process.env.SUPABASE_URL!;
+  const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
+  const sb = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await sb.auth.getUser(token);
+  if (error || !data.user) throw new Error("Invalid or expired token");
+  return data.user.id;
+}
 
 /**
  * Bootstrap the FIRST admin: promotes the calling authenticated user
  * to admin role. Only works while no admin exists yet.
  */
 export const bootstrapAdmin = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { userId } = context;
+  .inputValidator((input: unknown) =>
+    z.object({ access_token: z.string().min(10) }).parse(input)
+  )
+  .handler(async ({ data }) => {
+    const userId = await getUserIdFromToken(data.access_token);
 
     const { count } = await supabaseAdmin
       .from("user_roles")
@@ -31,6 +45,7 @@ export const bootstrapAdmin = createServerFn({ method: "POST" })
   });
 
 const CreateCandidateSchema = z.object({
+  access_token: z.string().min(10),
   email: z.string().email().max(255),
   password: z.string().min(8).max(128),
   full_name: z.string().min(1).max(150),
@@ -42,10 +57,9 @@ const CreateCandidateSchema = z.object({
  * Admin-only: create a candidate user (auth + profile + role + subscription).
  */
 export const adminCreateCandidate = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CreateCandidateSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { userId } = context;
+  .handler(async ({ data }) => {
+    const userId = await getUserIdFromToken(data.access_token);
 
     // Verify caller is admin
     const { data: role } = await supabaseAdmin
