@@ -16,6 +16,7 @@ function AdminLayout() {
   useEffect(() => {
     if (loading) return;
     if (!user) navigate({ to: "/login" });
+    else if (role === null) navigate({ to: "/bootstrap" });
     else if (role !== "admin") navigate({ to: "/painel" });
   }, [loading, user, role, navigate]);
 
