@@ -49,7 +49,7 @@ function PainelHome() {
     if (!user) return;
     (async () => {
       const [profRes, subRes, settingsRes, leadRes, tplRes] = await Promise.all([
-        supabase.from("candidate_profiles").select("full_name, slug").eq("id", user.id).single(),
+        supabase.from("candidate_profiles").select("full_name, slug, is_blocked, trial_limit, signup_source").eq("id", user.id).single(),
         supabase.from("subscriptions").select("status, due_date, monthly_amount").eq("candidate_id", user.id).maybeSingle(),
         supabase.from("app_settings").select("whatsapp_number, pix_key, pix_qr_url, pix_owner_name").eq("id", 1).maybeSingle(),
         supabase.from("voter_leads").select("neighborhood, street, created_at").eq("candidate_id", user.id),
