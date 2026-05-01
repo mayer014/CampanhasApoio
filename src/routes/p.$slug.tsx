@@ -216,7 +216,38 @@ function EditorStep({ template, candidateName }: { template: Template; candidate
   const fileRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const handleFile = (file: File) => {
+  const [converting, setConverting] = useState(false);
+
+  const handleFile = async (file: File) => {
+    let workingFile: File | Blob = file;
+
+    // iPhone HEIC/HEIF: navegadores não-Safari não decodificam. Converte para JPEG.
+    const isHeic =
+      /\.(heic|heif)$/i.test(file.name) ||
+      file.type === "image/heic" ||
+      file.type === "image/heif" ||
+      file.type === "";
+    if (isHeic) {
+      try {
+        setConverting(true);
+        toast.loading("Convertendo foto do iPhone...", { id: "heic" });
+        const heic2any = (await import("heic2any")).default;
+        const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+        workingFile = Array.isArray(converted) ? converted[0] : converted;
+        toast.success("Foto pronta!", { id: "heic" });
+      } catch (err) {
+        // Se não era HEIC de verdade (type vazio mas era PNG/JPG), segue normal
+        if (file.type && (file.type === "image/heic" || file.type === "image/heif" || /\.(heic|heif)$/i.test(file.name))) {
+          toast.error("Não foi possível converter a foto. Tente enviar como JPG.", { id: "heic" });
+          setConverting(false);
+          return;
+        }
+        toast.dismiss("heic");
+      } finally {
+        setConverting(false);
+      }
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       setPhoto({
@@ -226,7 +257,7 @@ function EditorStep({ template, candidateName }: { template: Template; candidate
         scale: 1,
       });
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(workingFile);
   };
 
   useEffect(() => {
@@ -258,10 +289,11 @@ function EditorStep({ template, candidateName }: { template: Template; candidate
       <div className="space-y-4">
         <Card className="p-4">
           <Label>Sua foto</Label>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
-          <Button variant="outline" className="mt-2 w-full" onClick={() => fileRef.current?.click()}>
-            <Upload className="mr-2 h-4 w-4" />{photo ? "Trocar foto" : "Enviar foto"}
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+          <Button variant="outline" className="mt-2 w-full" onClick={() => fileRef.current?.click()} disabled={converting}>
+            <Upload className="mr-2 h-4 w-4" />{converting ? "Convertendo..." : photo ? "Trocar foto" : "Enviar foto"}
           </Button>
+          <p className="mt-2 text-xs text-muted-foreground">Aceita JPG, PNG, WebP e HEIC (iPhone). Até 15 MB.</p>
         </Card>
 
         {photo && (
