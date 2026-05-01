@@ -60,6 +60,7 @@ export async function renderTemplate(
   canvas: HTMLCanvasElement,
   template: TemplateData,
   photo: PhotoState | null,
+  options?: { showPhotoGuide?: boolean },
 ): Promise<void> {
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
@@ -98,6 +99,36 @@ export async function renderTemplate(
 
   if (loaded.element) drawCentered(ctx, loaded.element, template.element_transform);
   if (loaded.logo) drawCentered(ctx, loaded.logo, template.logo_transform);
+
+  // Guia visual do círculo da foto do eleitor (apenas no editor)
+  if (options?.showPhotoGuide && !loaded.photo) {
+    const { x, y, radius } = template.photo_circle;
+    ctx.save();
+    // preenchimento semi-transparente
+    ctx.fillStyle = "rgba(59, 130, 246, 0.15)";
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    // contorno tracejado
+    ctx.strokeStyle = "rgba(59, 130, 246, 0.95)";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([16, 12]);
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    // marcador do centro
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(59, 130, 246, 1)";
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    // rótulo
+    ctx.fillStyle = "rgba(59, 130, 246, 1)";
+    ctx.font = "bold 28px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Foto do eleitor", x, y + radius + 40);
+    ctx.restore();
+  }
 }
 
 export function downloadCanvas(canvas: HTMLCanvasElement, filename: string) {
