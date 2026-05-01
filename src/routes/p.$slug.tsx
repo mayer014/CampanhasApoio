@@ -23,6 +23,17 @@ function PublicPage() {
   const [template, setTemplate] = useState<Template | null>(null);
   const [step, setStep] = useState<"intro" | "form" | "edit" | "done">("intro");
   const [notFound, setNotFound] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+
+  // Marca local: este dispositivo já cadastrou para este candidato
+  useEffect(() => {
+    if (!candidate) return;
+    try {
+      if (localStorage.getItem(`lead_done:${candidate.id}`) === "1") {
+        setAlreadyRegistered(true);
+      }
+    } catch {/* ignore */}
+  }, [candidate]);
 
   useEffect(() => {
     (async () => {
@@ -69,9 +80,17 @@ function PublicPage() {
         {!template ? (
           <Card className="p-10 text-center text-muted-foreground">O candidato ainda não ativou um template.</Card>
         ) : step === "intro" ? (
-          <Intro candidate={candidate} template={template} onStart={() => setStep("form")} />
+          <Intro candidate={candidate} template={template} alreadyRegistered={alreadyRegistered} onStart={() => setStep(alreadyRegistered ? "edit" : "form")} />
         ) : step === "form" ? (
-          <FormStep candidateId={candidate.id} templateId={template.id} onDone={() => setStep("edit")} />
+          <FormStep
+            candidateId={candidate.id}
+            templateId={template.id}
+            onDone={() => {
+              try { localStorage.setItem(`lead_done:${candidate.id}`, "1"); } catch {/* ignore */}
+              setAlreadyRegistered(true);
+              setStep("edit");
+            }}
+          />
         ) : step === "edit" ? (
           <EditorStep template={template} candidateName={candidate.full_name} />
         ) : null}
@@ -80,13 +99,19 @@ function PublicPage() {
   );
 }
 
-function Intro({ candidate, template, onStart }: { candidate: { full_name: string }; template: Template; onStart: () => void }) {
+function Intro({ candidate, template, onStart, alreadyRegistered }: { candidate: { full_name: string }; template: Template; onStart: () => void; alreadyRegistered: boolean }) {
   return (
     <div className="grid gap-8 md:grid-cols-2 md:items-center">
       <div>
         <h1 className="text-4xl font-bold">Apoie {candidate.full_name}</h1>
-        <p className="mt-3 text-lg text-muted-foreground">Coloque a foto da campanha no seu WhatsApp em segundos. É grátis e leva 30 segundos.</p>
-        <Button size="lg" className="mt-6" onClick={onStart}>Quero minha foto</Button>
+        <p className="mt-3 text-lg text-muted-foreground">
+          {alreadyRegistered
+            ? "Bem-vindo de volta! Você já está cadastrado. Escolha uma nova foto e atualize seu WhatsApp."
+            : "Coloque a foto da campanha no seu WhatsApp em segundos. É grátis e leva 30 segundos."}
+        </p>
+        <Button size="lg" className="mt-6" onClick={onStart}>
+          {alreadyRegistered ? "Trocar minha foto" : "Quero minha foto"}
+        </Button>
       </div>
       <Card className="overflow-hidden">
         <TemplateCanvas template={template} />
@@ -102,6 +127,27 @@ function FormStep({ candidateId, templateId, onDone }: { candidateId: string; te
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Normaliza telefone (somente dígitos) para checar duplicidade
+    const phoneDigits = form.phone.replace(/\D/g, "");
+
+    // Fallback de deduplicação por telefone: se já existe lead deste candidato
+    // com o mesmo telefone, não cria outro registro — apenas segue para o editor.
+    if (phoneDigits.length >= 8) {
+      const { data: existing } = await supabase
+        .from("voter_leads")
+        .select("id, phone")
+        .eq("candidate_id", candidateId)
+        .limit(50);
+      const dup = (existing ?? []).find((l) => (l.phone ?? "").replace(/\D/g, "") === phoneDigits);
+      if (dup) {
+        setLoading(false);
+        toast.success("Você já está cadastrado. Bem-vindo de volta!");
+        onDone();
+        return;
+      }
+    }
+
     const { error } = await supabase.from("voter_leads").insert({ candidate_id: candidateId, template_id: templateId, ...form });
     setLoading(false);
     if (error) return toast.error(error.message);
