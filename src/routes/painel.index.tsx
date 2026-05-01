@@ -176,19 +176,21 @@ function PainelHome() {
         </div>
 
         {/* Área PIX */}
-        {(settings?.pix_key || settings?.pix_qr_url) && (
-          <div className="mt-6 grid gap-6 rounded-lg border bg-card/50 p-5 md:grid-cols-[auto_1fr]">
-            {settings.pix_qr_url ? (
-              <img
-                src={settings.pix_qr_url}
-                alt="QR Code PIX"
-                className="h-40 w-40 rounded-md border bg-white object-contain p-2"
-              />
-            ) : (
-              <div className="flex h-40 w-40 items-center justify-center rounded-md border bg-muted text-xs text-muted-foreground">
-                QR não disponível
-              </div>
-            )}
+        <div className="mt-6 grid gap-6 rounded-lg border bg-card/50 p-5 md:grid-cols-[auto_1fr]">
+          {settings?.pix_qr_url ? (
+            <img
+              src={settings.pix_qr_url}
+              alt="QR Code PIX"
+              loading="eager"
+              referrerPolicy="no-referrer"
+              onError={(e) => console.error("[PIX QR] falhou ao carregar", settings.pix_qr_url, e)}
+              className="h-48 w-48 rounded-md border bg-white object-contain p-2"
+            />
+          ) : (
+            <div className="flex h-48 w-48 items-center justify-center rounded-md border bg-muted text-center text-xs text-muted-foreground">
+              {settings ? "QR PIX ainda não cadastrado pelo administrador" : "Carregando QR..."}
+            </div>
+          )}
             <div className="space-y-3">
               <div>
                 <div className="text-sm font-semibold">Pague pelo PIX</div>
