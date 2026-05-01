@@ -14,16 +14,278 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      candidate_profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          is_blocked: boolean
+          notes: string | null
+          phone: string | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id: string
+          is_blocked?: boolean
+          notes?: string | null
+          phone?: string | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_blocked?: boolean
+          notes?: string | null
+          phone?: string | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          candidate_id: string
+          created_at: string
+          id: string
+          method: string | null
+          notes: string | null
+          paid_at: string
+        }
+        Insert: {
+          amount: number
+          candidate_id: string
+          created_at?: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          paid_at?: string
+        }
+        Update: {
+          amount?: number
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          paid_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          monthly_amount: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          monthly_amount?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          monthly_amount?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: true
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      templates: {
+        Row: {
+          background_transform: Json
+          background_url: string | null
+          base_circle_transform: Json
+          base_circle_url: string | null
+          candidate_id: string
+          created_at: string
+          element_transform: Json
+          element_url: string | null
+          generation_count: number
+          id: string
+          is_active: boolean
+          logo_transform: Json
+          logo_url: string | null
+          name: string
+          photo_circle: Json
+          updated_at: string
+        }
+        Insert: {
+          background_transform?: Json
+          background_url?: string | null
+          base_circle_transform?: Json
+          base_circle_url?: string | null
+          candidate_id: string
+          created_at?: string
+          element_transform?: Json
+          element_url?: string | null
+          generation_count?: number
+          id?: string
+          is_active?: boolean
+          logo_transform?: Json
+          logo_url?: string | null
+          name: string
+          photo_circle?: Json
+          updated_at?: string
+        }
+        Update: {
+          background_transform?: Json
+          background_url?: string | null
+          base_circle_transform?: Json
+          base_circle_url?: string | null
+          candidate_id?: string
+          created_at?: string
+          element_transform?: Json
+          element_url?: string | null
+          generation_count?: number
+          id?: string
+          is_active?: boolean
+          logo_transform?: Json
+          logo_url?: string | null
+          name?: string
+          photo_circle?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "templates_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      voter_leads: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          full_name: string
+          id: string
+          neighborhood: string
+          number: string
+          phone: string
+          street: string
+          template_id: string | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          full_name: string
+          id?: string
+          neighborhood: string
+          number: string
+          phone: string
+          street: string
+          template_id?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          neighborhood?: string
+          number?: string
+          phone?: string
+          street?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voter_leads_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voter_leads_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      increment_template_generation: {
+        Args: { _template_id: string }
+        Returns: undefined
+      }
+      set_active_template: {
+        Args: { _template_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "candidate"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +412,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "candidate"],
+    },
   },
 } as const
