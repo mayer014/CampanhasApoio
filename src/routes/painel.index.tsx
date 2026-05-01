@@ -178,22 +178,24 @@ function PainelHome() {
         </div>
 
         {/* Área PIX */}
-        <div className="mt-6 grid gap-6 rounded-lg border bg-card/50 p-5 md:grid-cols-[auto_1fr]">
-          {settings?.pix_qr_url ? (
-            <img
-              src={settings.pix_qr_url}
-              alt="QR Code PIX"
-              loading="eager"
-              referrerPolicy="no-referrer"
-              onError={(e) => console.error("[PIX QR] falhou ao carregar", settings.pix_qr_url, e)}
-              className="h-48 w-48 rounded-md border bg-white object-contain p-2"
-            />
-          ) : (
-            <div className="flex h-48 w-48 items-center justify-center rounded-md border bg-muted text-center text-xs text-muted-foreground">
-              {settings ? "QR PIX ainda não cadastrado pelo administrador" : "Carregando QR..."}
-            </div>
-          )}
-          <div className="space-y-3">
+        <div className="mt-6 grid items-start gap-6 rounded-lg border bg-card/50 p-5 md:grid-cols-[12rem_minmax(0,1fr)]">
+          <div className="flex h-48 w-48 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white p-2">
+            {settings?.pix_qr_url ? (
+              <img
+                src={settings.pix_qr_url}
+                alt="QR Code PIX"
+                loading="eager"
+                referrerPolicy="no-referrer"
+                onError={(e) => console.error("[PIX QR] falhou ao carregar", settings.pix_qr_url, e)}
+                className="block h-full w-full object-contain"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-muted text-center text-xs text-muted-foreground">
+                {settings ? "QR PIX ainda não cadastrado pelo administrador" : "Carregando QR..."}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 space-y-3">
             <div>
               <div className="text-sm font-semibold">Pague pelo PIX</div>
               <div className="text-xs text-muted-foreground">
@@ -203,8 +205,8 @@ function PainelHome() {
             {settings?.pix_key && (
               <div>
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Chave PIX</div>
-                <div className="mt-1 flex items-center gap-2">
-                  <code className="flex-1 truncate rounded-md bg-muted px-3 py-2 text-sm">{settings.pix_key}</code>
+                <div className="mt-1 flex flex-wrap items-start gap-2">
+                  <code className="min-w-0 flex-1 whitespace-pre-wrap break-all rounded-md bg-muted px-3 py-2 text-sm">{settings.pix_key}</code>
                   <Button variant="outline" size="sm" onClick={copyPix}>
                     <Copy className="mr-2 h-4 w-4" /> Copiar
                   </Button>
