@@ -12,7 +12,8 @@ import { Plus, Search, ExternalLink, Pencil, FileSpreadsheet } from "lucide-reac
 import { toast } from "sonner";
 import { exportLeadsXLSX } from "@/lib/export-leads";
 
-type C = { id: string; full_name: string; email: string | null; phone: string | null; slug: string; is_blocked: boolean; notes?: string | null; created_at: string };
+type C = { id: string; full_name: string; email: string | null; phone: string | null; slug: string; is_blocked: boolean; notes?: string | null; trial_limit: number; created_at: string };
+type Usage = { candidate_id: string; total: number };
 
 export const Route = createFileRoute("/admin/candidatos/")({
   component: CandidatesList,
