@@ -127,6 +127,27 @@ function FormStep({ candidateId, templateId, onDone }: { candidateId: string; te
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Normaliza telefone (somente dígitos) para checar duplicidade
+    const phoneDigits = form.phone.replace(/\D/g, "");
+
+    // Fallback de deduplicação por telefone: se já existe lead deste candidato
+    // com o mesmo telefone, não cria outro registro — apenas segue para o editor.
+    if (phoneDigits.length >= 8) {
+      const { data: existing } = await supabase
+        .from("voter_leads")
+        .select("id, phone")
+        .eq("candidate_id", candidateId)
+        .limit(50);
+      const dup = (existing ?? []).find((l) => (l.phone ?? "").replace(/\D/g, "") === phoneDigits);
+      if (dup) {
+        setLoading(false);
+        toast.success("Você já está cadastrado. Bem-vindo de volta!");
+        onDone();
+        return;
+      }
+    }
+
     const { error } = await supabase.from("voter_leads").insert({ candidate_id: candidateId, template_id: templateId, ...form });
     setLoading(false);
     if (error) return toast.error(error.message);
