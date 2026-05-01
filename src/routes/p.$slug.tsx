@@ -47,12 +47,12 @@ function TemplatePicker({ templates, onPick }: { templates: Template[]; onPick: 
 function PublicPage() {
   const { slug } = Route.useParams();
   const [candidate, setCandidate] = useState<{ id: string; full_name: string } | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [template, setTemplate] = useState<Template | null>(null);
-  const [step, setStep] = useState<"intro" | "form" | "edit" | "done">("intro");
+  const [step, setStep] = useState<"intro" | "form" | "pick" | "edit" | "done">("intro");
   const [notFound, setNotFound] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
 
-  // Marca local: este dispositivo já cadastrou para este candidato
   useEffect(() => {
     if (!candidate) return;
     try {
@@ -64,7 +64,6 @@ function PublicPage() {
 
   useEffect(() => {
     (async () => {
-      // Normaliza slug: aceita espaços, maiúsculas e acentos no link compartilhado
       const normalized = decodeURIComponent(slug)
         .toLowerCase()
         .normalize("NFD")
@@ -72,7 +71,6 @@ function PublicPage() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
 
-      // 1) tenta exato; 2) tenta normalizado; 3) tenta ilike (case-insensitive)
       let cand: { id: string; full_name: string; is_blocked: boolean } | null = null;
       const r1 = await supabase.from("candidate_profiles").select("id, full_name, is_blocked").eq("slug", slug).maybeSingle();
       cand = r1.data ?? null;
@@ -87,13 +85,32 @@ function PublicPage() {
 
       if (!cand || cand.is_blocked) { setNotFound(true); return; }
       setCandidate({ id: cand.id, full_name: cand.full_name });
-      const { data: tpl } = await supabase.from("templates").select("*").eq("candidate_id", cand.id).eq("is_active", true).maybeSingle();
-      if (tpl) setTemplate(tpl as unknown as Template);
+      const { data: tpls } = await supabase.from("templates").select("*").eq("candidate_id", cand.id).eq("is_active", true).order("created_at", { ascending: false });
+      const list = (tpls ?? []) as unknown as Template[];
+      setTemplates(list);
+      if (list.length === 1) setTemplate(list[0]);
     })();
   }, [slug]);
 
   if (notFound) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Link inválido ou indisponível.</div>;
   if (!candidate) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Carregando…</div>;
+
+  const handleStart = () => {
+    if (alreadyRegistered) {
+      // já cadastrou: vai direto pra escolher (ou editor se só tem 1)
+      setStep(templates.length > 1 ? "pick" : "edit");
+    } else {
+      setStep("form");
+    }
+  };
+
+  const handleFormDone = () => {
+    try { if (candidate) localStorage.setItem(`lead_done:${candidate.id}`, "1"); } catch {/* ignore */}
+    setAlreadyRegistered(true);
+    setStep(templates.length > 1 ? "pick" : "edit");
+  };
+
+  const previewTemplate = template ?? templates[0] ?? null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,22 +121,31 @@ function PublicPage() {
         </div>
       </header>
       <main className="container mx-auto max-w-5xl px-6 py-10">
-        {!template ? (
-          <Card className="p-10 text-center text-muted-foreground">O candidato ainda não ativou um template.</Card>
+        {templates.length === 0 ? (
+          <Card className="p-10 text-center text-muted-foreground">O candidato ainda não disponibilizou nenhum template.</Card>
         ) : step === "intro" ? (
-          <Intro candidate={candidate} template={template} alreadyRegistered={alreadyRegistered} onStart={() => setStep(alreadyRegistered ? "edit" : "form")} />
+          <Intro candidate={candidate} template={previewTemplate!} alreadyRegistered={alreadyRegistered} onStart={handleStart} />
         ) : step === "form" ? (
           <FormStep
             candidateId={candidate.id}
-            templateId={template.id}
-            onDone={() => {
-              try { localStorage.setItem(`lead_done:${candidate.id}`, "1"); } catch {/* ignore */}
-              setAlreadyRegistered(true);
-              setStep("edit");
-            }}
+            templateId={(previewTemplate ?? templates[0]).id}
+            onDone={handleFormDone}
           />
-        ) : step === "edit" ? (
-          <EditorStep template={template} candidateName={candidate.full_name} />
+        ) : step === "pick" ? (
+          <TemplatePicker templates={templates} onPick={(t) => { setTemplate(t); setStep("edit"); }} />
+        ) : step === "edit" && template ? (
+          <div>
+            {templates.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setStep("pick")}
+                className="mb-4 text-sm text-primary underline-offset-4 hover:underline"
+              >
+                ← Escolher outra arte
+              </button>
+            )}
+            <EditorStep template={template} candidateName={candidate.full_name} />
+          </div>
         ) : null}
       </main>
     </div>
