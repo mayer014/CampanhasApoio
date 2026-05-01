@@ -218,7 +218,7 @@ function AdminHome() {
         <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Convertidos (pagaram)" value={stats.converted} />
       </div>
 
-      <Card className="mt-6 p-6">
+      <Card className="mt-6 p-4 sm:p-6">
         <h2 className="font-semibold">Cadastros nos últimos 30 dias</h2>
         <p className="text-sm text-muted-foreground">Comparação entre cadastros públicos e criados pelo admin.</p>
         <div className="mt-4 h-72">
@@ -241,7 +241,7 @@ function AdminHome() {
       </Card>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h2 className="font-semibold">Funil do trial (cadastros públicos)</h2>
           <p className="text-sm text-muted-foreground">Quantos avançam em cada etapa.</p>
           <div className="mt-4 h-72">
@@ -252,7 +252,7 @@ function AdminHome() {
                 <BarChart data={funnel} layout="vertical" margin={{ left: 12, right: 12 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis dataKey="etapa" type="category" width={160} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis dataKey="etapa" type="category" width={110} stroke="hsl(var(--muted-foreground))" fontSize={11} />
                   <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                   <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
                 </BarChart>
@@ -261,7 +261,7 @@ function AdminHome() {
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h2 className="font-semibold">Distribuição por estado (UF)</h2>
           <p className="text-sm text-muted-foreground">Top 10 estados com mais candidatos.</p>
           <div className="mt-4 h-72">
@@ -283,7 +283,7 @@ function AdminHome() {
       </div>
 
       {awaitingList.length > 0 && (
-        <Card className="mt-6 border-yellow-500/30 bg-yellow-500/5 p-6">
+        <Card className="mt-6 border-yellow-500/30 bg-yellow-500/5 p-4 sm:p-6">
           <h2 className="font-semibold">Aguardando liberação</h2>
           <p className="text-sm text-muted-foreground">Cadastros públicos que esgotaram o trial e ainda não foram liberados.</p>
           <ul className="mt-3 divide-y">
@@ -306,7 +306,7 @@ function AdminHome() {
       )}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h2 className="font-semibold">Top candidatos · Fotos geradas</h2>
           <p className="text-sm text-muted-foreground">10 candidatos com mais fotos geradas.</p>
           <div className="mt-4 h-72">
@@ -317,7 +317,7 @@ function AdminHome() {
                 <BarChart data={topFotos} layout="vertical" margin={{ left: 12, right: 12 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis dataKey="name" type="category" width={120} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v: string) => (v.length > 16 ? v.slice(0, 16) + "…" : v)} />
+                  <YAxis dataKey="name" type="category" width={90} stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v: string) => (v.length > 12 ? v.slice(0, 12) + "…" : v)} />
                   <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                   <Bar dataKey="fotos" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
                 </BarChart>
@@ -326,7 +326,7 @@ function AdminHome() {
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h2 className="font-semibold">Top candidatos · Eleitores captados</h2>
           <p className="text-sm text-muted-foreground">10 candidatos com mais leads cadastrados.</p>
           <div className="mt-4 h-72">
@@ -337,7 +337,7 @@ function AdminHome() {
                 <BarChart data={topLeads} layout="vertical" margin={{ left: 12, right: 12 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis dataKey="name" type="category" width={120} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v: string) => (v.length > 16 ? v.slice(0, 16) + "…" : v)} />
+                  <YAxis dataKey="name" type="category" width={90} stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v: string) => (v.length > 12 ? v.slice(0, 12) + "…" : v)} />
                   <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                   <Bar dataKey="eleitores" fill="hsl(var(--accent-foreground))" radius={[0, 6, 6, 0]} />
                 </BarChart>
@@ -347,7 +347,7 @@ function AdminHome() {
         </Card>
       </div>
 
-      <Card className="mt-6 p-6">
+      <Card className="mt-6 p-4 sm:p-6">
         <h2 className="font-semibold">Uso do limite de fotos por candidato</h2>
         <p className="text-sm text-muted-foreground">Quanto cada candidato já consumiu do seu limite de fotos grátis (%).</p>
         <div className="mt-4" style={{ height: Math.max(280, rows.length * 32) }}>
@@ -358,7 +358,7 @@ function AdminHome() {
               <BarChart data={rows} layout="vertical" margin={{ left: 12, right: 12 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis type="number" domain={[0, 100]} unit="%" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis dataKey="name" type="category" width={140} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v: string) => (v.length > 18 ? v.slice(0, 18) + "…" : v)} />
+                <YAxis dataKey="name" type="category" width={100} stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v: string) => (v.length > 14 ? v.slice(0, 14) + "…" : v)} />
                 <Tooltip
                   contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
                   formatter={(_v, _n, p: any) => [`${p.payload.fotos}/${p.payload.limite} fotos (${p.payload.uso_pct}%)`, "Uso"]}
@@ -394,7 +394,7 @@ function AdminHome() {
       </Card>
 
       {dueSoon.length > 0 && (
-        <Card className="mt-6 p-6">
+        <Card className="mt-6 p-4 sm:p-6">
           <h2 className="font-semibold">Assinaturas vencendo nos próximos 7 dias</h2>
           <ul className="mt-3 divide-y">
             {dueSoon.map((d) => (
@@ -414,9 +414,9 @@ function AdminHome() {
 
 function StatCard({ icon, label, value, highlight }: { icon: React.ReactNode; label: string; value: number; highlight?: boolean }) {
   return (
-    <Card className={`p-6 ${highlight ? "border-yellow-500/40 bg-yellow-500/5" : ""}`}>
-      <div className="flex items-center gap-2 text-muted-foreground">{icon}{label}</div>
-      <div className="mt-2 text-3xl font-bold">{value}</div>
+    <Card className={`p-4 sm:p-6 ${highlight ? "border-yellow-500/40 bg-yellow-500/5" : ""}`}>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">{icon}<span className="truncate">{label}</span></div>
+      <div className="mt-2 text-2xl font-bold sm:text-3xl">{value}</div>
     </Card>
   );
 }
