@@ -23,6 +23,7 @@ import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCandidatosIndexRouteImport } from './routes/admin.candidatos.index'
+import { Route as PainelTemplatesTplIdRouteImport } from './routes/painel.templates.$tplId'
 import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
@@ -96,6 +97,11 @@ const AdminCandidatosIndexRoute = AdminCandidatosIndexRouteImport.update({
   path: '/candidatos/',
   getParentRoute: () => AdminRoute,
 } as any)
+const PainelTemplatesTplIdRoute = PainelTemplatesTplIdRouteImport.update({
+  id: '/$tplId',
+  path: '/$tplId',
+  getParentRoute: () => PainelTemplatesRoute,
+} as any)
 const AdminCandidatosIdIndexRoute = AdminCandidatosIdIndexRouteImport.update({
   id: '/candidatos/$id/',
   path: '/candidatos/$id/',
@@ -119,9 +125,10 @@ export interface FileRoutesByFullPath {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
-  '/painel/templates': typeof PainelTemplatesRoute
+  '/painel/templates': typeof PainelTemplatesRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
+  '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
   '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
@@ -135,9 +142,10 @@ export interface FileRoutesByTo {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
-  '/painel/templates': typeof PainelTemplatesRoute
+  '/painel/templates': typeof PainelTemplatesRouteWithChildren
   '/admin': typeof AdminIndexRoute
   '/painel': typeof PainelIndexRoute
+  '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
   '/admin/candidatos/$id': typeof AdminCandidatosIdIndexRoute
   '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
@@ -154,9 +162,10 @@ export interface FileRoutesById {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
-  '/painel/templates': typeof PainelTemplatesRoute
+  '/painel/templates': typeof PainelTemplatesRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
+  '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
   '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/painel/templates'
     | '/admin/'
     | '/painel/'
+    | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/admin/candidatos/$id/'
     | '/admin/candidatos/$id/template/$tplId'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/painel/templates'
     | '/admin'
     | '/painel'
+    | '/painel/templates/$tplId'
     | '/admin/candidatos'
     | '/admin/candidatos/$id'
     | '/admin/candidatos/$id/template/$tplId'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/painel/templates'
     | '/admin/'
     | '/painel/'
+    | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/admin/candidatos/$id/'
     | '/admin/candidatos/$id/template/$tplId'
@@ -326,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCandidatosIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/painel/templates/$tplId': {
+      id: '/painel/templates/$tplId'
+      path: '/$tplId'
+      fullPath: '/painel/templates/$tplId'
+      preLoaderRoute: typeof PainelTemplatesTplIdRouteImport
+      parentRoute: typeof PainelTemplatesRoute
+    }
     '/admin/candidatos/$id/': {
       id: '/admin/candidatos/$id/'
       path: '/candidatos/$id'
@@ -361,17 +380,29 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface PainelTemplatesRouteChildren {
+  PainelTemplatesTplIdRoute: typeof PainelTemplatesTplIdRoute
+}
+
+const PainelTemplatesRouteChildren: PainelTemplatesRouteChildren = {
+  PainelTemplatesTplIdRoute: PainelTemplatesTplIdRoute,
+}
+
+const PainelTemplatesRouteWithChildren = PainelTemplatesRoute._addFileChildren(
+  PainelTemplatesRouteChildren,
+)
+
 interface PainelRouteChildren {
   PainelLeadsRoute: typeof PainelLeadsRoute
   PainelLinkRoute: typeof PainelLinkRoute
-  PainelTemplatesRoute: typeof PainelTemplatesRoute
+  PainelTemplatesRoute: typeof PainelTemplatesRouteWithChildren
   PainelIndexRoute: typeof PainelIndexRoute
 }
 
 const PainelRouteChildren: PainelRouteChildren = {
   PainelLeadsRoute: PainelLeadsRoute,
   PainelLinkRoute: PainelLinkRoute,
-  PainelTemplatesRoute: PainelTemplatesRoute,
+  PainelTemplatesRoute: PainelTemplatesRouteWithChildren,
   PainelIndexRoute: PainelIndexRoute,
 }
 
