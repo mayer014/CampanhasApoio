@@ -54,9 +54,12 @@ function Index() {
             Plataforma para candidatos criarem templates de foto de perfil. Compartilhe um link e
             seus apoiadores trocam a foto do WhatsApp em segundos — você ainda recebe os contatos.
           </p>
-          <div className="mt-10">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link to="/cadastro">
+              <Button size="lg" className="text-base">Comece grátis com 5 fotos</Button>
+            </Link>
             <Link to="/login">
-              <Button size="lg" className="text-base">Acessar minha conta</Button>
+              <Button size="lg" variant="outline" className="text-base">Já tenho conta</Button>
             </Link>
           </div>
         </section>
