@@ -21,6 +21,7 @@ export const Route = createFileRoute("/admin/candidatos/")({
 
 function CandidatesList() {
   const [items, setItems] = useState<C[]>([]);
+  const [usage, setUsage] = useState<Record<string, number>>({});
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", phone: "", slug: "" });
@@ -28,10 +29,19 @@ function CandidatesList() {
   const [editing, setEditing] = useState<C | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("candidate_profiles").select("*").order("created_at", { ascending: false });
-    setItems(data ?? []);
+    const [{ data: cands }, { data: tpls }] = await Promise.all([
+      supabase.from("candidate_profiles").select("*").order("created_at", { ascending: false }),
+      supabase.from("templates").select("candidate_id, generation_count"),
+    ]);
+    setItems(cands ?? []);
+    const u: Record<string, number> = {};
+    (tpls ?? []).forEach((t: any) => {
+      u[t.candidate_id] = (u[t.candidate_id] ?? 0) + (t.generation_count ?? 0);
+    });
+    setUsage(u);
   };
 
   useEffect(() => { load(); }, []);
@@ -62,6 +72,25 @@ function CandidatesList() {
     }
   };
 
+  const toggleBlock = async (c: C, blocked: boolean) => {
+    setTogglingId(c.id);
+    const used = usage[c.id] ?? 0;
+    const updates: { is_blocked: boolean; trial_limit?: number } = { is_blocked: blocked };
+    // Se está liberando e o uso já estourou o limite, eleva o limite para liberar mais 5 fotos
+    if (!blocked && used >= (c.trial_limit ?? 0)) {
+      updates.trial_limit = used + 5;
+    }
+    const { error } = await supabase.from("candidate_profiles").update(updates).eq("id", c.id);
+    setTogglingId(null);
+    if (error) return toast.error(error.message);
+    if (!blocked && updates.trial_limit) {
+      toast.success(`Liberado · novo limite: ${updates.trial_limit} fotos`);
+    } else {
+      toast.success(blocked ? "Candidato bloqueado" : "Candidato liberado");
+    }
+    load();
+  };
+
   const saveEdit = async () => {
     if (!editing) return;
     setSavingEdit(true);
@@ -71,6 +100,7 @@ function CandidatesList() {
       slug: editing.slug,
       notes: editing.notes ?? null,
       is_blocked: editing.is_blocked,
+      trial_limit: editing.trial_limit,
     }).eq("id", editing.id);
     setSavingEdit(false);
     if (error) return toast.error(error.message);
