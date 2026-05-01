@@ -48,18 +48,20 @@ function PainelHome() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [{ data: prof }, { data: subData }, { data: settingsData }, { data: leadData }, { data: tplData }] = await Promise.all([
+      const [profRes, subRes, settingsRes, leadRes, tplRes] = await Promise.all([
         supabase.from("candidate_profiles").select("full_name, slug").eq("id", user.id).single(),
         supabase.from("subscriptions").select("status, due_date, monthly_amount").eq("candidate_id", user.id).maybeSingle(),
         supabase.from("app_settings").select("whatsapp_number, pix_key, pix_qr_url, pix_owner_name").eq("id", 1).maybeSingle(),
         supabase.from("voter_leads").select("neighborhood, street, created_at").eq("candidate_id", user.id),
         supabase.from("templates").select("name, generation_count").eq("candidate_id", user.id),
       ]);
-      setProfile(prof);
-      setSub(subData);
-      setSettings(settingsData);
-      setLeads(leadData ?? []);
-      setTpls(tplData ?? []);
+      console.log("[painel] app_settings result:", settingsRes);
+      if (settingsRes.error) console.error("[painel] app_settings error:", settingsRes.error);
+      setProfile(profRes.data);
+      setSub(subRes.data);
+      setSettings(settingsRes.data);
+      setLeads(leadRes.data ?? []);
+      setTpls(tplRes.data ?? []);
       setStats({
         templates: tplData?.length ?? 0,
         leads: leadData?.length ?? 0,
