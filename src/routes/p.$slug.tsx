@@ -26,7 +26,27 @@ function PublicPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: cand } = await supabase.from("candidate_profiles").select("id, full_name, is_blocked").eq("slug", slug).maybeSingle();
+      // Normaliza slug: aceita espaços, maiúsculas e acentos no link compartilhado
+      const normalized = decodeURIComponent(slug)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      // 1) tenta exato; 2) tenta normalizado; 3) tenta ilike (case-insensitive)
+      let cand: { id: string; full_name: string; is_blocked: boolean } | null = null;
+      const r1 = await supabase.from("candidate_profiles").select("id, full_name, is_blocked").eq("slug", slug).maybeSingle();
+      cand = r1.data ?? null;
+      if (!cand && normalized && normalized !== slug) {
+        const r2 = await supabase.from("candidate_profiles").select("id, full_name, is_blocked").eq("slug", normalized).maybeSingle();
+        cand = r2.data ?? null;
+      }
+      if (!cand) {
+        const r3 = await supabase.from("candidate_profiles").select("id, full_name, is_blocked").ilike("slug", decodeURIComponent(slug)).maybeSingle();
+        cand = r3.data ?? null;
+      }
+
       if (!cand || cand.is_blocked) { setNotFound(true); return; }
       setCandidate({ id: cand.id, full_name: cand.full_name });
       const { data: tpl } = await supabase.from("templates").select("*").eq("candidate_id", cand.id).eq("is_active", true).maybeSingle();

@@ -310,6 +310,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _slugify: { Args: { input: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -325,6 +326,7 @@ export type Database = {
         Args: { _template_id: string }
         Returns: undefined
       }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "candidate"
