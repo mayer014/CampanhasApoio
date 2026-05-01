@@ -87,25 +87,13 @@ function CandidatesList() {
         .eq("candidate_id", c.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const rows = (data ?? []).map((l) => ({
-        Nome: l.full_name,
-        Telefone: l.phone,
-        Rua: l.street,
-        Número: l.number,
-        Bairro: l.neighborhood,
-        "Cadastrado em": new Date(l.created_at).toLocaleString("pt-BR"),
-      }));
-      if (rows.length === 0) {
+      const leads = data ?? [];
+      if (leads.length === 0) {
         toast.info("Este candidato ainda não tem eleitores cadastrados");
         return;
       }
-      const ws = XLSX.utils.json_to_sheet(rows);
-      ws["!cols"] = [{ wch: 28 }, { wch: 16 }, { wch: 28 }, { wch: 8 }, { wch: 22 }, { wch: 20 }];
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Eleitores");
-      const safe = c.slug || c.full_name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      XLSX.writeFile(wb, `eleitores-${safe}.xlsx`);
-      toast.success(`${rows.length} eleitores exportados`);
+      await exportLeadsXLSX(leads, c.full_name);
+      toast.success(`${leads.length} eleitores exportados`);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
