@@ -96,7 +96,7 @@ function TemplateEditor() {
     { key: "logo", label: "5. Logo", hint: "Camada superior — logotipo da campanha.", transformKey: "logo_transform", urlKey: "logo_url" },
   ];
 
-  const demoPhoto = { src: "https://api.dicebear.com/9.x/personas/png?seed=demo", x: data.photo_circle.x, y: data.photo_circle.y, scale: 1 };
+  
 
   return (
     <div>
@@ -108,8 +108,8 @@ function TemplateEditor() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_400px]">
         <Card className="p-4">
-          <TemplateCanvas template={data} photo={demoPhoto} />
-          <p className="mt-2 text-xs text-muted-foreground text-center">Pré-visualização com foto de demonstração</p>
+          <TemplateCanvas template={data} photo={null} />
+          <p className="mt-2 text-xs text-muted-foreground text-center">Pré-visualização do template (sem foto do eleitor)</p>
         </Card>
 
         <div className="space-y-4">
