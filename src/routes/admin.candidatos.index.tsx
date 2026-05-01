@@ -1,0 +1,117 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Plus, Search, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { adminCreateCandidate } from "@/server/admin.functions";
+
+type C = { id: string; full_name: string; email: string | null; phone: string | null; slug: string; is_blocked: boolean; created_at: string };
+
+export const Route = createFileRoute("/admin/candidatos/")({
+  component: CandidatesList,
+});
+
+function CandidatesList() {
+  const [items, setItems] = useState<C[]>([]);
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ email: "", password: "", full_name: "", phone: "", slug: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const createCandidate = useServerFn(adminCreateCandidate);
+
+  const load = async () => {
+    const { data } = await supabase.from("candidate_profiles").select("*").order("created_at", { ascending: false });
+    setItems(data ?? []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const create = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await createCandidate({
+        data: {
+          email: form.email,
+          password: form.password,
+          full_name: form.full_name,
+          phone: form.phone || null,
+          slug: form.slug || null,
+        },
+      });
+      toast.success("Candidato criado!");
+      setOpen(false);
+      setForm({ email: "", password: "", full_name: "", phone: "", slug: "" });
+      load();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const filtered = items.filter((i) => i.full_name.toLowerCase().includes(q.toLowerCase()) || i.email?.toLowerCase().includes(q.toLowerCase()));
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">Candidatos</h1>
+          <p className="mt-1 text-muted-foreground">{items.length} candidatos cadastrados</p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="mr-2 h-4 w-4" /> Novo candidato</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Novo candidato</DialogTitle></DialogHeader>
+            <form onSubmit={create} className="space-y-3">
+              <div><Label>Nome completo</Label><Input required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+              <div><Label>E-mail</Label><Input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div><Label>Senha inicial (mín 8)</Label><Input type="text" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></div>
+              <div><Label>Telefone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              <div><Label>Slug do link (opcional)</Label><Input placeholder="auto-gerado a partir do nome" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></div>
+              <DialogFooter>
+                <Button type="submit" disabled={submitting}>{submitting ? "Criando..." : "Criar"}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="mt-6 flex items-center gap-2">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Buscar por nome ou e-mail" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
+      </div>
+
+      <div className="mt-4 grid gap-3">
+        {filtered.map((c) => (
+          <Card key={c.id} className="flex items-center justify-between gap-4 p-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{c.full_name}</span>
+                {c.is_blocked && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Bloqueado</span>}
+              </div>
+              <div className="text-sm text-muted-foreground">{c.email} · /p/{c.slug}</div>
+            </div>
+            <div className="flex gap-2">
+              <a href={`/p/${c.slug}`} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="outline"><ExternalLink className="mr-2 h-4 w-4" />Link</Button>
+              </a>
+              <Link to="/admin/candidatos/$id" params={{ id: c.id }}>
+                <Button size="sm">Gerenciar</Button>
+              </Link>
+            </div>
+          </Card>
+        ))}
+        {filtered.length === 0 && <Card className="p-8 text-center text-muted-foreground">Nenhum candidato</Card>}
+      </div>
+    </div>
+  );
+}
