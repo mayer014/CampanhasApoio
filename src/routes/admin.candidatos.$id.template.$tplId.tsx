@@ -152,17 +152,24 @@ function TemplateEditor() {
         <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_400px] items-start">
-        <div className="lg:sticky lg:top-4 self-start">
-          <Card className="p-4">
-            <TemplateEditorCanvas template={data} selected={selected} onChange={handleCanvasDrag} />
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_400px] items-start lg:h-[calc(100vh-8rem)]">
+        <div className="lg:h-full lg:overflow-hidden flex items-start justify-center">
+          <Card className="p-4 w-full lg:max-h-full lg:flex lg:flex-col">
+            <div className="lg:flex-1 lg:min-h-0 flex items-center justify-center">
+              <TemplateEditorCanvas
+                template={data}
+                selected={selected}
+                onChange={handleCanvasDrag}
+                className="max-h-full max-w-full aspect-square rounded-lg border bg-card touch-none select-none"
+              />
+            </div>
             <p className="mt-2 text-xs text-muted-foreground text-center">
               Arraste a camada selecionada (<span className="font-medium text-foreground">{selected}</span>) diretamente no canvas. Clique numa camada à direita para selecioná-la.
             </p>
           </Card>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 lg:h-full lg:overflow-y-auto lg:pr-2">
           <Card className="space-y-3 p-4">
             <Label>Nome do template</Label>
             <Input value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} />
