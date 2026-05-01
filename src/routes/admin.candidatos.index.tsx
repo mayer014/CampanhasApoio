@@ -224,6 +224,16 @@ function CandidatesList() {
               <div><Label>E-mail</Label><Input value={editing.email ?? ""} disabled /></div>
               <div><Label>Telefone</Label><Input value={editing.phone ?? ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} /></div>
               <div><Label>Slug do link</Label><Input value={editing.slug} onChange={(e) => setEditing({ ...editing, slug: e.target.value })} /></div>
+              <div>
+                <Label>Limite de fotos grátis</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={editing.trial_limit}
+                  onChange={(e) => setEditing({ ...editing, trial_limit: parseInt(e.target.value) || 0 })}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Usado: {usage[editing.id] ?? 0} fotos. Ao atingir o limite o candidato é bloqueado automaticamente.</p>
+              </div>
               <div><Label>Observações (CRM)</Label><Textarea value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} /></div>
               <div className="flex items-center justify-between rounded-md border p-3">
                 <div>
