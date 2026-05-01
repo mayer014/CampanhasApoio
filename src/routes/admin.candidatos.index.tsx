@@ -8,8 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Search, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
-import { adminCreateCandidate } from "@/server/admin.functions";
 
 type C = { id: string; full_name: string; email: string | null; phone: string | null; slug: string; is_blocked: boolean; created_at: string };
 
@@ -23,7 +21,6 @@ function CandidatesList() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", phone: "", slug: "" });
   const [submitting, setSubmitting] = useState(false);
-  const createCandidate = useServerFn(adminCreateCandidate);
 
   const load = async () => {
     const { data } = await supabase.from("candidate_profiles").select("*").order("created_at", { ascending: false });
@@ -36,8 +33,8 @@ function CandidatesList() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await createCandidate({
-        data: {
+      const { data, error } = await supabase.functions.invoke("admin-create-candidate", {
+        body: {
           email: form.email,
           password: form.password,
           full_name: form.full_name,
@@ -45,6 +42,8 @@ function CandidatesList() {
           slug: form.slug || null,
         },
       });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       toast.success("Candidato criado!");
       setOpen(false);
       setForm({ email: "", password: "", full_name: "", phone: "", slug: "" });
