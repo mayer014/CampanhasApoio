@@ -96,7 +96,7 @@ function TemplateEditor() {
     { key: "logo", label: "5. Logo", hint: "Camada superior — logotipo da campanha.", transformKey: "logo_transform", urlKey: "logo_url" },
   ];
 
-  const demoPhoto = { src: "https://api.dicebear.com/9.x/personas/png?seed=demo", x: data.photo_circle.x, y: data.photo_circle.y, scale: 1 };
+  
 
   return (
     <div>
