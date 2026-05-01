@@ -34,7 +34,7 @@ const COLORS = ["hsl(var(--primary))", "#22c55e", "#f59e0b", "#3b82f6", "#ef4444
 function PainelHome() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ templates: 0, leads: 0, generations: 0 });
-  const [profile, setProfile] = useState<{ full_name: string; slug: string; is_blocked: boolean; trial_limit: number; signup_source: string } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; slug: string; is_blocked: boolean; trial_limit: number; signup_source: string; unblocked_at: string | null } | null>(null);
   const [sub, setSub] = useState<{ status: string; due_date: string | null; monthly_amount: number | null } | null>(null);
   const [settings, setSettings] = useState<{
     whatsapp_number: string | null;
@@ -49,7 +49,7 @@ function PainelHome() {
     if (!user) return;
     (async () => {
       const [profRes, subRes, settingsRes, leadRes, tplRes] = await Promise.all([
-        supabase.from("candidate_profiles").select("full_name, slug, is_blocked, trial_limit, signup_source").eq("id", user.id).single(),
+        supabase.from("candidate_profiles").select("full_name, slug, is_blocked, trial_limit, signup_source, unblocked_at").eq("id", user.id).single(),
         supabase.from("subscriptions").select("status, due_date, monthly_amount").eq("candidate_id", user.id).maybeSingle(),
         supabase.from("app_settings").select("whatsapp_number, pix_key, pix_qr_url, pix_owner_name").eq("id", 1).maybeSingle(),
         supabase.from("voter_leads").select("neighborhood, street, created_at").eq("candidate_id", user.id),
@@ -129,9 +129,11 @@ function PainelHome() {
   const valueLabel = sub?.monthly_amount ? `R$ ${Number(sub.monthly_amount).toFixed(2)}` : "a combinar";
   const dueLabel = sub?.due_date ? new Date(sub.due_date).toLocaleDateString("pt-BR") : null;
 
+  // Cliente "pago" = já foi liberado pelo admin alguma vez (ilimitado)
+  const isPaid = !!profile?.unblocked_at;
   const trialRemaining = Math.max(0, (profile?.trial_limit ?? 0) - stats.generations);
   const showTrialWarning =
-    !!profile && profile.signup_source === "public" && !profile.is_blocked && trialRemaining > 0 && trialRemaining <= 2;
+    !!profile && profile.signup_source === "public" && !isPaid && !profile.is_blocked && trialRemaining > 0 && trialRemaining <= 2;
 
   return (
     <div className="space-y-6">
