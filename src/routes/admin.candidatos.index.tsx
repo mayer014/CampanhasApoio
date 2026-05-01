@@ -96,13 +96,27 @@ function CandidatesList() {
     load();
   };
 
+  const slugify = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 50);
+
   const saveEdit = async () => {
     if (!editing) return;
+    const cleanSlug = slugify(editing.slug || editing.full_name);
+    if (!cleanSlug) {
+      toast.error("Slug inválido");
+      return;
+    }
     setSavingEdit(true);
     const { error } = await supabase.from("candidate_profiles").update({
       full_name: editing.full_name,
       phone: editing.phone,
-      slug: editing.slug,
+      slug: cleanSlug,
       notes: editing.notes ?? null,
       is_blocked: editing.is_blocked,
       trial_limit: editing.trial_limit,
