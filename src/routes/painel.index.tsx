@@ -129,9 +129,11 @@ function PainelHome() {
   const valueLabel = sub?.monthly_amount ? `R$ ${Number(sub.monthly_amount).toFixed(2)}` : "a combinar";
   const dueLabel = sub?.due_date ? new Date(sub.due_date).toLocaleDateString("pt-BR") : null;
 
+  // Cliente "pago" = já foi liberado pelo admin alguma vez (ilimitado)
+  const isPaid = !!profile?.unblocked_at;
   const trialRemaining = Math.max(0, (profile?.trial_limit ?? 0) - stats.generations);
   const showTrialWarning =
-    !!profile && profile.signup_source === "public" && !profile.is_blocked && trialRemaining > 0 && trialRemaining <= 2;
+    !!profile && profile.signup_source === "public" && !isPaid && !profile.is_blocked && trialRemaining > 0 && trialRemaining <= 2;
 
   return (
     <div className="space-y-6">
