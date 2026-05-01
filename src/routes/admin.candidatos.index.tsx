@@ -137,7 +137,23 @@ function CandidatesList() {
     }
   };
 
-  const filtered = items.filter((i) => i.full_name.toLowerCase().includes(q.toLowerCase()) || i.email?.toLowerCase().includes(q.toLowerCase()));
+  const matchesText = (i: C) =>
+    i.full_name.toLowerCase().includes(q.toLowerCase()) ||
+    i.email?.toLowerCase().includes(q.toLowerCase());
+  const matchesFilter = (i: C) => {
+    if (filter === "todos") return true;
+    if (filter === "ativos") return !i.is_blocked;
+    if (filter === "bloqueados") return i.is_blocked;
+    if (filter === "aguardando") return i.is_blocked && i.signup_source === "public";
+    return true;
+  };
+  const filtered = items.filter((i) => matchesText(i) && matchesFilter(i));
+  const counts = {
+    todos: items.length,
+    aguardando: items.filter((i) => i.is_blocked && i.signup_source === "public").length,
+    ativos: items.filter((i) => !i.is_blocked).length,
+    bloqueados: items.filter((i) => i.is_blocked).length,
+  };
 
   return (
     <div>
