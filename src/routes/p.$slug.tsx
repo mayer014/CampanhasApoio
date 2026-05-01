@@ -263,25 +263,56 @@ function EditorStep({ template, candidateName }: { template: Template; candidate
       setConverting(false);
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhoto({
-        src: reader.result as string,
-        x: template.photo_circle.x,
-        y: template.photo_circle.y,
-        scale: 1,
+    // Lê + valida que o navegador consegue decodificar antes de mostrar
+    let dataUrl: string;
+    try {
+      dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error ?? new Error("read"));
+        reader.readAsDataURL(workingFile);
       });
-    };
-    reader.readAsDataURL(workingFile);
+    } catch {
+      toast.error("Não foi possível ler o arquivo. Tente outra foto.");
+      return;
+    }
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const test = new Image();
+        test.onload = () => (test.naturalWidth > 0 ? resolve() : reject(new Error("empty")));
+        test.onerror = () => reject(new Error("decode"));
+        test.src = dataUrl;
+      });
+    } catch {
+      toast.error("Formato de imagem não suportado pelo seu navegador. Use JPG, PNG ou WebP.");
+      return;
+    }
+
+    setPhoto({
+      src: dataUrl,
+      x: template.photo_circle.x,
+      y: template.photo_circle.y,
+      scale: 1,
+    });
   };
 
   useEffect(() => {
     if (!photo) return;
     const img = new Image();
     img.onload = () => {
+      if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+        toast.error("A imagem está corrompida. Tente outra foto.");
+        setPhoto(null);
+        return;
+      }
       const target = template.photo_circle.radius * 2.2;
       const scale = target / Math.min(img.naturalWidth, img.naturalHeight);
       setPhoto((p) => p ? { ...p, scale } : p);
+    };
+    img.onerror = () => {
+      toast.error("Não foi possível pré-visualizar essa imagem.");
+      setPhoto(null);
     };
     img.src = photo.src;
     // eslint-disable-next-line react-hooks/exhaustive-deps
