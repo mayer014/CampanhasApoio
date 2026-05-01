@@ -5,21 +5,17 @@ FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Install bun (project uses bunfig.toml / bun lockfile may exist)
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates unzip \
   && curl -fsSL https://bun.sh/install | bash \
   && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy manifests first for better layer caching
 COPY package.json bun.lockb* bunfig.toml* ./
-
 RUN bun install --frozen-lockfile || bun install
 
-# Copy the rest of the source
 COPY . .
 
-# Build-time public env (Vite inlines VITE_* at build). Pass via --build-arg.
+# Vite inlines VITE_* at build time. Pass via --build-arg in Easypanel.
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_PUBLISHABLE_KEY
 ARG VITE_SUPABASE_PROJECT_ID
@@ -37,14 +33,17 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Copy build output and the wrangler config
+# The build emits a self-contained Worker bundle in dist/server (with its own
+# wrangler.json) and static assets in dist/client. We only need those + wrangler.
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/wrangler.jsonc ./wrangler.jsonc
+
+# Install only wrangler at runtime (much smaller than copying all node_modules)
+RUN npm install -g wrangler@4
 
 EXPOSE 3000
 
-# Serve the built Worker locally on 0.0.0.0:3000 using wrangler (workerd runtime).
-# This works on any Linux x64 host (Easypanel/VPS) without Cloudflare account.
-CMD ["npx", "wrangler", "dev", "--ip", "0.0.0.0", "--port", "3000", "--local"]
+WORKDIR /app/dist/server
+
+# Serve the built Worker locally on 0.0.0.0:3000 using wrangler's local runtime
+# (workerd). Works on any Linux x64 host without a Cloudflare account.
+CMD ["wrangler", "dev", "--ip", "0.0.0.0", "--port", "3000", "--local", "--no-show-interactive-dev-session"]
