@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tan
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, LayoutDashboard, Users, LogOut } from "lucide-react";
+import { Camera, LayoutDashboard, Users, LogOut, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -27,6 +27,7 @@ function AdminLayout() {
   const nav = [
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { to: "/admin/candidatos", label: "Candidatos", icon: Users },
+    { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
   ];
 
   return (

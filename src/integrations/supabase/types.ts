@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: number
+          pix_key: string | null
+          pix_owner_name: string | null
+          pix_qr_url: string | null
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          id?: number
+          pix_key?: string | null
+          pix_owner_name?: string | null
+          pix_qr_url?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          id?: number
+          pix_key?: string | null
+          pix_owner_name?: string | null
+          pix_qr_url?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
       candidate_profiles: {
         Row: {
           created_at: string

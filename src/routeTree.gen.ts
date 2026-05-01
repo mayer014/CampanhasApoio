@@ -20,6 +20,7 @@ import { Route as PainelTemplatesRouteImport } from './routes/painel.templates'
 import { Route as PainelLinkRouteImport } from './routes/painel.link'
 import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
+import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCandidatosIndexRouteImport } from './routes/admin.candidatos.index'
 import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
@@ -79,6 +80,11 @@ const PSlugRoute = PSlugRouteImport.update({
   path: '/p/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCandidatosIndexRoute = AdminCandidatosIndexRouteImport.update({
   id: '/candidatos/',
   path: '/candidatos/',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/bootstrap': typeof BootstrapRoute
   '/login': typeof LoginRoute
   '/painel': typeof PainelRouteWithChildren
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bootstrap': typeof BootstrapRoute
   '/login': typeof LoginRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/bootstrap': typeof BootstrapRoute
   '/login': typeof LoginRoute
   '/painel': typeof PainelRouteWithChildren
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/bootstrap'
     | '/login'
     | '/painel'
+    | '/admin/configuracoes'
     | '/p/$slug'
     | '/painel/leads'
     | '/painel/link'
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/'
     | '/bootstrap'
     | '/login'
+    | '/admin/configuracoes'
     | '/p/$slug'
     | '/painel/leads'
     | '/painel/link'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/bootstrap'
     | '/login'
     | '/painel'
+    | '/admin/configuracoes'
     | '/p/$slug'
     | '/painel/leads'
     | '/painel/link'
@@ -280,6 +292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/configuracoes': {
+      id: '/admin/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AdminConfiguracoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/candidatos/': {
       id: '/admin/candidatos/'
       path: '/candidatos'
@@ -305,6 +324,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCandidatosIndexRoute: typeof AdminCandidatosIndexRoute
   AdminCandidatosIdIndexRoute: typeof AdminCandidatosIdIndexRoute
@@ -312,6 +332,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminConfiguracoesRoute: AdminConfiguracoesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCandidatosIndexRoute: AdminCandidatosIndexRoute,
   AdminCandidatosIdIndexRoute: AdminCandidatosIdIndexRoute,
@@ -348,12 +369,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
