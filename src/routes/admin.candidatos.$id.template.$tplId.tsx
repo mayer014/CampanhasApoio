@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { TemplateCanvas } from "@/components/template-canvas";
+import { TemplateEditorCanvas, type DraggableLayerKey } from "@/components/template-editor-canvas";
 import type { TemplateData, Transform, PhotoCircle } from "@/lib/template-renderer";
 import { ArrowLeft, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/candidatos/$id/template/$tplId")({
   component: TemplateEditor,
@@ -36,6 +37,7 @@ function TemplateEditor() {
   const isNew = tplId === "novo";
   const [data, setData] = useState<typeof DEFAULT>(DEFAULT);
   const [saving, setSaving] = useState(false);
+  const [selected, setSelected] = useState<DraggableLayerKey>("photo_circle");
   const fileRefs = useRef<Record<LayerKey, HTMLInputElement | null>>({ background: null, base_circle: null, element: null, logo: null });
 
   useEffect(() => {
@@ -59,6 +61,15 @@ function TemplateEditor() {
     setData((d) => ({ ...d, [`${key}_transform`]: t } as typeof DEFAULT));
   };
   const setPhoto = (p: PhotoCircle) => setData((d) => ({ ...d, photo_circle: p }));
+
+  const handleCanvasDrag = (key: DraggableLayerKey, next: { x: number; y: number }) => {
+    if (key === "photo_circle") {
+      setPhoto({ ...data.photo_circle, x: next.x, y: next.y });
+    } else {
+      const t = data[`${key}_transform` as const] as Transform;
+      setTransform(key, { ...t, x: next.x, y: next.y });
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -92,11 +103,46 @@ function TemplateEditor() {
   const layers: { key: LayerKey; label: string; hint?: string; transformKey: keyof TemplateData; urlKey: keyof TemplateData }[] = [
     { key: "background", label: "1. Fundo (1080x1080)", hint: "Camada inferior — imagem de fundo do template.", transformKey: "background_transform", urlKey: "background_url" },
     { key: "base_circle", label: "2. Círculo base", hint: "Moldura/base que fica ATRÁS da foto do eleitor.", transformKey: "base_circle_transform", urlKey: "base_circle_url" },
-    { key: "element", label: "4. Elemento (acima da foto)", hint: "Camada decorativa que fica POR CIMA da foto do eleitor (ex: moldura com texto curvo).", transformKey: "element_transform", urlKey: "element_url" },
+    { key: "element", label: "4. Elemento (acima da foto)", hint: "Camada decorativa que fica POR CIMA da foto do eleitor.", transformKey: "element_transform", urlKey: "element_url" },
     { key: "logo", label: "5. Logo", hint: "Camada superior — logotipo da campanha.", transformKey: "logo_transform", urlKey: "logo_url" },
   ];
 
-  
+  const renderLayerCard = ({ key, label, hint, transformKey, urlKey }: typeof layers[number]) => {
+    const t = data[transformKey] as Transform;
+    const url = data[urlKey] as string | null;
+    const isSelected = selected === key;
+    return (
+      <Card
+        key={key}
+        className={cn("space-y-3 p-4 cursor-pointer transition-colors", isSelected && "border-primary ring-2 ring-primary/30")}
+        onClick={() => setSelected(key)}
+      >
+        <div className="flex items-center justify-between">
+          <Label className="font-semibold cursor-pointer">{label}</Label>
+          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); fileRefs.current[key]?.click(); }}>
+            <Upload className="mr-2 h-3 w-3" />{url ? "Trocar" : "Enviar"}
+          </Button>
+          <input ref={(el) => { fileRefs.current[key] = el; }} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(key, e.target.files[0])} />
+        </div>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        {url && <img src={url} alt={label} className="h-16 rounded border bg-muted object-contain" />}
+        <div className="space-y-2">
+          <div>
+            <Label className="text-xs">X: {t.x}</Label>
+            <Slider value={[t.x]} min={-540} max={1620} step={1} onValueChange={(v) => setTransform(key, { ...t, x: v[0] })} />
+          </div>
+          <div>
+            <Label className="text-xs">Y: {t.y}</Label>
+            <Slider value={[t.y]} min={-540} max={1620} step={1} onValueChange={(v) => setTransform(key, { ...t, y: v[0] })} />
+          </div>
+          <div>
+            <Label className="text-xs">Zoom: {t.scale.toFixed(2)}x</Label>
+            <Slider value={[t.scale]} min={0.1} max={3} step={0.05} onValueChange={(v) => setTransform(key, { ...t, scale: v[0] })} />
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <div>
@@ -106,11 +152,15 @@ function TemplateEditor() {
         <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_400px]">
-        <Card className="p-4">
-          <TemplateCanvas template={data} photo={null} showPhotoGuide />
-          <p className="mt-2 text-xs text-muted-foreground text-center">O círculo tracejado mostra onde a foto do eleitor será posicionada</p>
-        </Card>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_400px] items-start">
+        <div className="lg:sticky lg:top-4 self-start">
+          <Card className="p-4">
+            <TemplateEditorCanvas template={data} selected={selected} onChange={handleCanvasDrag} />
+            <p className="mt-2 text-xs text-muted-foreground text-center">
+              Arraste a camada selecionada (<span className="font-medium text-foreground">{selected}</span>) diretamente no canvas. Clique numa camada à direita para selecioná-la.
+            </p>
+          </Card>
+        </div>
 
         <div className="space-y-4">
           <Card className="space-y-3 p-4">
@@ -119,74 +169,37 @@ function TemplateEditor() {
           </Card>
 
           <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/30 p-3 text-xs text-muted-foreground">
-            <p className="font-semibold text-foreground">Ordem das camadas (de baixo para cima):</p>
-            <p>1. Fundo → 2. Círculo base → <span className="text-primary font-medium">3. Foto do eleitor (recortada no círculo)</span> → 4. Elemento → 5. Logo</p>
+            <p className="font-semibold text-foreground">Ordem (de baixo para cima):</p>
+            <p>1. Fundo → 2. Círculo base → <span className="text-primary font-medium">3. Foto do eleitor</span> → 4. Elemento → 5. Logo</p>
           </div>
 
-          {layers.slice(0, 2).map(({ key, label, hint, transformKey, urlKey }) => {
-            const t = data[transformKey] as Transform;
-            const url = data[urlKey] as string | null;
-            return (
-              <Card key={key} className="space-y-3 p-4">
-                <div className="flex items-center justify-between">
-                  <Label className="font-semibold">{label}</Label>
-                  <Button size="sm" variant="outline" onClick={() => fileRefs.current[key]?.click()}>
-                    <Upload className="mr-2 h-3 w-3" />{url ? "Trocar" : "Enviar"}
-                  </Button>
-                  <input ref={(el) => { fileRefs.current[key] = el; }} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(key, e.target.files[0])} />
-                </div>
-                {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-                {url && <img src={url} alt={label} className="h-16 rounded border bg-muted object-contain" />}
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">X</Label><Input type="number" value={t.x} onChange={(e) => setTransform(key, { ...t, x: Number(e.target.value) })} /></div>
-                  <div><Label className="text-xs">Y</Label><Input type="number" value={t.y} onChange={(e) => setTransform(key, { ...t, y: Number(e.target.value) })} /></div>
-                </div>
-                <div>
-                  <Label className="text-xs">Zoom: {t.scale.toFixed(2)}x</Label>
-                  <Slider value={[t.scale]} min={0.1} max={3} step={0.05} onValueChange={(v) => setTransform(key, { ...t, scale: v[0] })} />
-                </div>
-              </Card>
-            );
-          })}
+          {layers.slice(0, 2).map(renderLayerCard)}
 
-          <Card className="space-y-3 p-4 border-primary/40">
-            <Label className="font-semibold">3. Círculo da foto do eleitor</Label>
+          <Card
+            className={cn("space-y-3 p-4 cursor-pointer transition-colors border-primary/40", selected === "photo_circle" && "border-primary ring-2 ring-primary/30")}
+            onClick={() => setSelected("photo_circle")}
+          >
+            <Label className="font-semibold cursor-pointer">3. Círculo da foto do eleitor</Label>
             <p className="text-xs text-muted-foreground">
-              Define a posição (X, Y) e o raio do círculo onde a foto enviada pelo eleitor será recortada.
-              Esta camada fica ENTRE o círculo base e o elemento decorativo.
+              Define a posição e o raio do círculo onde a foto enviada pelo eleitor será recortada.
             </p>
-            <div className="grid grid-cols-3 gap-2">
-              <div><Label className="text-xs">X</Label><Input type="number" value={data.photo_circle.x} onChange={(e) => setPhoto({ ...data.photo_circle, x: Number(e.target.value) })} /></div>
-              <div><Label className="text-xs">Y</Label><Input type="number" value={data.photo_circle.y} onChange={(e) => setPhoto({ ...data.photo_circle, y: Number(e.target.value) })} /></div>
-              <div><Label className="text-xs">Raio</Label><Input type="number" value={data.photo_circle.radius} onChange={(e) => setPhoto({ ...data.photo_circle, radius: Number(e.target.value) })} /></div>
+            <div className="space-y-2">
+              <div>
+                <Label className="text-xs">X: {data.photo_circle.x}</Label>
+                <Slider value={[data.photo_circle.x]} min={0} max={1080} step={1} onValueChange={(v) => setPhoto({ ...data.photo_circle, x: v[0] })} />
+              </div>
+              <div>
+                <Label className="text-xs">Y: {data.photo_circle.y}</Label>
+                <Slider value={[data.photo_circle.y]} min={0} max={1080} step={1} onValueChange={(v) => setPhoto({ ...data.photo_circle, y: v[0] })} />
+              </div>
+              <div>
+                <Label className="text-xs">Raio: {data.photo_circle.radius}</Label>
+                <Slider value={[data.photo_circle.radius]} min={20} max={540} step={1} onValueChange={(v) => setPhoto({ ...data.photo_circle, radius: v[0] })} />
+              </div>
             </div>
           </Card>
 
-          {layers.slice(2).map(({ key, label, hint, transformKey, urlKey }) => {
-            const t = data[transformKey] as Transform;
-            const url = data[urlKey] as string | null;
-            return (
-              <Card key={key} className="space-y-3 p-4">
-                <div className="flex items-center justify-between">
-                  <Label className="font-semibold">{label}</Label>
-                  <Button size="sm" variant="outline" onClick={() => fileRefs.current[key]?.click()}>
-                    <Upload className="mr-2 h-3 w-3" />{url ? "Trocar" : "Enviar"}
-                  </Button>
-                  <input ref={(el) => { fileRefs.current[key] = el; }} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(key, e.target.files[0])} />
-                </div>
-                {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-                {url && <img src={url} alt={label} className="h-16 rounded border bg-muted object-contain" />}
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">X</Label><Input type="number" value={t.x} onChange={(e) => setTransform(key, { ...t, x: Number(e.target.value) })} /></div>
-                  <div><Label className="text-xs">Y</Label><Input type="number" value={t.y} onChange={(e) => setTransform(key, { ...t, y: Number(e.target.value) })} /></div>
-                </div>
-                <div>
-                  <Label className="text-xs">Zoom: {t.scale.toFixed(2)}x</Label>
-                  <Slider value={[t.scale]} min={0.1} max={3} step={0.05} onValueChange={(v) => setTransform(key, { ...t, scale: v[0] })} />
-                </div>
-              </Card>
-            );
-          })}
+          {layers.slice(2).map(renderLayerCard)}
         </div>
       </div>
     </div>
