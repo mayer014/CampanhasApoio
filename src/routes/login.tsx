@@ -79,6 +79,13 @@ function LoginPage() {
         <Button variant="outline" className="w-full" onClick={handleGoogle}>
           Entrar com Google
         </Button>
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Ainda não tem conta?{" "}
+          <Link to="/cadastro" className="font-medium text-primary hover:underline">
+            Cadastre-se grátis
+          </Link>
+        </p>
       </Card>
     </div>
   );
