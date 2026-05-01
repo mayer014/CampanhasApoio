@@ -184,6 +184,21 @@ function CandidateDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={!!deletingTpl} onOpenChange={(v) => !v && setDeletingTpl(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir este template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação não pode ser desfeita. Se este template estava disponível no link público, o eleitor não poderá mais escolhê-lo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={removeTemplate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
