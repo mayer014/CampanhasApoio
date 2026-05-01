@@ -34,7 +34,7 @@ const COLORS = ["hsl(var(--primary))", "#22c55e", "#f59e0b", "#3b82f6", "#ef4444
 function PainelHome() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ templates: 0, leads: 0, generations: 0 });
-  const [profile, setProfile] = useState<{ full_name: string; slug: string } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; slug: string; is_blocked: boolean; trial_limit: number; signup_source: string } | null>(null);
   const [sub, setSub] = useState<{ status: string; due_date: string | null; monthly_amount: number | null } | null>(null);
   const [settings, setSettings] = useState<{
     whatsapp_number: string | null;
