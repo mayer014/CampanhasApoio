@@ -167,31 +167,51 @@ function CandidatesList() {
       </div>
 
       <div className="mt-4 grid gap-3">
-        {filtered.map((c) => (
-          <Card key={c.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">{c.full_name}</span>
-                {c.is_blocked && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Bloqueado</span>}
+        {filtered.map((c) => {
+          const used = usage[c.id] ?? 0;
+          const limit = c.trial_limit ?? 0;
+          const remaining = Math.max(0, limit - used);
+          return (
+            <Card key={c.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{c.full_name}</span>
+                  {c.is_blocked ? (
+                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Bloqueado</span>
+                  ) : (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Ativo</span>
+                  )}
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${remaining === 0 ? "bg-destructive/10 text-destructive" : remaining <= 2 ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-muted text-muted-foreground"}`}>
+                    {used}/{limit} fotos
+                  </span>
+                </div>
+                <div className="text-sm text-muted-foreground">{c.email} · /p/{c.slug}</div>
               </div>
-              <div className="text-sm text-muted-foreground">{c.email} · /p/{c.slug}</div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <a href={`/p/${c.slug}`} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline"><ExternalLink className="mr-2 h-4 w-4" />Link</Button>
-              </a>
-              <Button size="sm" variant="outline" onClick={() => exportLeads(c)} disabled={exportingId === c.id}>
-                <FileSpreadsheet className="mr-2 h-4 w-4" />{exportingId === c.id ? "Exportando..." : "Excel"}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditing({ ...c })}>
-                <Pencil className="mr-2 h-4 w-4" />Editar
-              </Button>
-              <Link to="/admin/candidatos/$id" params={{ id: c.id }}>
-                <Button size="sm">Gerenciar</Button>
-              </Link>
-            </div>
-          </Card>
-        ))}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
+                  <span className="text-xs text-muted-foreground">{c.is_blocked ? "Bloqueado" : "Liberado"}</span>
+                  <Switch
+                    checked={!c.is_blocked}
+                    disabled={togglingId === c.id}
+                    onCheckedChange={(v) => toggleBlock(c, !v)}
+                  />
+                </div>
+                <a href={`/p/${c.slug}`} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline"><ExternalLink className="mr-2 h-4 w-4" />Link</Button>
+                </a>
+                <Button size="sm" variant="outline" onClick={() => exportLeads(c)} disabled={exportingId === c.id}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />{exportingId === c.id ? "Exportando..." : "Excel"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setEditing({ ...c })}>
+                  <Pencil className="mr-2 h-4 w-4" />Editar
+                </Button>
+                <Link to="/admin/candidatos/$id" params={{ id: c.id }}>
+                  <Button size="sm">Gerenciar</Button>
+                </Link>
+              </div>
+            </Card>
+          );
+        })}
         {filtered.length === 0 && <Card className="p-8 text-center text-muted-foreground">Nenhum candidato</Card>}
       </div>
 
