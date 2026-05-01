@@ -17,6 +17,7 @@ function PainelLayout() {
     if (loading) return;
     if (!user) navigate({ to: "/login" });
     else if (role === "admin") navigate({ to: "/admin" });
+    else if (role === null) navigate({ to: "/bootstrap" });
   }, [loading, user, role, navigate]);
 
   if (loading || !user || role !== "candidate") {
