@@ -9,38 +9,208 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PainelRouteImport } from './routes/painel'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PainelIndexRouteImport } from './routes/painel.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PainelTemplatesRouteImport } from './routes/painel.templates'
+import { Route as PainelLinkRouteImport } from './routes/painel.link'
+import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
+import { Route as AdminCandidatosIndexRouteImport } from './routes/admin.candidatos.index'
+import { Route as AdminCandidatosIdRouteImport } from './routes/admin.candidatos.$id'
+import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
+const PainelRoute = PainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PainelIndexRoute = PainelIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PainelRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const PainelTemplatesRoute = PainelTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => PainelRoute,
+} as any)
+const PainelLinkRoute = PainelLinkRouteImport.update({
+  id: '/link',
+  path: '/link',
+  getParentRoute: () => PainelRoute,
+} as any)
+const PainelLeadsRoute = PainelLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => PainelRoute,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCandidatosIndexRoute = AdminCandidatosIndexRouteImport.update({
+  id: '/candidatos/',
+  path: '/candidatos/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCandidatosIdRoute = AdminCandidatosIdRouteImport.update({
+  id: '/candidatos/$id',
+  path: '/candidatos/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCandidatosIdTemplateTplIdRoute =
+  AdminCandidatosIdTemplateTplIdRouteImport.update({
+    id: '/template/$tplId',
+    path: '/template/$tplId',
+    getParentRoute: () => AdminCandidatosIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/painel': typeof PainelRouteWithChildren
+  '/p/$slug': typeof PSlugRoute
+  '/painel/leads': typeof PainelLeadsRoute
+  '/painel/link': typeof PainelLinkRoute
+  '/painel/templates': typeof PainelTemplatesRoute
+  '/admin/': typeof AdminIndexRoute
+  '/painel/': typeof PainelIndexRoute
+  '/admin/candidatos/$id': typeof AdminCandidatosIdRouteWithChildren
+  '/admin/candidatos/': typeof AdminCandidatosIndexRoute
+  '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/p/$slug': typeof PSlugRoute
+  '/painel/leads': typeof PainelLeadsRoute
+  '/painel/link': typeof PainelLinkRoute
+  '/painel/templates': typeof PainelTemplatesRoute
+  '/admin': typeof AdminIndexRoute
+  '/painel': typeof PainelIndexRoute
+  '/admin/candidatos/$id': typeof AdminCandidatosIdRouteWithChildren
+  '/admin/candidatos': typeof AdminCandidatosIndexRoute
+  '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/painel': typeof PainelRouteWithChildren
+  '/p/$slug': typeof PSlugRoute
+  '/painel/leads': typeof PainelLeadsRoute
+  '/painel/link': typeof PainelLinkRoute
+  '/painel/templates': typeof PainelTemplatesRoute
+  '/admin/': typeof AdminIndexRoute
+  '/painel/': typeof PainelIndexRoute
+  '/admin/candidatos/$id': typeof AdminCandidatosIdRouteWithChildren
+  '/admin/candidatos/': typeof AdminCandidatosIndexRoute
+  '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/painel'
+    | '/p/$slug'
+    | '/painel/leads'
+    | '/painel/link'
+    | '/painel/templates'
+    | '/admin/'
+    | '/painel/'
+    | '/admin/candidatos/$id'
+    | '/admin/candidatos/'
+    | '/admin/candidatos/$id/template/$tplId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/p/$slug'
+    | '/painel/leads'
+    | '/painel/link'
+    | '/painel/templates'
+    | '/admin'
+    | '/painel'
+    | '/admin/candidatos/$id'
+    | '/admin/candidatos'
+    | '/admin/candidatos/$id/template/$tplId'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/painel'
+    | '/p/$slug'
+    | '/painel/leads'
+    | '/painel/link'
+    | '/painel/templates'
+    | '/admin/'
+    | '/painel/'
+    | '/admin/candidatos/$id'
+    | '/admin/candidatos/'
+    | '/admin/candidatos/$id/template/$tplId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  PainelRoute: typeof PainelRouteWithChildren
+  PSlugRoute: typeof PSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/painel': {
+      id: '/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof PainelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +218,120 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/painel/': {
+      id: '/painel/'
+      path: '/'
+      fullPath: '/painel/'
+      preLoaderRoute: typeof PainelIndexRouteImport
+      parentRoute: typeof PainelRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/painel/templates': {
+      id: '/painel/templates'
+      path: '/templates'
+      fullPath: '/painel/templates'
+      preLoaderRoute: typeof PainelTemplatesRouteImport
+      parentRoute: typeof PainelRoute
+    }
+    '/painel/link': {
+      id: '/painel/link'
+      path: '/link'
+      fullPath: '/painel/link'
+      preLoaderRoute: typeof PainelLinkRouteImport
+      parentRoute: typeof PainelRoute
+    }
+    '/painel/leads': {
+      id: '/painel/leads'
+      path: '/leads'
+      fullPath: '/painel/leads'
+      preLoaderRoute: typeof PainelLeadsRouteImport
+      parentRoute: typeof PainelRoute
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/candidatos/': {
+      id: '/admin/candidatos/'
+      path: '/candidatos'
+      fullPath: '/admin/candidatos/'
+      preLoaderRoute: typeof AdminCandidatosIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/candidatos/$id': {
+      id: '/admin/candidatos/$id'
+      path: '/candidatos/$id'
+      fullPath: '/admin/candidatos/$id'
+      preLoaderRoute: typeof AdminCandidatosIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/candidatos/$id/template/$tplId': {
+      id: '/admin/candidatos/$id/template/$tplId'
+      path: '/template/$tplId'
+      fullPath: '/admin/candidatos/$id/template/$tplId'
+      preLoaderRoute: typeof AdminCandidatosIdTemplateTplIdRouteImport
+      parentRoute: typeof AdminCandidatosIdRoute
+    }
   }
 }
 
+interface AdminCandidatosIdRouteChildren {
+  AdminCandidatosIdTemplateTplIdRoute: typeof AdminCandidatosIdTemplateTplIdRoute
+}
+
+const AdminCandidatosIdRouteChildren: AdminCandidatosIdRouteChildren = {
+  AdminCandidatosIdTemplateTplIdRoute: AdminCandidatosIdTemplateTplIdRoute,
+}
+
+const AdminCandidatosIdRouteWithChildren =
+  AdminCandidatosIdRoute._addFileChildren(AdminCandidatosIdRouteChildren)
+
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminCandidatosIdRoute: typeof AdminCandidatosIdRouteWithChildren
+  AdminCandidatosIndexRoute: typeof AdminCandidatosIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+  AdminCandidatosIdRoute: AdminCandidatosIdRouteWithChildren,
+  AdminCandidatosIndexRoute: AdminCandidatosIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface PainelRouteChildren {
+  PainelLeadsRoute: typeof PainelLeadsRoute
+  PainelLinkRoute: typeof PainelLinkRoute
+  PainelTemplatesRoute: typeof PainelTemplatesRoute
+  PainelIndexRoute: typeof PainelIndexRoute
+}
+
+const PainelRouteChildren: PainelRouteChildren = {
+  PainelLeadsRoute: PainelLeadsRoute,
+  PainelLinkRoute: PainelLinkRoute,
+  PainelTemplatesRoute: PainelTemplatesRoute,
+  PainelIndexRoute: PainelIndexRoute,
+}
+
+const PainelRouteWithChildren =
+  PainelRoute._addFileChildren(PainelRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  LoginRoute: LoginRoute,
+  PainelRoute: PainelRouteWithChildren,
+  PSlugRoute: PSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
