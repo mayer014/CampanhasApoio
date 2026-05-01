@@ -22,7 +22,7 @@ type Pay = { id: string; amount: number; paid_at: string; method: string | null;
 type Tpl = { id: string; name: string; is_active: boolean; generation_count: number };
 type Lead = { id: string; full_name: string; phone: string; street: string; number: string; neighborhood: string; created_at: string };
 
-export const Route = createFileRoute("/admin/candidatos/$id")({
+export const Route = createFileRoute("/admin/candidatos/$id/")({
   component: CandidateDetail,
 });
 

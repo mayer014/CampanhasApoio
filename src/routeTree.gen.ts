@@ -21,7 +21,7 @@ import { Route as PainelLinkRouteImport } from './routes/painel.link'
 import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AdminCandidatosIndexRouteImport } from './routes/admin.candidatos.index'
-import { Route as AdminCandidatosIdRouteImport } from './routes/admin.candidatos.$id'
+import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
 const PainelRoute = PainelRouteImport.update({
@@ -84,16 +84,16 @@ const AdminCandidatosIndexRoute = AdminCandidatosIndexRouteImport.update({
   path: '/candidatos/',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminCandidatosIdRoute = AdminCandidatosIdRouteImport.update({
-  id: '/candidatos/$id',
-  path: '/candidatos/$id',
+const AdminCandidatosIdIndexRoute = AdminCandidatosIdIndexRouteImport.update({
+  id: '/candidatos/$id/',
+  path: '/candidatos/$id/',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCandidatosIdTemplateTplIdRoute =
   AdminCandidatosIdTemplateTplIdRouteImport.update({
-    id: '/template/$tplId',
-    path: '/template/$tplId',
-    getParentRoute: () => AdminCandidatosIdRoute,
+    id: '/candidatos/$id/template/$tplId',
+    path: '/candidatos/$id/template/$tplId',
+    getParentRoute: () => AdminRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -108,8 +108,8 @@ export interface FileRoutesByFullPath {
   '/painel/templates': typeof PainelTemplatesRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
-  '/admin/candidatos/$id': typeof AdminCandidatosIdRouteWithChildren
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
+  '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
   '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
 }
 export interface FileRoutesByTo {
@@ -122,8 +122,8 @@ export interface FileRoutesByTo {
   '/painel/templates': typeof PainelTemplatesRoute
   '/admin': typeof AdminIndexRoute
   '/painel': typeof PainelIndexRoute
-  '/admin/candidatos/$id': typeof AdminCandidatosIdRouteWithChildren
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
+  '/admin/candidatos/$id': typeof AdminCandidatosIdIndexRoute
   '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
 }
 export interface FileRoutesById {
@@ -139,8 +139,8 @@ export interface FileRoutesById {
   '/painel/templates': typeof PainelTemplatesRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
-  '/admin/candidatos/$id': typeof AdminCandidatosIdRouteWithChildren
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
+  '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
   '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
 }
 export interface FileRouteTypes {
@@ -157,8 +157,8 @@ export interface FileRouteTypes {
     | '/painel/templates'
     | '/admin/'
     | '/painel/'
-    | '/admin/candidatos/$id'
     | '/admin/candidatos/'
+    | '/admin/candidatos/$id/'
     | '/admin/candidatos/$id/template/$tplId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -171,8 +171,8 @@ export interface FileRouteTypes {
     | '/painel/templates'
     | '/admin'
     | '/painel'
-    | '/admin/candidatos/$id'
     | '/admin/candidatos'
+    | '/admin/candidatos/$id'
     | '/admin/candidatos/$id/template/$tplId'
   id:
     | '__root__'
@@ -187,8 +187,8 @@ export interface FileRouteTypes {
     | '/painel/templates'
     | '/admin/'
     | '/painel/'
-    | '/admin/candidatos/$id'
     | '/admin/candidatos/'
+    | '/admin/candidatos/$id/'
     | '/admin/candidatos/$id/template/$tplId'
   fileRoutesById: FileRoutesById
 }
@@ -287,44 +287,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCandidatosIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/candidatos/$id': {
-      id: '/admin/candidatos/$id'
+    '/admin/candidatos/$id/': {
+      id: '/admin/candidatos/$id/'
       path: '/candidatos/$id'
-      fullPath: '/admin/candidatos/$id'
-      preLoaderRoute: typeof AdminCandidatosIdRouteImport
+      fullPath: '/admin/candidatos/$id/'
+      preLoaderRoute: typeof AdminCandidatosIdIndexRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/candidatos/$id/template/$tplId': {
       id: '/admin/candidatos/$id/template/$tplId'
-      path: '/template/$tplId'
+      path: '/candidatos/$id/template/$tplId'
       fullPath: '/admin/candidatos/$id/template/$tplId'
       preLoaderRoute: typeof AdminCandidatosIdTemplateTplIdRouteImport
-      parentRoute: typeof AdminCandidatosIdRoute
+      parentRoute: typeof AdminRoute
     }
   }
 }
 
-interface AdminCandidatosIdRouteChildren {
-  AdminCandidatosIdTemplateTplIdRoute: typeof AdminCandidatosIdTemplateTplIdRoute
-}
-
-const AdminCandidatosIdRouteChildren: AdminCandidatosIdRouteChildren = {
-  AdminCandidatosIdTemplateTplIdRoute: AdminCandidatosIdTemplateTplIdRoute,
-}
-
-const AdminCandidatosIdRouteWithChildren =
-  AdminCandidatosIdRoute._addFileChildren(AdminCandidatosIdRouteChildren)
-
 interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
-  AdminCandidatosIdRoute: typeof AdminCandidatosIdRouteWithChildren
   AdminCandidatosIndexRoute: typeof AdminCandidatosIndexRoute
+  AdminCandidatosIdIndexRoute: typeof AdminCandidatosIdIndexRoute
+  AdminCandidatosIdTemplateTplIdRoute: typeof AdminCandidatosIdTemplateTplIdRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
-  AdminCandidatosIdRoute: AdminCandidatosIdRouteWithChildren,
   AdminCandidatosIndexRoute: AdminCandidatosIndexRoute,
+  AdminCandidatosIdIndexRoute: AdminCandidatosIdIndexRoute,
+  AdminCandidatosIdTemplateTplIdRoute: AdminCandidatosIdTemplateTplIdRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -357,3 +348,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
