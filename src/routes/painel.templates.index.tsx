@@ -111,12 +111,29 @@ function TemplatesPage() {
         </Button>
       </div>
 
+      {defaultMissingLogo && (
+        <Card className="mt-4 flex items-start gap-3 border-amber-500/40 bg-amber-500/10 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-foreground">Seu template padrão já está ativo 🎉</p>
+            <p className="mt-1 text-muted-foreground">
+              Falta só <strong>adicionar sua logo</strong> para deixar com a sua cara. Se preferir, pode usar o template padrão sem logo mesmo — ele já está disponível para o eleitor.
+            </p>
+            <Link to="/painel/templates/$tplId" params={{ tplId: defaultTpl!.id }} className="mt-2 inline-block">
+              <Button size="sm" variant="outline" className="border-amber-600/50 text-amber-700 hover:bg-amber-500/20">
+                <ImageIcon className="mr-2 h-3 w-3" /> Adicionar minha logo
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      )}
+
       <Card className="mt-4 flex items-start gap-3 border-primary/30 bg-primary/5 p-4">
         <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <div className="text-sm">
           <p className="font-semibold text-foreground">Você pode criar até {LIMIT} templates</p>
           <p className="mt-1 text-muted-foreground">
-            Marque quais ficam <strong>disponíveis</strong> e o eleitor escolhe qual usar no link público.
+            Já incluímos o <strong>“{DEFAULT_TEMPLATE_NAME}”</strong> ativo na sua conta. Marque outros como <strong>disponíveis</strong> e o eleitor escolhe qual usar no link público.
             Você pode deixar de 0 a {LIMIT} ativos ao mesmo tempo.
           </p>
         </div>
