@@ -126,7 +126,7 @@ function PainelHome() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const valueLabel = sub?.monthly_amount ? `R$ ${Number(sub.monthly_amount).toFixed(2)}` : "a combinar";
+  const valueLabel = "R$ 89,90";
   const dueLabel = sub?.due_date ? new Date(sub.due_date).toLocaleDateString("pt-BR") : null;
 
   // Cliente "pago" = já foi liberado pelo admin alguma vez (ilimitado)
