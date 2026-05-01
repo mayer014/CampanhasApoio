@@ -34,9 +34,14 @@ function Index() {
             <Camera className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold">Foto de Campanha</span>
           </div>
-          <Link to="/login">
-            <Button variant="outline">Entrar</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/login">
+              <Button variant="ghost">Entrar</Button>
+            </Link>
+            <Link to="/cadastro">
+              <Button>Cadastre-se grátis</Button>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -49,9 +54,12 @@ function Index() {
             Plataforma para candidatos criarem templates de foto de perfil. Compartilhe um link e
             seus apoiadores trocam a foto do WhatsApp em segundos — você ainda recebe os contatos.
           </p>
-          <div className="mt-10">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link to="/cadastro">
+              <Button size="lg" className="text-base">Comece grátis com 5 fotos</Button>
+            </Link>
             <Link to="/login">
-              <Button size="lg" className="text-base">Acessar minha conta</Button>
+              <Button size="lg" variant="outline" className="text-base">Já tenho conta</Button>
             </Link>
           </div>
         </section>

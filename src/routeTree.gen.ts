@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PainelRouteImport } from './routes/painel'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as BootstrapRouteImport } from './routes/bootstrap'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -33,6 +34,11 @@ const PainelRoute = PainelRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroRoute = CadastroRouteImport.update({
+  id: '/cadastro',
+  path: '/cadastro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BootstrapRoute = BootstrapRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/bootstrap': typeof BootstrapRoute
+  '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/painel': typeof PainelRouteWithChildren
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bootstrap': typeof BootstrapRoute
+  '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/p/$slug': typeof PSlugRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/bootstrap': typeof BootstrapRoute
+  '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/painel': typeof PainelRouteWithChildren
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/bootstrap'
+    | '/cadastro'
     | '/login'
     | '/painel'
     | '/admin/configuracoes'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/bootstrap'
+    | '/cadastro'
     | '/login'
     | '/admin/configuracoes'
     | '/p/$slug'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/bootstrap'
+    | '/cadastro'
     | '/login'
     | '/painel'
     | '/admin/configuracoes'
@@ -208,6 +220,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   BootstrapRoute: typeof BootstrapRoute
+  CadastroRoute: typeof CadastroRoute
   LoginRoute: typeof LoginRoute
   PainelRoute: typeof PainelRouteWithChildren
   PSlugRoute: typeof PSlugRoute
@@ -227,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro': {
+      id: '/cadastro'
+      path: '/cadastro'
+      fullPath: '/cadastro'
+      preLoaderRoute: typeof CadastroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bootstrap': {
@@ -362,6 +382,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   BootstrapRoute: BootstrapRoute,
+  CadastroRoute: CadastroRoute,
   LoginRoute: LoginRoute,
   PainelRoute: PainelRouteWithChildren,
   PSlugRoute: PSlugRoute,

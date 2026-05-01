@@ -12,8 +12,8 @@ import { Plus, Search, ExternalLink, Pencil, FileSpreadsheet } from "lucide-reac
 import { toast } from "sonner";
 import { exportLeadsXLSX } from "@/lib/export-leads";
 
-type C = { id: string; full_name: string; email: string | null; phone: string | null; slug: string; is_blocked: boolean; notes?: string | null; trial_limit: number; created_at: string };
-type Usage = { candidate_id: string; total: number };
+type C = { id: string; full_name: string; email: string | null; phone: string | null; slug: string; is_blocked: boolean; notes?: string | null; trial_limit: number; created_at: string; signup_source: string; city: string | null; state: string | null; unblocked_at: string | null };
+type Filter = "todos" | "aguardando" | "ativos" | "bloqueados";
 
 export const Route = createFileRoute("/admin/candidatos/")({
   component: CandidatesList,
@@ -23,6 +23,7 @@ function CandidatesList() {
   const [items, setItems] = useState<C[]>([]);
   const [usage, setUsage] = useState<Record<string, number>>({});
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<Filter>("todos");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", phone: "", slug: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -75,10 +76,14 @@ function CandidatesList() {
   const toggleBlock = async (c: C, blocked: boolean) => {
     setTogglingId(c.id);
     const used = usage[c.id] ?? 0;
-    const updates: { is_blocked: boolean; trial_limit?: number } = { is_blocked: blocked };
+    const updates: { is_blocked: boolean; trial_limit?: number; unblocked_at?: string } = { is_blocked: blocked };
     // Se está liberando e o uso já estourou o limite, eleva o limite para liberar mais 5 fotos
     if (!blocked && used >= (c.trial_limit ?? 0)) {
       updates.trial_limit = used + 5;
+    }
+    // Marca data da liberação (usado para conversão no dashboard)
+    if (!blocked) {
+      updates.unblocked_at = new Date().toISOString();
     }
     const { error } = await supabase.from("candidate_profiles").update(updates).eq("id", c.id);
     setTogglingId(null);
@@ -132,7 +137,23 @@ function CandidatesList() {
     }
   };
 
-  const filtered = items.filter((i) => i.full_name.toLowerCase().includes(q.toLowerCase()) || i.email?.toLowerCase().includes(q.toLowerCase()));
+  const matchesText = (i: C) =>
+    i.full_name.toLowerCase().includes(q.toLowerCase()) ||
+    i.email?.toLowerCase().includes(q.toLowerCase());
+  const matchesFilter = (i: C) => {
+    if (filter === "todos") return true;
+    if (filter === "ativos") return !i.is_blocked;
+    if (filter === "bloqueados") return i.is_blocked;
+    if (filter === "aguardando") return i.is_blocked && i.signup_source === "public";
+    return true;
+  };
+  const filtered = items.filter((i) => matchesText(i) && matchesFilter(i));
+  const counts = {
+    todos: items.length,
+    aguardando: items.filter((i) => i.is_blocked && i.signup_source === "public").length,
+    ativos: items.filter((i) => !i.is_blocked).length,
+    bloqueados: items.filter((i) => i.is_blocked).length,
+  };
 
   return (
     <div>
@@ -161,9 +182,29 @@ function CandidatesList() {
         </Dialog>
       </div>
 
-      <div className="mt-6 flex items-center gap-2">
+      <div className="mt-6 flex flex-wrap items-center gap-2">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input placeholder="Buscar por nome ou e-mail" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
+        <div className="flex flex-wrap gap-1.5">
+          {(["todos", "aguardando", "ativos", "bloqueados"] as Filter[]).map((f) => {
+            const labels: Record<Filter, string> = {
+              todos: "Todos",
+              aguardando: "Aguardando liberação",
+              ativos: "Ativos",
+              bloqueados: "Bloqueados",
+            };
+            return (
+              <Button
+                key={f}
+                size="sm"
+                variant={filter === f ? "default" : "outline"}
+                onClick={() => setFilter(f)}
+              >
+                {labels[f]} ({counts[f]})
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3">
@@ -181,11 +222,17 @@ function CandidatesList() {
                   ) : (
                     <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Ativo</span>
                   )}
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${c.signup_source === "public" ? "bg-blue-500/10 text-blue-700 dark:text-blue-300" : "bg-muted text-muted-foreground"}`}>
+                    {c.signup_source === "public" ? "Público" : "Admin"}
+                  </span>
                   <span className={`rounded-full px-2 py-0.5 text-xs ${remaining === 0 ? "bg-destructive/10 text-destructive" : remaining <= 2 ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-muted text-muted-foreground"}`}>
                     {used}/{limit} fotos
                   </span>
                 </div>
-                <div className="text-sm text-muted-foreground">{c.email} · /p/{c.slug}</div>
+                <div className="text-sm text-muted-foreground">
+                  {c.email} · /p/{c.slug}
+                  {c.city && (<> · {c.city}/{c.state ?? "—"}</>)}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
