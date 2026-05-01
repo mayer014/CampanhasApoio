@@ -23,6 +23,17 @@ function PublicPage() {
   const [template, setTemplate] = useState<Template | null>(null);
   const [step, setStep] = useState<"intro" | "form" | "edit" | "done">("intro");
   const [notFound, setNotFound] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+
+  // Marca local: este dispositivo já cadastrou para este candidato
+  useEffect(() => {
+    if (!candidate) return;
+    try {
+      if (localStorage.getItem(`lead_done:${candidate.id}`) === "1") {
+        setAlreadyRegistered(true);
+      }
+    } catch {/* ignore */}
+  }, [candidate]);
 
   useEffect(() => {
     (async () => {
