@@ -112,12 +112,23 @@ function CandidateDetail() {
             {tpls.map((t) => (
               <Card key={t.id} className="flex items-center justify-between p-4">
                 <div>
-                  <div className="font-semibold">{t.name} {t.is_active && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Ativo</span>}</div>
+                  <div className="font-semibold">{t.name} {t.is_active && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Disponível</span>}</div>
                   <div className="text-sm text-muted-foreground">{t.generation_count} fotos geradas</div>
                 </div>
-                <Link to="/admin/candidatos/$id/template/$tplId" params={{ id, tplId: t.id }}>
-                  <Button variant="outline">Editar</Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link to="/admin/candidatos/$id/template/$tplId" params={{ id, tplId: t.id }}>
+                    <Button variant="outline">Editar</Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setDeletingTpl(t.id)}
+                    title="Excluir template"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </Card>
             ))}
             {tpls.length === 0 && <Card className="p-6 text-center text-muted-foreground">Nenhum template ainda</Card>}
