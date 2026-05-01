@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TemplateCanvas } from "@/components/template-canvas";
 import { toast } from "sonner";
 import type { TemplateData } from "@/lib/template-renderer";
-import { Check, Plus, Pencil, Trash2, Info } from "lucide-react";
+import { Check, Plus, Pencil, Trash2, Info, MessageCircle, Layers, Image as ImageIcon, Move, Save, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/painel/templates/")({
