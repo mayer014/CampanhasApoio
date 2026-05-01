@@ -1,64 +1,76 @@
-# Plano: Sistema de Templates para Foto de Perfil de Campanha
+# Cadastro público de candidatos + rastreio no dashboard
 
-## Visão Geral
-Plataforma com 3 tipos de uso:
-1. **Super Admin (você)** — gerencia candidatos, monta templates, controla pagamentos no mini-CRM.
-2. **Candidato** — entra no painel, escolhe qual template fica ativo no link público, copia o link e envia para os eleitores. Vê estatísticas de uso.
-3. **Eleitor (público, sem login)** — abre o link, preenche dados de contato, envia foto, ajusta enquadramento e baixa o PNG 1080x1080 final.
+Hoje só o admin cria candidatos. Vamos abrir um cadastro público (qualquer pessoa do Brasil) que já entrega 5 fotos grátis e bloqueia automaticamente quando esgotar — o admin libera após pagamento. Tudo já existe na base (limite, bloqueio automático, função `set_active_template`, etc.); falta a porta de entrada pública e a leitura no dashboard.
 
-## Papéis e Acessos
+## O que será criado
 
-**Super Admin**
-- Cria/edita/bloqueia candidatos (define login + senha inicial)
-- Monta templates: faz upload das 4 camadas decorativas (background, círculo base, elemento, logo) e configura posição X/Y e zoom de cada uma sobre o canvas 1080x1080
-- Define qual é o "buraco" da foto (posição X/Y, tamanho do círculo onde a foto do eleitor entra)
-- Vê todos os candidatos, todos os leads de eleitores, todas as estatísticas
-- Mini-CRM: status (ativo/bloqueado), histórico de pagamentos, valores, observações, lembretes de vencimento
+### 1. Página pública de cadastro `/cadastro`
+- Formulário: nome completo, e-mail, telefone (BR), cidade/UF, senha (mín. 8).
+- Envia para uma nova edge function pública `public-signup-candidate`.
+- Após sucesso: faz login automático e redireciona para `/painel`.
+- Link "Cadastre-se grátis" no header da home (`/`) e na tela `/login`.
 
-**Candidato**
-- Login com email + senha
-- Vê seus templates configurados pelo admin
-- Escolhe **um template ativo** que vai aparecer no link público (pode trocar quando quiser)
-- Copia link único: `/p/{slug-do-candidato}`
-- Vê contador de fotos geradas por template
-- Vê lista/exporta os leads coletados (nome, telefone, endereço completo)
-- Vê status da própria assinatura (vencimento)
+### 2. Edge function `public-signup-candidate` (sem auth)
+- Cria o usuário no Supabase Auth (e-mail confirmado automaticamente, para entrar direto).
+- Cria `candidate_profiles` com:
+  - `trial_limit = 5`, `is_blocked = false`
+  - `slug` único derivado do nome
+  - novos campos `city` e `state` salvos para segmentação
+  - `signup_source = 'public'` (vs `'admin'` quando criado pelo painel admin)
+- Cria role `candidate` em `user_roles`.
+- NÃO cria `subscriptions` (assinatura só nasce quando admin libera após pagamento).
+- Validações: e-mail válido, senha ≥ 8, telefone obrigatório, UF de 2 letras.
+- Rate-limit simples: bloqueia +1 cadastro com o mesmo IP em < 30 s (best-effort, em memória).
 
-**Eleitor (link público)**
-- Abre o link, vê preview do template ativo
-- Preenche formulário: nome, telefone, rua, número, bairro (obrigatórios)
-- Faz upload da foto, arrasta/dá zoom para posicionar dentro do círculo
-- Clica gerar e baixa o PNG 1080x1080
-- Sem login, sem cota, sem rate limit
+### 3. Mudanças no banco (migração)
+- `candidate_profiles`:
+  - `city text`
+  - `state text` (UF, 2 letras)
+  - `signup_source text not null default 'admin'` (`'public'` para cadastros pela landing)
+  - `unblocked_at timestamptz` — preenchido toda vez que o admin destrava o candidato (serve para diferenciar "nunca pagou" de "já foi cliente pagante").
+- A edge function já existente `admin-create-candidate` continua usando `signup_source = 'admin'` (default).
+- Trigger / coluna garantem que o auto-bloqueio em `increment_template_generation` continue funcionando — sem alteração na função.
 
-## Estrutura de Templates
+### 4. Painel do candidato (`/painel`)
+- Banner no topo quando `is_blocked = true`:
+  - Título: "Seu trial gratuito acabou."
+  - Texto: instruções para pagar via PIX e enviar comprovante pelo WhatsApp configurado em `app_settings`.
+  - Botões: "Copiar chave PIX" e "Falar no WhatsApp" (`https://wa.me/<numero>`).
+- Banner amarelo quando faltam ≤ 2 fotos do trial: "Restam X fotos grátis. Garanta o pagamento antes de bloquear."
+- Não muda a navegação — só o conteúdo informativo.
 
-Cada template tem 5 camadas empilhadas (de baixo para cima), todas configuráveis com posição X/Y e zoom:
+### 5. Rastreio no dashboard admin (`/admin`)
+Novos cards e gráficos sem remover os atuais:
+- KPIs adicionais:
+  - **Cadastros públicos** (total com `signup_source = 'public'`)
+  - **Aguardando liberação** (candidatos com `is_blocked = true` E `signup_source = 'public'` E ainda sem assinatura ativa)
+  - **Convertidos** (público que já foi liberado pelo menos uma vez — `unblocked_at IS NOT NULL`)
+- **Cadastros por dia (últimos 30 dias)** — gráfico de linha, separando `public` vs `admin`.
+- **Distribuição por estado (UF)** — gráfico de barras (Top 10 UFs).
+- **Funil do trial** — barras: Cadastrados → Geraram ≥1 foto → Esgotaram trial → Pagaram (foram liberados).
+- Lista "Aguardando liberação" com nome, cidade/UF, data do cadastro, link para `Gerenciar`.
 
-```text
-Camada 5: Logo                    (PNG configurado pelo admin)
-Camada 4: Elemento                (PNG configurado pelo admin)
-Camada 3: FOTO DO ELEITOR         (vai dentro de um círculo definido)
-Camada 2: Círculo base            (PNG configurado pelo admin)
-Camada 1: Background 1080x1080    (PNG configurado pelo admin)
-```
+### 6. Lista de candidatos (`/admin/candidatos`)
+- Mostrar badge "Público" / "Admin" ao lado do nome (origem do cadastro).
+- Filtro rápido: "Todos · Aguardando liberação · Ativos · Bloqueados".
+- Mostrar cidade/UF abaixo do e-mail quando existir.
 
-A composição final é renderizada em canvas no navegador do eleitor e baixada como PNG quadrado.
+### 7. SEO da página pública
+- Title, description, og: tags próprios em `/cadastro`.
+- H1 único, semântica correta.
 
-## Detalhes Técnicos
+## Detalhes técnicos
 
-- **Stack**: TanStack Start + Tailwind + Supabase (externo)
-- **Auth**: Email + senha + Google para admin/candidato. Sem auth para eleitor (link público).
-- **Backend**: Server functions do TanStack Start (`createServerFn`) usando `supabaseAdmin` para operações privilegiadas (criação de candidato, bootstrap admin)
-- **Banco** (Supabase com RLS):
-  - `candidate_profiles`, `user_roles`, `templates`, `voter_leads`, `payments`, `subscriptions`
-- **Storage**: bucket público `template-layers` (write apenas admin, read público por arquivo)
-- **Editor de imagem**: canvas HTML5 nativo, exporta PNG via `canvas.toBlob`
+- **Auth**: `supabase.auth.signUp` com `email_confirm: true` é feito via service role dentro da edge function (permitindo login imediato sem tela de confirmação). O cliente, após resposta de sucesso, chama `supabase.auth.signInWithPassword` no front com as credenciais que o usuário acabou de digitar.
+- **Edge function pública**: `verify_jwt = false` no `supabase/config.toml` para a função `public-signup-candidate`.
+- **Auto-bloqueio**: continua sendo feito por `increment_template_generation` (já implementado). Nada muda aqui.
+- **Liberação após pagamento**: o admin já tem o switch rápido na lista de candidatos; o trigger desta liberação grava `unblocked_at = now()` (via update direto incluindo o campo no payload do toggle).
+- **Métrica de conversão** = candidatos com `signup_source = 'public'` E `unblocked_at IS NOT NULL`.
+- **Rate limit**: `Map<ip, lastTimestamp>` em memória do worker — best-effort, não substitui captcha. Se virar problema, depois evoluímos para Turnstile.
 
-## Fora do Escopo (v1)
+## O que não faz parte deste passo
 
-- Pagamento online / checkout (gerenciado manualmente)
-- Cobrança recorrente automática
-- Notificações por email/SMS
-- Edição das camadas decorativas pelo candidato
-- Armazenamento das fotos geradas
+- Captcha (Turnstile/hCaptcha) na página de cadastro — fica para depois se houver abuso.
+- Confirmação de e-mail por link — ficaria no caminho do trial, queremos zero atrito.
+- Pagamento online integrado — o fluxo atual segue PIX manual + liberação pelo admin.
+- Histórico de blocks/unblocks (audit log) — por enquanto basta `unblocked_at` para a métrica.
