@@ -5,16 +5,17 @@ type Props = {
   template: TemplateData;
   photo?: PhotoState | null;
   className?: string;
+  showPhotoGuide?: boolean;
 };
 
-export function TemplateCanvas({ template, photo, className }: Props) {
+export function TemplateCanvas({ template, photo, className, showPhotoGuide }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (ref.current) {
-      renderTemplate(ref.current, template, photo ?? null);
+      renderTemplate(ref.current, template, photo ?? null, { showPhotoGuide });
     }
-  }, [template, photo]);
+  }, [template, photo, showPhotoGuide]);
 
   return (
     <canvas
