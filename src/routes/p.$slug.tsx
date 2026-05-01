@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { TemplateCanvas } from "@/components/template-canvas";
 import { downloadCanvas, renderTemplate, type PhotoState, type TemplateData } from "@/lib/template-renderer";
+import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
 import { Camera, Download, Upload } from "lucide-react";
 
@@ -246,6 +247,20 @@ function EditorStep({ template, candidateName }: { template: Template; candidate
       } finally {
         setConverting(false);
       }
+    }
+
+    // Compressão: redimensiona até 2000px e re-encoda como JPEG 85%.
+    // Tudo no navegador — nada é enviado ao servidor.
+    try {
+      setConverting(true);
+      const compressed = await compressImage(workingFile, { maxDim: 2000, quality: 0.85 });
+      workingFile = compressed;
+    } catch (err) {
+      toast.error("Não foi possível processar a imagem.");
+      setConverting(false);
+      return;
+    } finally {
+      setConverting(false);
     }
 
     const reader = new FileReader();
