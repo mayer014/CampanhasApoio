@@ -273,7 +273,7 @@ function PainelHome() {
 
       {/* Gráficos */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h3 className="font-semibold">Eleitores por bairro</h3>
           <p className="text-xs text-muted-foreground">Top 8 bairros</p>
           <div className="mt-4 h-64">
@@ -295,7 +295,7 @@ function PainelHome() {
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h3 className="font-semibold">Cadastros nos últimos 14 dias</h3>
           <div className="mt-4 h-64">
             {leads.length === 0 ? (
@@ -314,7 +314,7 @@ function PainelHome() {
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h3 className="font-semibold">Fotos geradas por template</h3>
           <div className="mt-4 h-64">
             {tplData.length === 0 ? (
@@ -333,7 +333,7 @@ function PainelHome() {
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h3 className="font-semibold">Top ruas</h3>
           <div className="mt-4 h-64">
             {topStreets.length === 0 ? (
