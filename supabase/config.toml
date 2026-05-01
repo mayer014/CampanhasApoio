@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.admin-create-candidate]
 verify_jwt = true
+
+[functions.public-signup-candidate]
+verify_jwt = false
