@@ -23,6 +23,7 @@ function CandidatesList() {
   const [items, setItems] = useState<C[]>([]);
   const [usage, setUsage] = useState<Record<string, number>>({});
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<Filter>("todos");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", phone: "", slug: "" });
   const [submitting, setSubmitting] = useState(false);
