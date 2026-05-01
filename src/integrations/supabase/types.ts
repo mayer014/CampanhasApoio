@@ -43,6 +43,7 @@ export type Database = {
       }
       candidate_profiles: {
         Row: {
+          city: string | null
           created_at: string
           email: string | null
           full_name: string
@@ -50,11 +51,15 @@ export type Database = {
           is_blocked: boolean
           notes: string | null
           phone: string | null
+          signup_source: string
           slug: string
+          state: string | null
           trial_limit: number
+          unblocked_at: string | null
           updated_at: string
         }
         Insert: {
+          city?: string | null
           created_at?: string
           email?: string | null
           full_name: string
@@ -62,11 +67,15 @@ export type Database = {
           is_blocked?: boolean
           notes?: string | null
           phone?: string | null
+          signup_source?: string
           slug: string
+          state?: string | null
           trial_limit?: number
+          unblocked_at?: string | null
           updated_at?: string
         }
         Update: {
+          city?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
@@ -74,8 +83,11 @@ export type Database = {
           is_blocked?: boolean
           notes?: string | null
           phone?: string | null
+          signup_source?: string
           slug?: string
+          state?: string | null
           trial_limit?: number
+          unblocked_at?: string | null
           updated_at?: string
         }
         Relationships: []
