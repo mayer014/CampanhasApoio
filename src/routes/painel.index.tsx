@@ -343,7 +343,7 @@ function PainelHome() {
                 <BarChart data={topStreets} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis type="number" allowDecimals={false} fontSize={11} />
-                  <YAxis type="category" dataKey="name" width={120} fontSize={11} />
+                  <YAxis type="category" dataKey="name" width={90} fontSize={11} tickFormatter={(v: string) => (v.length > 12 ? v.slice(0, 12) + "…" : v)} />
                   <Tooltip />
                   <Bar dataKey="value" fill="#22c55e" radius={[0, 6, 6, 0]} />
                 </BarChart>
