@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Search, ExternalLink, Pencil, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import { exportLeadsXLSX } from "@/lib/export-leads";
 
 type C = { id: string; full_name: string; email: string | null; phone: string | null; slug: string; is_blocked: boolean; notes?: string | null; created_at: string };
 
