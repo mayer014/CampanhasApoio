@@ -80,9 +80,17 @@ function PublicPage() {
         {!template ? (
           <Card className="p-10 text-center text-muted-foreground">O candidato ainda não ativou um template.</Card>
         ) : step === "intro" ? (
-          <Intro candidate={candidate} template={template} onStart={() => setStep("form")} />
+          <Intro candidate={candidate} template={template} alreadyRegistered={alreadyRegistered} onStart={() => setStep(alreadyRegistered ? "edit" : "form")} />
         ) : step === "form" ? (
-          <FormStep candidateId={candidate.id} templateId={template.id} onDone={() => setStep("edit")} />
+          <FormStep
+            candidateId={candidate.id}
+            templateId={template.id}
+            onDone={() => {
+              try { localStorage.setItem(`lead_done:${candidate.id}`, "1"); } catch {/* ignore */}
+              setAlreadyRegistered(true);
+              setStep("edit");
+            }}
+          />
         ) : step === "edit" ? (
           <EditorStep template={template} candidateName={candidate.full_name} />
         ) : null}
@@ -91,13 +99,19 @@ function PublicPage() {
   );
 }
 
-function Intro({ candidate, template, onStart }: { candidate: { full_name: string }; template: Template; onStart: () => void }) {
+function Intro({ candidate, template, onStart, alreadyRegistered }: { candidate: { full_name: string }; template: Template; onStart: () => void; alreadyRegistered: boolean }) {
   return (
     <div className="grid gap-8 md:grid-cols-2 md:items-center">
       <div>
         <h1 className="text-4xl font-bold">Apoie {candidate.full_name}</h1>
-        <p className="mt-3 text-lg text-muted-foreground">Coloque a foto da campanha no seu WhatsApp em segundos. É grátis e leva 30 segundos.</p>
-        <Button size="lg" className="mt-6" onClick={onStart}>Quero minha foto</Button>
+        <p className="mt-3 text-lg text-muted-foreground">
+          {alreadyRegistered
+            ? "Bem-vindo de volta! Você já está cadastrado. Escolha uma nova foto e atualize seu WhatsApp."
+            : "Coloque a foto da campanha no seu WhatsApp em segundos. É grátis e leva 30 segundos."}
+        </p>
+        <Button size="lg" className="mt-6" onClick={onStart}>
+          {alreadyRegistered ? "Trocar minha foto" : "Quero minha foto"}
+        </Button>
       </div>
       <Card className="overflow-hidden">
         <TemplateCanvas template={template} />
