@@ -89,11 +89,11 @@ function TemplateEditor() {
     }
   };
 
-  const layers: { key: LayerKey; label: string; transformKey: keyof TemplateData; urlKey: keyof TemplateData }[] = [
-    { key: "background", label: "Fundo (1080x1080)", transformKey: "background_transform", urlKey: "background_url" },
-    { key: "base_circle", label: "Círculo base", transformKey: "base_circle_transform", urlKey: "base_circle_url" },
-    { key: "element", label: "Elemento", transformKey: "element_transform", urlKey: "element_url" },
-    { key: "logo", label: "Logo", transformKey: "logo_transform", urlKey: "logo_url" },
+  const layers: { key: LayerKey; label: string; hint?: string; transformKey: keyof TemplateData; urlKey: keyof TemplateData }[] = [
+    { key: "background", label: "1. Fundo (1080x1080)", hint: "Camada inferior — imagem de fundo do template.", transformKey: "background_transform", urlKey: "background_url" },
+    { key: "base_circle", label: "2. Círculo base", hint: "Moldura/base que fica ATRÁS da foto do eleitor.", transformKey: "base_circle_transform", urlKey: "base_circle_url" },
+    { key: "element", label: "4. Elemento (acima da foto)", hint: "Camada decorativa que fica POR CIMA da foto do eleitor (ex: moldura com texto curvo).", transformKey: "element_transform", urlKey: "element_url" },
+    { key: "logo", label: "5. Logo", hint: "Camada superior — logotipo da campanha.", transformKey: "logo_transform", urlKey: "logo_url" },
   ];
 
   const demoPhoto = { src: "https://api.dicebear.com/9.x/personas/png?seed=demo", x: data.photo_circle.x, y: data.photo_circle.y, scale: 1 };
