@@ -60,6 +60,7 @@ export async function renderTemplate(
   canvas: HTMLCanvasElement,
   template: TemplateData,
   photo: PhotoState | null,
+  options?: { showPhotoGuide?: boolean },
 ): Promise<void> {
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
