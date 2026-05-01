@@ -75,7 +75,13 @@ function CandidateDetail() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Bloqueado</span>
-          <Switch checked={profile.is_blocked} onCheckedChange={async (v) => { setProfile({ ...profile, is_blocked: v }); await supabase.from("candidate_profiles").update({ is_blocked: v }).eq("id", id); toast.success(v ? "Candidato bloqueado" : "Candidato liberado"); }} />
+          <Switch checked={profile.is_blocked} onCheckedChange={async (v) => {
+            setProfile({ ...profile, is_blocked: v });
+            const updates: { is_blocked: boolean; unblocked_at?: string } = { is_blocked: v };
+            if (!v) updates.unblocked_at = new Date().toISOString();
+            await supabase.from("candidate_profiles").update(updates).eq("id", id);
+            toast.success(v ? "Candidato bloqueado" : "Candidato liberado · fotos ilimitadas");
+          }} />
         </div>
       </div>
 
