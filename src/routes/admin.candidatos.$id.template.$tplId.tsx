@@ -108,8 +108,8 @@ function TemplateEditor() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_400px]">
         <Card className="p-4">
-          <TemplateCanvas template={data} photo={demoPhoto} />
-          <p className="mt-2 text-xs text-muted-foreground text-center">Pré-visualização com foto de demonstração</p>
+          <TemplateCanvas template={data} photo={null} />
+          <p className="mt-2 text-xs text-muted-foreground text-center">Pré-visualização do template (sem foto do eleitor)</p>
         </Card>
 
         <div className="space-y-4">
