@@ -56,7 +56,7 @@ function LoginPage() {
         </Link>
         <h1 className="text-2xl font-bold">Entrar</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Acesse com o e-mail e senha fornecidos pelo administrador.
+          Acesse com seu e-mail e senha.
         </p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
