@@ -182,9 +182,29 @@ function CandidatesList() {
         </Dialog>
       </div>
 
-      <div className="mt-6 flex items-center gap-2">
+      <div className="mt-6 flex flex-wrap items-center gap-2">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input placeholder="Buscar por nome ou e-mail" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
+        <div className="flex flex-wrap gap-1.5">
+          {(["todos", "aguardando", "ativos", "bloqueados"] as Filter[]).map((f) => {
+            const labels: Record<Filter, string> = {
+              todos: "Todos",
+              aguardando: "Aguardando liberação",
+              ativos: "Ativos",
+              bloqueados: "Bloqueados",
+            };
+            return (
+              <Button
+                key={f}
+                size="sm"
+                variant={filter === f ? "default" : "outline"}
+                onClick={() => setFilter(f)}
+              >
+                {labels[f]} ({counts[f]})
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3">
@@ -202,11 +222,17 @@ function CandidatesList() {
                   ) : (
                     <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Ativo</span>
                   )}
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${c.signup_source === "public" ? "bg-blue-500/10 text-blue-700 dark:text-blue-300" : "bg-muted text-muted-foreground"}`}>
+                    {c.signup_source === "public" ? "Público" : "Admin"}
+                  </span>
                   <span className={`rounded-full px-2 py-0.5 text-xs ${remaining === 0 ? "bg-destructive/10 text-destructive" : remaining <= 2 ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-muted text-muted-foreground"}`}>
                     {used}/{limit} fotos
                   </span>
                 </div>
-                <div className="text-sm text-muted-foreground">{c.email} · /p/{c.slug}</div>
+                <div className="text-sm text-muted-foreground">
+                  {c.email} · /p/{c.slug}
+                  {c.city && (<> · {c.city}/{c.state ?? "—"}</>)}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
