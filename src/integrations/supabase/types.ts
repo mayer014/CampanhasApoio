@@ -128,6 +128,13 @@ export type Database = {
             referencedRelation: "candidate_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payments_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "public_candidate_basics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       subscriptions: {
@@ -164,6 +171,13 @@ export type Database = {
             columns: ["candidate_id"]
             isOneToOne: true
             referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: true
+            referencedRelation: "public_candidate_basics"
             referencedColumns: ["id"]
           },
         ]
@@ -229,6 +243,13 @@ export type Database = {
             columns: ["candidate_id"]
             isOneToOne: false
             referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "templates_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "public_candidate_basics"
             referencedColumns: ["id"]
           },
         ]
@@ -297,6 +318,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "voter_leads_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "public_candidate_basics"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "voter_leads_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -307,10 +335,65 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_app_settings: {
+        Row: {
+          id: number | null
+          pix_key: string | null
+          pix_owner_name: string | null
+          pix_qr_url: string | null
+          updated_at: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          id?: number | null
+          pix_key?: string | null
+          pix_owner_name?: string | null
+          pix_qr_url?: string | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          id?: number | null
+          pix_key?: string | null
+          pix_owner_name?: string | null
+          pix_qr_url?: string | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
+      public_candidate_basics: {
+        Row: {
+          full_name: string | null
+          id: string | null
+          is_blocked: boolean | null
+          slug: string | null
+        }
+        Insert: {
+          full_name?: string | null
+          id?: string | null
+          is_blocked?: boolean | null
+          slug?: string | null
+        }
+        Update: {
+          full_name?: string | null
+          id?: string | null
+          is_blocked?: boolean | null
+          slug?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _slugify: { Args: { input: string }; Returns: string }
+      get_public_candidate: {
+        Args: { _slug: string }
+        Returns: {
+          full_name: string
+          id: string
+          slug: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
