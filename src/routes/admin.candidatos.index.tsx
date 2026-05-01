@@ -12,7 +12,8 @@ import { Plus, Search, ExternalLink, Pencil, FileSpreadsheet } from "lucide-reac
 import { toast } from "sonner";
 import { exportLeadsXLSX } from "@/lib/export-leads";
 
-type C = { id: string; full_name: string; email: string | null; phone: string | null; slug: string; is_blocked: boolean; notes?: string | null; created_at: string };
+type C = { id: string; full_name: string; email: string | null; phone: string | null; slug: string; is_blocked: boolean; notes?: string | null; trial_limit: number; created_at: string };
+type Usage = { candidate_id: string; total: number };
 
 export const Route = createFileRoute("/admin/candidatos/")({
   component: CandidatesList,
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/admin/candidatos/")({
 
 function CandidatesList() {
   const [items, setItems] = useState<C[]>([]);
+  const [usage, setUsage] = useState<Record<string, number>>({});
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", phone: "", slug: "" });
@@ -27,10 +29,19 @@ function CandidatesList() {
   const [editing, setEditing] = useState<C | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("candidate_profiles").select("*").order("created_at", { ascending: false });
-    setItems(data ?? []);
+    const [{ data: cands }, { data: tpls }] = await Promise.all([
+      supabase.from("candidate_profiles").select("*").order("created_at", { ascending: false }),
+      supabase.from("templates").select("candidate_id, generation_count"),
+    ]);
+    setItems(cands ?? []);
+    const u: Record<string, number> = {};
+    (tpls ?? []).forEach((t: any) => {
+      u[t.candidate_id] = (u[t.candidate_id] ?? 0) + (t.generation_count ?? 0);
+    });
+    setUsage(u);
   };
 
   useEffect(() => { load(); }, []);
@@ -61,6 +72,25 @@ function CandidatesList() {
     }
   };
 
+  const toggleBlock = async (c: C, blocked: boolean) => {
+    setTogglingId(c.id);
+    const used = usage[c.id] ?? 0;
+    const updates: { is_blocked: boolean; trial_limit?: number } = { is_blocked: blocked };
+    // Se está liberando e o uso já estourou o limite, eleva o limite para liberar mais 5 fotos
+    if (!blocked && used >= (c.trial_limit ?? 0)) {
+      updates.trial_limit = used + 5;
+    }
+    const { error } = await supabase.from("candidate_profiles").update(updates).eq("id", c.id);
+    setTogglingId(null);
+    if (error) return toast.error(error.message);
+    if (!blocked && updates.trial_limit) {
+      toast.success(`Liberado · novo limite: ${updates.trial_limit} fotos`);
+    } else {
+      toast.success(blocked ? "Candidato bloqueado" : "Candidato liberado");
+    }
+    load();
+  };
+
   const saveEdit = async () => {
     if (!editing) return;
     setSavingEdit(true);
@@ -70,6 +100,7 @@ function CandidatesList() {
       slug: editing.slug,
       notes: editing.notes ?? null,
       is_blocked: editing.is_blocked,
+      trial_limit: editing.trial_limit,
     }).eq("id", editing.id);
     setSavingEdit(false);
     if (error) return toast.error(error.message);
@@ -136,31 +167,51 @@ function CandidatesList() {
       </div>
 
       <div className="mt-4 grid gap-3">
-        {filtered.map((c) => (
-          <Card key={c.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">{c.full_name}</span>
-                {c.is_blocked && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Bloqueado</span>}
+        {filtered.map((c) => {
+          const used = usage[c.id] ?? 0;
+          const limit = c.trial_limit ?? 0;
+          const remaining = Math.max(0, limit - used);
+          return (
+            <Card key={c.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{c.full_name}</span>
+                  {c.is_blocked ? (
+                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Bloqueado</span>
+                  ) : (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Ativo</span>
+                  )}
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${remaining === 0 ? "bg-destructive/10 text-destructive" : remaining <= 2 ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-muted text-muted-foreground"}`}>
+                    {used}/{limit} fotos
+                  </span>
+                </div>
+                <div className="text-sm text-muted-foreground">{c.email} · /p/{c.slug}</div>
               </div>
-              <div className="text-sm text-muted-foreground">{c.email} · /p/{c.slug}</div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <a href={`/p/${c.slug}`} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline"><ExternalLink className="mr-2 h-4 w-4" />Link</Button>
-              </a>
-              <Button size="sm" variant="outline" onClick={() => exportLeads(c)} disabled={exportingId === c.id}>
-                <FileSpreadsheet className="mr-2 h-4 w-4" />{exportingId === c.id ? "Exportando..." : "Excel"}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditing({ ...c })}>
-                <Pencil className="mr-2 h-4 w-4" />Editar
-              </Button>
-              <Link to="/admin/candidatos/$id" params={{ id: c.id }}>
-                <Button size="sm">Gerenciar</Button>
-              </Link>
-            </div>
-          </Card>
-        ))}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
+                  <span className="text-xs text-muted-foreground">{c.is_blocked ? "Bloqueado" : "Liberado"}</span>
+                  <Switch
+                    checked={!c.is_blocked}
+                    disabled={togglingId === c.id}
+                    onCheckedChange={(v) => toggleBlock(c, !v)}
+                  />
+                </div>
+                <a href={`/p/${c.slug}`} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline"><ExternalLink className="mr-2 h-4 w-4" />Link</Button>
+                </a>
+                <Button size="sm" variant="outline" onClick={() => exportLeads(c)} disabled={exportingId === c.id}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />{exportingId === c.id ? "Exportando..." : "Excel"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setEditing({ ...c })}>
+                  <Pencil className="mr-2 h-4 w-4" />Editar
+                </Button>
+                <Link to="/admin/candidatos/$id" params={{ id: c.id }}>
+                  <Button size="sm">Gerenciar</Button>
+                </Link>
+              </div>
+            </Card>
+          );
+        })}
         {filtered.length === 0 && <Card className="p-8 text-center text-muted-foreground">Nenhum candidato</Card>}
       </div>
 
@@ -173,6 +224,16 @@ function CandidatesList() {
               <div><Label>E-mail</Label><Input value={editing.email ?? ""} disabled /></div>
               <div><Label>Telefone</Label><Input value={editing.phone ?? ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} /></div>
               <div><Label>Slug do link</Label><Input value={editing.slug} onChange={(e) => setEditing({ ...editing, slug: e.target.value })} /></div>
+              <div>
+                <Label>Limite de fotos grátis</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={editing.trial_limit}
+                  onChange={(e) => setEditing({ ...editing, trial_limit: parseInt(e.target.value) || 0 })}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Usado: {usage[editing.id] ?? 0} fotos. Ao atingir o limite o candidato é bloqueado automaticamente.</p>
+              </div>
               <div><Label>Observações (CRM)</Label><Textarea value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} /></div>
               <div className="flex items-center justify-between rounded-md border p-3">
                 <div>
