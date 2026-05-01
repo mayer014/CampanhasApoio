@@ -159,7 +159,7 @@ function CandidatesList() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Candidatos</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Candidatos</h1>
           <p className="mt-1 text-muted-foreground">{items.length} candidatos cadastrados</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -213,9 +213,9 @@ function CandidatesList() {
           const limit = c.trial_limit ?? 0;
           const remaining = Math.max(0, limit - used);
           return (
-            <Card key={c.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
+            <Card key={c.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{c.full_name}</span>
                   {c.is_blocked ? (
                     <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Bloqueado</span>
