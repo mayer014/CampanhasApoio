@@ -34,9 +34,14 @@ function Index() {
             <Camera className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold">Foto de Campanha</span>
           </div>
-          <Link to="/login">
-            <Button variant="outline">Entrar</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/login">
+              <Button variant="ghost">Entrar</Button>
+            </Link>
+            <Link to="/cadastro">
+              <Button>Cadastre-se grátis</Button>
+            </Link>
+          </div>
         </div>
       </header>
 
