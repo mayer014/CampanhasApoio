@@ -129,12 +129,52 @@ function PainelHome() {
   const valueLabel = sub?.monthly_amount ? `R$ ${Number(sub.monthly_amount).toFixed(2)}` : "a combinar";
   const dueLabel = sub?.due_date ? new Date(sub.due_date).toLocaleDateString("pt-BR") : null;
 
+  const trialRemaining = Math.max(0, (profile?.trial_limit ?? 0) - stats.generations);
+  const showTrialWarning =
+    !!profile && profile.signup_source === "public" && !profile.is_blocked && trialRemaining > 0 && trialRemaining <= 2;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Olá, {profile?.full_name?.split(" ")[0] ?? "candidato"} 👋</h1>
         <p className="mt-1 text-muted-foreground">Visão geral da sua campanha.</p>
       </div>
+
+      {profile?.is_blocked && (
+        <Card className="border-destructive/40 bg-destructive/5 p-6">
+          <h2 className="text-xl font-bold text-destructive">Seu trial gratuito acabou</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Você usou suas {profile.trial_limit} fotos grátis. Para continuar gerando fotos, faça o pagamento via PIX abaixo
+            e envie o comprovante pelo WhatsApp. Assim que o administrador confirmar, seu acesso é liberado na hora.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {settings?.pix_key && (
+              <Button onClick={copyPix} variant="outline">
+                <Copy className="mr-2 h-4 w-4" /> Copiar chave PIX
+              </Button>
+            )}
+            <Button
+              onClick={() =>
+                openWhats(
+                  `Olá! Acabei de fazer o pagamento para liberar minha conta (${profile.full_name}). Segue o comprovante.`,
+                )
+              }
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" /> Enviar comprovante no WhatsApp
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {showTrialWarning && (
+        <Card className="border-yellow-500/40 bg-yellow-500/5 p-4">
+          <p className="text-sm">
+            <strong>Restam {trialRemaining} {trialRemaining === 1 ? "foto grátis" : "fotos grátis"}.</strong>{" "}
+            Antes de bloquear, garanta o pagamento via PIX para continuar usando sem interrupção.
+          </p>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-6">
