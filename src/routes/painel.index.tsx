@@ -136,13 +136,13 @@ function PainelHome() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Olá, {profile?.full_name?.split(" ")[0] ?? "candidato"} 👋</h1>
-        <p className="mt-1 text-muted-foreground">Visão geral da sua campanha.</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">Olá, {profile?.full_name?.split(" ")[0] ?? "candidato"} 👋</h1>
+        <p className="mt-1 text-sm text-muted-foreground sm:text-base">Visão geral da sua campanha.</p>
       </div>
 
       {profile?.is_blocked && (
-        <Card className="border-destructive/40 bg-destructive/5 p-6">
-          <h2 className="text-xl font-bold text-destructive">Seu trial gratuito acabou</h2>
+        <Card className="border-destructive/40 bg-destructive/5 p-4 sm:p-6">
+          <h2 className="text-lg font-bold text-destructive sm:text-xl">Seu trial gratuito acabou</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Você usou suas {profile.trial_limit} fotos grátis. Para continuar gerando fotos, faça o pagamento via PIX abaixo
             e envie o comprovante pelo WhatsApp. Assim que o administrador confirmar, seu acesso é liberado na hora.
@@ -176,37 +176,37 @@ function PainelHome() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-6">
-          <div className="flex items-center gap-3 text-muted-foreground"><ImageIcon className="h-4 w-4" /> Templates</div>
-          <div className="mt-2 text-3xl font-bold">{stats.templates}</div>
+      <div className="grid gap-3 grid-cols-3 md:gap-4">
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground sm:gap-3 sm:text-sm"><ImageIcon className="h-4 w-4 shrink-0" /><span className="truncate">Templates</span></div>
+          <div className="mt-2 text-2xl font-bold sm:text-3xl">{stats.templates}</div>
         </Card>
-        <Card className="p-6">
-          <div className="flex items-center gap-3 text-muted-foreground"><Users className="h-4 w-4" /> Eleitores</div>
-          <div className="mt-2 text-3xl font-bold">{stats.leads}</div>
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground sm:gap-3 sm:text-sm"><Users className="h-4 w-4 shrink-0" /><span className="truncate">Eleitores</span></div>
+          <div className="mt-2 text-2xl font-bold sm:text-3xl">{stats.leads}</div>
         </Card>
-        <Card className="p-6">
-          <div className="flex items-center gap-3 text-muted-foreground"><Sparkles className="h-4 w-4" /> Fotos geradas</div>
-          <div className="mt-2 text-3xl font-bold">{stats.generations}</div>
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground sm:gap-3 sm:text-sm"><Sparkles className="h-4 w-4 shrink-0" /><span className="truncate">Fotos</span></div>
+          <div className="mt-2 text-2xl font-bold sm:text-3xl">{stats.generations}</div>
         </Card>
       </div>
 
       {/* Assinatura + Renovação */}
-      <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 text-muted-foreground">
+      <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background p-4 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" /> Sua assinatura
             </div>
-            <div className="mt-2 flex flex-wrap items-baseline gap-3">
-              <span className="text-2xl font-bold capitalize">{sub?.status ?? "—"}</span>
-              <span className="text-lg font-semibold text-primary">{valueLabel}/mês</span>
-              {dueLabel && <span className="text-sm text-muted-foreground">vence em {dueLabel}</span>}
+            <div className="mt-2 flex flex-wrap items-baseline gap-2 sm:gap-3">
+              <span className="text-xl font-bold capitalize sm:text-2xl">{sub?.status ?? "—"}</span>
+              <span className="text-base font-semibold text-primary sm:text-lg">{valueLabel}/mês</span>
+              {dueLabel && <span className="text-xs text-muted-foreground sm:text-sm">vence em {dueLabel}</span>}
             </div>
           </div>
           <Button
             size="lg"
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            className="w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:w-auto"
             onClick={() =>
               openWhats(
                 `Olá! Quero renovar minha assinatura (${profile?.full_name ?? ""}) — valor ${valueLabel}.`,
@@ -218,11 +218,8 @@ function PainelHome() {
         </div>
 
         {/* Área PIX */}
-        <div className="mt-6 flex flex-col gap-6 rounded-lg border bg-card/50 p-5 md:flex-row md:items-start">
-          <div
-            className="flex items-center justify-center overflow-hidden rounded-md border bg-white p-2"
-            style={{ width: 192, minWidth: 192, height: 192 }}
-          >
+        <div className="mt-6 flex flex-col gap-6 rounded-lg border bg-card/50 p-4 sm:p-5 md:flex-row md:items-start">
+          <div className="mx-auto flex aspect-square w-full max-w-[192px] items-center justify-center overflow-hidden rounded-md border bg-white p-2 md:mx-0 md:shrink-0">
             {settings?.pix_qr_url ? (
               <img
                 key={settings.pix_qr_url}
