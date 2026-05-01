@@ -34,6 +34,16 @@ function CandidateDetail() {
   const [pays, setPays] = useState<Pay[]>([]);
   const [tpls, setTpls] = useState<Tpl[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [deletingTpl, setDeletingTpl] = useState<string | null>(null);
+
+  const removeTemplate = async () => {
+    if (!deletingTpl) return;
+    const { error } = await supabase.from("templates").delete().eq("id", deletingTpl);
+    setDeletingTpl(null);
+    if (error) return toast.error(error.message);
+    toast.success("Template excluído");
+    load();
+  };
 
   const load = async () => {
     const [{ data: p }, { data: s }, { data: pys }, { data: ts }, { data: ls }] = await Promise.all([
