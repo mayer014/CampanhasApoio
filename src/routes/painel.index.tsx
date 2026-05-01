@@ -63,9 +63,9 @@ function PainelHome() {
       setLeads(leadRes.data ?? []);
       setTpls(tplRes.data ?? []);
       setStats({
-        templates: tplData?.length ?? 0,
-        leads: leadData?.length ?? 0,
-        generations: (tplData ?? []).reduce((s, t) => s + (t.generation_count ?? 0), 0),
+        templates: tplRes.data?.length ?? 0,
+        leads: leadRes.data?.length ?? 0,
+        generations: (tplRes.data ?? []).reduce((s, t) => s + (t.generation_count ?? 0), 0),
       });
     })();
   }, [user]);
