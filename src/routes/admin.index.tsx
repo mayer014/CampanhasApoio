@@ -202,17 +202,17 @@ function AdminHome() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <p className="mt-1 text-muted-foreground">Uso da plataforma por candidato.</p>
+      <h1 className="text-2xl font-bold sm:text-3xl">Dashboard</h1>
+      <p className="mt-1 text-sm text-muted-foreground sm:text-base">Uso da plataforma por candidato.</p>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-4">
+      <div className="mt-6 grid gap-3 grid-cols-2 md:mt-8 md:gap-4 md:grid-cols-4">
         <StatCard icon={<Users className="h-4 w-4" />} label="Candidatos" value={stats.candidates} />
         <StatCard icon={<AlertTriangle className="h-4 w-4" />} label="Bloqueados" value={stats.blocked} />
         <StatCard icon={<ImageIcon className="h-4 w-4" />} label="Fotos geradas" value={stats.generations} />
         <StatCard icon={<UserPlus className="h-4 w-4" />} label="Eleitores captados" value={stats.leads} />
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+      <div className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-3 md:mt-4 md:gap-4">
         <StatCard icon={<Globe className="h-4 w-4" />} label="Cadastros públicos" value={stats.publicSignups} />
         <StatCard icon={<Clock className="h-4 w-4" />} label="Aguardando liberação" value={stats.awaiting} highlight={stats.awaiting > 0} />
         <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Convertidos (pagaram)" value={stats.converted} />
