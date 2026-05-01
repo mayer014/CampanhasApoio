@@ -1,4 +1,4 @@
-ND# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.7
 
 # ---------- Stage 1: build ----------
 FROM node:20-bookworm-slim AS builder
