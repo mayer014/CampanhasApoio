@@ -76,10 +76,14 @@ function CandidatesList() {
   const toggleBlock = async (c: C, blocked: boolean) => {
     setTogglingId(c.id);
     const used = usage[c.id] ?? 0;
-    const updates: { is_blocked: boolean; trial_limit?: number } = { is_blocked: blocked };
+    const updates: { is_blocked: boolean; trial_limit?: number; unblocked_at?: string } = { is_blocked: blocked };
     // Se está liberando e o uso já estourou o limite, eleva o limite para liberar mais 5 fotos
     if (!blocked && used >= (c.trial_limit ?? 0)) {
       updates.trial_limit = used + 5;
+    }
+    // Marca data da liberação (usado para conversão no dashboard)
+    if (!blocked) {
+      updates.unblocked_at = new Date().toISOString();
     }
     const { error } = await supabase.from("candidate_profiles").update(updates).eq("id", c.id);
     setTogglingId(null);
