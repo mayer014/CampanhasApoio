@@ -28,13 +28,44 @@ function TemplatesPage() {
 
   const load = async () => {
     if (!user) return;
-    const { data, error } = await supabase.from("templates").select("*").eq("candidate_id", user.id).order("created_at", { ascending: false });
-    if (error) toast.error(error.message);
+    let { data, error } = await supabase.from("templates").select("*").eq("candidate_id", user.id).order("created_at", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
+    // Auto-provisiona o template "Padrão do Sistema" para todo candidato novo
+    const hasDefault = (data ?? []).some((t: any) => t.name === DEFAULT_TEMPLATE_NAME);
+    if (!hasDefault) {
+      const { error: insErr } = await supabase.from("templates").insert({
+        candidate_id: user.id,
+        name: DEFAULT_TEMPLATE.name,
+        background_url: DEFAULT_TEMPLATE.background_url,
+        base_circle_url: DEFAULT_TEMPLATE.base_circle_url,
+        element_url: DEFAULT_TEMPLATE.element_url,
+        logo_url: DEFAULT_TEMPLATE.logo_url,
+        background_transform: DEFAULT_TEMPLATE.background_transform,
+        base_circle_transform: DEFAULT_TEMPLATE.base_circle_transform,
+        element_transform: DEFAULT_TEMPLATE.element_transform,
+        logo_transform: DEFAULT_TEMPLATE.logo_transform,
+        photo_circle: DEFAULT_TEMPLATE.photo_circle,
+        is_active: true,
+      });
+      if (!insErr) {
+        const reload = await supabase.from("templates").select("*").eq("candidate_id", user.id).order("created_at", { ascending: false });
+        data = reload.data ?? data;
+      }
+    }
+
     setRows((data as unknown as Row[]) ?? []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, [user]);
+
+  const defaultTpl = rows.find((r) => r.name === DEFAULT_TEMPLATE_NAME);
+  const defaultMissingLogo = defaultTpl && !defaultTpl.logo_url;
 
   const toggleActive = async (t: Row) => {
     const rpc = t.is_active ? "unset_active_template" : "set_active_template";
