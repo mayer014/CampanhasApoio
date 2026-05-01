@@ -128,28 +128,14 @@ function FormStep({ candidateId, templateId, onDone }: { candidateId: string; te
     e.preventDefault();
     setLoading(true);
 
-    // Normaliza telefone (somente dígitos) para checar duplicidade
-    const phoneDigits = form.phone.replace(/\D/g, "");
-
-    // Fallback de deduplicação por telefone: se já existe lead deste candidato
-    // com o mesmo telefone, não cria outro registro — apenas segue para o editor.
-    if (phoneDigits.length >= 8) {
-      const { data: existing } = await supabase
-        .from("voter_leads")
-        .select("id, phone")
-        .eq("candidate_id", candidateId)
-        .limit(50);
-      const dup = (existing ?? []).find((l) => (l.phone ?? "").replace(/\D/g, "") === phoneDigits);
-      if (dup) {
-        setLoading(false);
-        toast.success("Você já está cadastrado. Bem-vindo de volta!");
-        onDone();
-        return;
-      }
-    }
-
     const { error } = await supabase.from("voter_leads").insert({ candidate_id: candidateId, template_id: templateId, ...form });
     setLoading(false);
+    // 23505 = unique_violation: já existe lead com mesmo (candidate_id, telefone normalizado)
+    if (error && (error.code === "23505" || /duplicate|unique/i.test(error.message))) {
+      toast.success("Você já está cadastrado. Bem-vindo de volta!");
+      onDone();
+      return;
+    }
     if (error) return toast.error(error.message);
     onDone();
   };
