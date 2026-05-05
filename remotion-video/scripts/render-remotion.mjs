@@ -33,7 +33,8 @@ await renderMedia({
   codec: "h264",
   outputLocation: outFile,
   puppeteerInstance: browser,
-  muted: true,
+  muted: process.env.MUTED === "1",
+  audioCodec: "aac",
   concurrency: 1,
 });
 
