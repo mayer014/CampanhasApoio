@@ -1,8 +1,32 @@
 import { createRouter, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { routeTree } from "./routeTree.gen";
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
+
+  // Auto-recover when the tab becomes visible again or regains focus.
+  // Fixes the "Something went wrong" screen that appears after the tab
+  // sits idle (stale Supabase session, dropped websocket, etc.).
+  useEffect(() => {
+    const recover = () => {
+      if (document.visibilityState === "visible") {
+        router.invalidate();
+        reset();
+      }
+    };
+    // Try immediately in case the error fired while the tab was hidden.
+    const t = setTimeout(recover, 100);
+    document.addEventListener("visibilitychange", recover);
+    window.addEventListener("focus", recover);
+    window.addEventListener("online", recover);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("visibilitychange", recover);
+      window.removeEventListener("focus", recover);
+      window.removeEventListener("online", recover);
+    };
+  }, [router, reset]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
