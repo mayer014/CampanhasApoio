@@ -43,14 +43,14 @@ export const Scene7CTA: React.FC = () => {
           color: COLORS.muted,
           textAlign: "center",
           opacity: c,
-          maxWidth: 800,
+          maxWidth: 850,
           lineHeight: 1.4,
           marginBottom: 60,
         }}
       >
-        Apenas <span style={{ color: COLORS.white, fontWeight: 700 }}>R$ 89,90/mês</span>.
+        Plataforma <span style={{ color: COLORS.white, fontWeight: 700 }}>apartidária</span>.
         <br />
-        Sem fidelidade. Resultado imediato.
+        Para qualquer candidatura. Resultado imediato.
       </div>
 
       <div

@@ -71,14 +71,14 @@ export const Scene5Client: React.FC = () => {
             }}
           >
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})` }} />
-            Maria 22
+            Sua Campanha
           </div>
 
           <div style={{ padding: 30, display: "flex", flexDirection: "column", gap: 24 }}>
             {/* Stage 0: link */}
             {stage === 0 && (
               <div style={{ textAlign: "center", paddingTop: 60 }}>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 24, color: COLORS.muted }}>fotodecampanha.app/maria22</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 24, color: COLORS.muted }}>fotodecampanha.app/sua-campanha</div>
                 <div
                   style={{
                     marginTop: 40,
@@ -147,7 +147,7 @@ export const Scene5Client: React.FC = () => {
                     </svg>
                   </div>
                   {/* logo */}
-                  <div style={{ position: "absolute", top: 18, right: 18, width: 70, height: 70, borderRadius: 14, background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryGlow})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.white, fontFamily: FONT_DISPLAY, fontWeight: 900, fontSize: 32 }}>22</div>
+                  <div style={{ position: "absolute", top: 18, right: 18, width: 70, height: 70, borderRadius: 14, background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryGlow})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.white }}><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="4"/></svg></div>
                   {/* hashtag */}
                   <div style={{ position: "absolute", bottom: 26, left: "50%", transform: "translateX(-50%)", background: COLORS.accent, color: COLORS.white, fontFamily: FONT_DISPLAY, fontWeight: 900, fontSize: 26, padding: "8px 24px", borderRadius: 10 }}>
                     #EUAPOIO
