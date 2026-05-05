@@ -138,7 +138,7 @@ export const Scene4Editor: React.FC = () => {
         >
           #EUAPOIO
         </div>
-        {/* L5 Logo */}
+        {/* L5 Logo (placeholder neutro - sem partido) */}
         <div
           style={{
             position: "absolute",
@@ -157,14 +157,13 @@ export const Scene4Editor: React.FC = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontFamily: FONT_DISPLAY,
-              fontWeight: 900,
-              fontSize: 60,
-              color: COLORS.white,
               boxShadow: "0 16px 40px rgba(0,0,0,0.4)",
             }}
           >
-            22
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
           </div>
         </div>
 
