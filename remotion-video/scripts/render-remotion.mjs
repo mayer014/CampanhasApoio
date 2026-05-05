@@ -18,9 +18,12 @@ const browser = await openBrowser("chrome", {
   chromeMode: "chrome-for-testing",
 });
 
+const compId = process.env.COMP_ID ?? "main";
+const outFile = process.env.OUT_FILE ?? "/mnt/documents/comercial-foto-de-campanha-story.mp4";
+
 const composition = await selectComposition({
   serveUrl: bundled,
-  id: "main",
+  id: compId,
   puppeteerInstance: browser,
 });
 
@@ -28,7 +31,7 @@ await renderMedia({
   composition,
   serveUrl: bundled,
   codec: "h264",
-  outputLocation: "/mnt/documents/comercial-foto-de-campanha-story.mp4",
+  outputLocation: outFile,
   puppeteerInstance: browser,
   muted: true,
   concurrency: 1,
