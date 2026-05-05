@@ -59,16 +59,17 @@ export const Scene7CTA: React.FC = () => {
           color: COLORS.white,
           fontFamily: FONT_DISPLAY,
           fontWeight: 900,
-          fontSize: 48,
-          padding: "30px 80px",
+          fontSize: 36,
+          padding: "30px 60px",
           borderRadius: 24,
           letterSpacing: 1,
           opacity: d,
           transform: `scale(${d * pulse})`,
           boxShadow: `0 20px 60px ${COLORS.primary}90`,
+          textAlign: "center",
         }}
       >
-        fotodecampanha.app
+        fotodeapoiador.easychain.com.br
       </div>
 
       <div

@@ -78,7 +78,7 @@ export const Scene5Client: React.FC = () => {
             {/* Stage 0: link */}
             {stage === 0 && (
               <div style={{ textAlign: "center", paddingTop: 60 }}>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 24, color: COLORS.muted }}>fotodecampanha.app/sua-campanha</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 22, color: COLORS.muted }}>fotodeapoiador.easychain.com.br</div>
                 <div
                   style={{
                     marginTop: 40,
