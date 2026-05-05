@@ -10,6 +10,7 @@ import { Scene4Editor } from "./scenes/Scene4Editor";
 import { Scene5Client } from "./scenes/Scene5Client";
 import { Scene6Spread } from "./scenes/Scene6Spread";
 import { Scene7CTA } from "./scenes/Scene7CTA";
+import { Scene6bCRM } from "./scenes/Scene6bCRM";
 
 const D = {
   s1: 75,
@@ -18,12 +19,13 @@ const D = {
   s4: 165,
   s5: 180,
   s6: 120,
+  s6b: 180,
   s7: 105,
 };
 const TR = 18;
 
 export const TOTAL_FRAMES =
-  D.s1 + D.s2 + D.s3 + D.s4 + D.s5 + D.s6 + D.s7 - TR * 6;
+  D.s1 + D.s2 + D.s3 + D.s4 + D.s5 + D.s6 + D.s6b + D.s7 - TR * 7;
 
 const BG = "#0B0F1A";
 
@@ -92,6 +94,11 @@ export const MainVideo: React.FC = () => {
 
         <TransitionSeries.Sequence durationInFrames={D.s6}>
           <Scene6Spread />
+        </TransitionSeries.Sequence>
+        <TransitionSeries.Transition presentation={slide({ direction: "from-bottom" })} timing={springTiming({ config: { damping: 200 }, durationInFrames: TR })} />
+
+        <TransitionSeries.Sequence durationInFrames={D.s6b}>
+          <Scene6bCRM />
         </TransitionSeries.Sequence>
         <TransitionSeries.Transition presentation={wipe({ direction: "from-top" })} timing={springTiming({ config: { damping: 200 }, durationInFrames: TR })} />
 
