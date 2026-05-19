@@ -67,6 +67,33 @@ export function ChatPanel({
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+
+  const readCachedMessages = async (jid: string) => {
+    const { data } = await supabase
+      .from("whatsapp_messages")
+      .select("*")
+      .eq("candidate_id", candidateId)
+      .eq("jid", jid)
+      .order("ts", { ascending: false })
+      .limit(100);
+
+    return ((data || []) as Msg[]).reverse();
+  };
+
+  const isNearBottom = () => {
+    const el = scrollRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
+    requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      el.scrollTo({ top: el.scrollHeight, behavior });
+    });
+  };
 
   const loadChats = async () => {
     const { data } = await supabase
@@ -121,17 +148,12 @@ export function ChatPanel({
   }, [candidateId, selected?.jid]);
 
   const loadMessages = async (chat: Chat) => {
+    stickToBottomRef.current = true;
     setLoadingMsgs(true);
     setMessages([]);
     // Cache first
-    const { data: cached } = await supabase
-      .from("whatsapp_messages")
-      .select("*")
-      .eq("candidate_id", candidateId)
-      .eq("jid", chat.jid)
-      .order("ts", { ascending: true })
-      .limit(100);
-    setMessages((cached || []) as any);
+    const cached = await readCachedMessages(chat.jid);
+    setMessages(cached);
     setLoadingMsgs(false);
     // Then live (best-effort)
     if (accessToken) {
@@ -146,14 +168,8 @@ export function ChatPanel({
         });
         if (res.messages?.length) {
           // Reload from cache (server fn just upserted)
-          const { data: fresh } = await supabase
-            .from("whatsapp_messages")
-            .select("*")
-            .eq("candidate_id", candidateId)
-            .eq("jid", chat.jid)
-            .order("ts", { ascending: true })
-            .limit(100);
-          setMessages((fresh || []) as any);
+          const fresh = await readCachedMessages(chat.jid);
+          setMessages(fresh);
         }
       } catch {
         // ignore
@@ -172,10 +188,11 @@ export function ChatPanel({
   }, [selected?.jid]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (stickToBottomRef.current || isNearBottom()) {
+      scrollToBottom();
     }
-  }, [messages]);
+    stickToBottomRef.current = false;
+  }, [messages, selected?.jid]);
 
   const onSync = async () => {
     if (!accessToken) return;
@@ -220,6 +237,7 @@ export function ChatPanel({
   const onSend = async () => {
     if (!selected || !accessToken) return;
     if (!text && !mediaUrl) return;
+    stickToBottomRef.current = true;
     setSending(true);
     try {
       await sendMessage({
@@ -414,7 +432,13 @@ export function ChatPanel({
                 )}
               </div>
 
-              <div ref={scrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-muted/10 p-4">
+              <div
+                ref={scrollRef}
+                onScroll={() => {
+                  stickToBottomRef.current = isNearBottom();
+                }}
+                className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-muted/10 p-4"
+              >
                 {loadingMsgs && (
                   <div className="text-center text-sm text-muted-foreground">
                     <Loader2 className="mx-auto h-4 w-4 animate-spin" />
