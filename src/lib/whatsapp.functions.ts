@@ -358,29 +358,48 @@ export const fetchMessages = createServerFn({ method: "POST" })
         .limit(data.limit);
       return { messages: local || [], source: "cache" as const };
     }
-    const msgs = Array.isArray(res.messages) ? res.messages : [];
-    const rows = msgs.map((m: any) => ({
-      candidate_id: candidateId,
-      message_id: m.key?.id || `${data.jid}-${m.messageTimestamp}`,
-      jid: data.jid,
-      from_me: !!m.key?.fromMe,
-      push_name: m.pushName || null,
-      message_type: m.messageType || "text",
-      text: m.text || null,
-      media_url: m.mediaUrl || null,
-      media_mime: m.mediaMimeType || null,
-      media_filename: m.mediaFileName || null,
-      media_size: m.mediaSizeBytes || null,
-      ts: m.messageTimestamp
-        ? new Date(m.messageTimestamp * 1000).toISOString()
-        : new Date().toISOString(),
-    }));
-    for (const r of rows) {
-      await sb
+    const msgs = Array.isArray(res?.messages)
+      ? res.messages
+      : Array.isArray(res)
+      ? res
+      : [];
+    const rows = msgs
+      .map((m: any) => {
+        const messageId =
+          m.key?.id ||
+          m.messageId ||
+          m.id ||
+          `${data.jid}-${JSON.stringify(m.messageTimestamp)}`;
+        return {
+          candidate_id: candidateId,
+          message_id: messageId,
+          jid: data.jid,
+          from_me: !!(m.key?.fromMe ?? m.fromMe),
+          push_name: m.pushName || null,
+          message_type: m.messageType || "text",
+          text: m.text || m.message?.conversation || null,
+          media_url: m.mediaUrl || null,
+          media_mime: m.mediaMimeType || null,
+          media_filename: m.mediaFileName || null,
+          media_size: m.mediaSizeBytes || null,
+          ts: tsToIso(m.messageTimestamp) || new Date().toISOString(),
+        };
+      })
+      .filter((r: any) => !!r.message_id);
+
+    let saveErr: string | null = null;
+    if (rows.length) {
+      const { error } = await sb
         .from("whatsapp_messages")
-        .upsert(r, { onConflict: "candidate_id,message_id" });
+        .upsert(rows, { onConflict: "candidate_id,message_id" });
+      if (error) saveErr = error.message;
     }
-    return { messages: rows, source: "live" as const };
+    if (saveErr) {
+      // Don't throw — still return what we got so the UI can render
+      console.error("[fetchMessages] upsert error:", saveErr);
+    }
+    return { messages: rows, source: "live" as const, saved: rows.length, error: saveErr };
+  });
   });
 
 /* ===================== SEND ===================== */
