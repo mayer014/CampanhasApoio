@@ -2,11 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { normalizeSupabaseUrl } from "@/integrations/supabase/url";
 import { uniqueSlug } from "./admin.server";
 import type { Database } from "@/integrations/supabase/types";
 
 async function getUserIdFromToken(token: string): Promise<string> {
-  const SUPABASE_URL = process.env.SUPABASE_URL!;
+  const SUPABASE_URL =
+    normalizeSupabaseUrl(process.env.SUPABASE_URL) ||
+    normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL) ||
+    "https://pfppmkqsdqawvykkgafe.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
   const sb = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
