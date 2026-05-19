@@ -20,6 +20,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -29,11 +30,17 @@ function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
     setSubmitting(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setSubmitting(false);
     if (error) {
-      toast.error(error.message);
+      const msg =
+        error.message === "Invalid login credentials"
+          ? "E-mail ou senha incorretos."
+          : error.message;
+      setErrorMsg(msg);
+      toast.error(msg);
     } else {
       toast.success("Bem-vindo!");
     }
@@ -67,6 +74,11 @@ function LoginPage() {
             <Label htmlFor="password">Senha</Label>
             <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
+          {errorMsg && (
+            <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {errorMsg}
+            </p>
+          )}
           <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? "Entrando..." : "Entrar"}
           </Button>
