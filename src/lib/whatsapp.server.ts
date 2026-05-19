@@ -122,16 +122,10 @@ function resolveSupabasePublicEnv() {
   return { url, key };
 }
 
-/** Validate Supabase access token -> user id */
+/** Validate Supabase access token -> user id (decode JWT local, sem HTTP). */
 export async function userIdFromToken(token: string): Promise<string> {
-  const { createClient } = await import("@supabase/supabase-js");
-  const { url, key } = resolveSupabasePublicEnv();
-  const sb = createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await sb.auth.getUser(token);
-  if (error || !data.user) throw new Error("Invalid or expired token");
-  return data.user.id;
+  const { userIdFromJwt } = await import("@/lib/jwt-decode.server");
+  return userIdFromJwt(token);
 }
 
 /** Create a Supabase client scoped to the authenticated user token (RLS applies). */
