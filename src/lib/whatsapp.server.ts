@@ -1,6 +1,7 @@
 // Server-only helpers for the WhatsApp module.
 // NEVER import from client code.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeSupabaseUrl } from "@/integrations/supabase/url";
 
 const BRIDGE_URL =
   "https://vxqvrsaxppbgxookyimz.supabase.co/functions/v1/whatsapp-bridge";
@@ -111,8 +112,8 @@ const SUPABASE_PUBLISHABLE_KEY_FALLBACK =
 
 function resolveSupabasePublicEnv() {
   const url =
-    process.env.SUPABASE_URL ||
-    process.env.VITE_SUPABASE_URL ||
+    normalizeSupabaseUrl(process.env.SUPABASE_URL) ||
+    normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL) ||
     SUPABASE_URL_FALLBACK;
   const key =
     process.env.SUPABASE_PUBLISHABLE_KEY ||
