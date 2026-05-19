@@ -40,6 +40,14 @@ export async function bridge(
   };
   if (auth.master) {
     const token = process.env.WHATSHUB_MASTER_TOKEN;
+    console.log("[whatsapp] env diagnostic:", {
+      hasMaster: !!token,
+      masterLen: token?.length ?? 0,
+      envKeysWithWhats: Object.keys(process.env).filter((k) => k.toLowerCase().includes("whats")),
+      hasAppBaseUrl: !!process.env.APP_BASE_URL,
+      hasViteSupabaseUrl: !!process.env.VITE_SUPABASE_URL,
+      totalEnvKeys: Object.keys(process.env).length,
+    });
     if (!token) throw new Error("WHATSHUB_MASTER_TOKEN not configured");
     headers["X-Bridge-Token"] = token;
   } else {
