@@ -175,3 +175,219 @@ export function applyTemplate(
     return v == null ? "" : String(v);
   });
 }
+
+/**
+ * Process pending broadcasts. Server-only — uses service role.
+ */
+export async function tickBroadcastsInternal(): Promise<{
+  processed: number;
+  details: any[];
+}> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: running } = await supabaseAdmin
+    .from("whatsapp_broadcasts")
+    .select("*")
+    .eq("status", "running")
+    .order("started_at", { ascending: true })
+    .limit(20);
+
+  const details: any[] = [];
+  let processed = 0;
+
+  for (const bc of running || []) {
+    try {
+      if (bc.next_send_at && new Date(bc.next_send_at) > new Date()) {
+        details.push({ id: bc.id, skip: "waiting interval" });
+        continue;
+      }
+      const inst = await getInstanceForUser(supabaseAdmin as any, bc.candidate_id).catch(() => null);
+      if (!inst || !inst.api_key) {
+        await supabaseAdmin
+          .from("whatsapp_broadcasts")
+          .update({ status: "failed" })
+          .eq("id", bc.id);
+        details.push({ id: bc.id, skip: "no instance" });
+        continue;
+      }
+
+      if (bc.respect_quiet_hours && isQuietHour(inst.quiet_hours_start, inst.quiet_hours_end)) {
+        const next = new Date(Date.now() + 5 * 60_000);
+        await supabaseAdmin
+          .from("whatsapp_broadcasts")
+          .update({ next_send_at: next.toISOString() })
+          .eq("id", bc.id);
+        details.push({ id: bc.id, skip: "quiet hours" });
+        continue;
+      }
+
+      const cap = Math.min(bc.daily_cap, inst.daily_cap);
+      const sentToday = await dailySentCount(supabaseAdmin as any, bc.candidate_id);
+      if (sentToday >= cap) {
+        const next = new Date();
+        next.setDate(next.getDate() + 1);
+        next.setHours(0, 5, 0, 0);
+        await supabaseAdmin
+          .from("whatsapp_broadcasts")
+          .update({ next_send_at: next.toISOString() })
+          .eq("id", bc.id);
+        details.push({ id: bc.id, skip: "daily cap reached" });
+        continue;
+      }
+
+      const { data: rcpt } = await supabaseAdmin
+        .from("whatsapp_broadcast_recipients")
+        .select("*")
+        .eq("broadcast_id", bc.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (!rcpt) {
+        await supabaseAdmin
+          .from("whatsapp_broadcasts")
+          .update({
+            status: "completed",
+            finished_at: new Date().toISOString(),
+          })
+          .eq("id", bc.id);
+        details.push({ id: bc.id, done: true });
+        continue;
+      }
+
+      const { data: opt } = await supabaseAdmin
+        .from("whatsapp_optouts")
+        .select("id")
+        .eq("candidate_id", bc.candidate_id)
+        .eq("jid", rcpt.jid)
+        .maybeSingle();
+
+      if (opt) {
+        await supabaseAdmin
+          .from("whatsapp_broadcast_recipients")
+          .update({ status: "skipped", error_message: "opt-out" })
+          .eq("id", rcpt.id);
+        await supabaseAdmin
+          .from("whatsapp_broadcasts")
+          .update({ skipped_count: bc.skipped_count + 1 })
+          .eq("id", bc.id);
+        details.push({ id: bc.id, skipped: rcpt.jid });
+        processed++;
+        continue;
+      }
+
+      const vars = (rcpt.variables || {}) as Record<string, string>;
+      if (rcpt.display_name && !vars.nome) vars.nome = rcpt.display_name;
+      const text = applyTemplate(bc.message_text, vars);
+
+      const isGroup = rcpt.jid.endsWith("@g.us");
+      const phone = !isGroup
+        ? (() => {
+            try {
+              return normalizePhoneBR(rcpt.jid.split("@")[0]);
+            } catch {
+              return null;
+            }
+          })()
+        : null;
+
+      if (!isGroup && !phone) {
+        await supabaseAdmin
+          .from("whatsapp_broadcast_recipients")
+          .update({ status: "failed", error_message: "telefone inválido" })
+          .eq("id", rcpt.id);
+        await supabaseAdmin
+          .from("whatsapp_broadcasts")
+          .update({ failed_count: bc.failed_count + 1 })
+          .eq("id", bc.id);
+        processed++;
+        continue;
+      }
+
+      const action = bc.media_url ? "send_media" : "send";
+      const payload: Record<string, unknown> = {};
+      if (bc.media_url) {
+        payload.media_url = bc.media_url;
+        payload.caption = text;
+      } else {
+        payload.message = text;
+      }
+      if (isGroup) payload.group_jid = rcpt.jid;
+      else payload.phone = phone;
+
+      const { status, data: res } = await bridge(action, payload, {
+        apiKey: inst.api_key,
+      });
+
+      if (status >= 400 || !res?.success) {
+        const errMsg = res?.error || `HTTP ${status}`;
+        if (status === 409 || /not connected/i.test(errMsg)) {
+          await supabaseAdmin
+            .from("whatsapp_broadcasts")
+            .update({ status: "paused", next_send_at: null })
+            .eq("id", bc.id);
+        }
+        await supabaseAdmin
+          .from("whatsapp_broadcast_recipients")
+          .update({ status: "failed", error_message: errMsg })
+          .eq("id", rcpt.id);
+        await supabaseAdmin
+          .from("whatsapp_broadcasts")
+          .update({ failed_count: bc.failed_count + 1 })
+          .eq("id", bc.id);
+        await supabaseAdmin.from("whatsapp_send_log").insert({
+          candidate_id: bc.candidate_id,
+          jid: rcpt.jid,
+          broadcast_id: bc.id,
+          status: "failed",
+        });
+        details.push({ id: bc.id, jid: rcpt.jid, error: errMsg });
+        processed++;
+        continue;
+      }
+
+      await supabaseAdmin
+        .from("whatsapp_broadcast_recipients")
+        .update({
+          status: "sent",
+          sent_at: new Date().toISOString(),
+          message_id: res.messageId || null,
+        })
+        .eq("id", rcpt.id);
+
+      const newSent = bc.sent_count + 1;
+      const intervalSec =
+        newSent > 0 && newSent % 50 === 0
+          ? randBetween(300, 600)
+          : randBetween(bc.interval_min_seconds, bc.interval_max_seconds);
+
+      const next = new Date(Date.now() + intervalSec * 1000);
+
+      const allDone = newSent + bc.failed_count + bc.skipped_count + 1 >= bc.total;
+      await supabaseAdmin
+        .from("whatsapp_broadcasts")
+        .update({
+          sent_count: newSent,
+          next_send_at: allDone ? null : next.toISOString(),
+          status: allDone ? "completed" : "running",
+          finished_at: allDone ? new Date().toISOString() : null,
+        })
+        .eq("id", bc.id);
+
+      await supabaseAdmin.from("whatsapp_send_log").insert({
+        candidate_id: bc.candidate_id,
+        jid: rcpt.jid,
+        broadcast_id: bc.id,
+        status: "sent",
+      });
+
+      processed++;
+      details.push({ id: bc.id, sent: rcpt.jid, nextInSec: intervalSec });
+    } catch (e: any) {
+      details.push({ id: bc.id, error: e?.message || String(e) });
+    }
+  }
+
+  return { processed, details };
+}
