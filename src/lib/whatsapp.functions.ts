@@ -58,17 +58,18 @@ export const createInstance = createServerFn({ method: "POST" })
       },
       { master: true, accessToken: data.access_token }
     );
-    if (status >= 400 || !res?.success) {
+    if (status >= 400 || res?.error) {
       throw new Error(res?.error || `Bridge create_instance failed (${status})`);
     }
 
-    const apiKey = res.api_key as string | undefined;
-    const instanceId = res.instance?.id as string | undefined;
-    const phone = res.instance?.phone_number || null;
+    const apiKey = (res?.api_key ?? res?.apiKey) as string | undefined;
+    const instanceId = (res?.instance?.id ?? res?.instance?.instance_id) as string | undefined;
+    const phone = (res?.instance?.phone_number ?? res?.phone_number) || null;
     const remoteStatus =
-      (res.instance?.status as "connected" | "connecting" | "disconnected") ||
+      (res?.instance?.status as "connected" | "connecting" | "disconnected") ||
       "connecting";
-    const qrcode = res.qrcode as string | undefined;
+    const qrcode = (res?.qrcode ?? res?.instance?.qrcode) as string | undefined;
+
 
     const row = {
       candidate_id: candidateId,
