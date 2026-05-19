@@ -25,6 +25,8 @@ import { Route as PainelTemplatesIndexRouteImport } from './routes/painel.templa
 import { Route as AdminCandidatosIndexRouteImport } from './routes/admin.candidatos.index'
 import { Route as PainelTemplatesTplIdRouteImport } from './routes/painel.templates.$tplId'
 import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
+import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
+import { Route as ApiPublicWhatsappBroadcastTickRouteImport } from './routes/api/public/whatsapp.broadcast-tick'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
 const PainelRoute = PainelRouteImport.update({
@@ -107,6 +109,18 @@ const AdminCandidatosIdIndexRoute = AdminCandidatosIdIndexRouteImport.update({
   path: '/candidatos/$id/',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicWhatsappWebhookRoute =
+  ApiPublicWhatsappWebhookRouteImport.update({
+    id: '/api/public/whatsapp/webhook',
+    path: '/api/public/whatsapp/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWhatsappBroadcastTickRoute =
+  ApiPublicWhatsappBroadcastTickRouteImport.update({
+    id: '/api/public/whatsapp/broadcast-tick',
+    path: '/api/public/whatsapp/broadcast-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminCandidatosIdTemplateTplIdRoute =
   AdminCandidatosIdTemplateTplIdRouteImport.update({
     id: '/candidatos/$id/template/$tplId',
@@ -130,6 +144,8 @@ export interface FileRoutesByFullPath {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
+  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
   '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
 }
@@ -147,6 +163,8 @@ export interface FileRoutesByTo {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
   '/painel/templates': typeof PainelTemplatesIndexRoute
+  '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
+  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id': typeof AdminCandidatosIdIndexRoute
   '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
 }
@@ -167,6 +185,8 @@ export interface FileRoutesById {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
+  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
   '/admin/candidatos/$id/template/$tplId': typeof AdminCandidatosIdTemplateTplIdRoute
 }
@@ -188,6 +208,8 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/whatsapp/broadcast-tick'
+    | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id/'
     | '/admin/candidatos/$id/template/$tplId'
   fileRoutesByTo: FileRoutesByTo
@@ -205,6 +227,8 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos'
     | '/painel/templates'
+    | '/api/public/whatsapp/broadcast-tick'
+    | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id'
     | '/admin/candidatos/$id/template/$tplId'
   id:
@@ -224,6 +248,8 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/whatsapp/broadcast-tick'
+    | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id/'
     | '/admin/candidatos/$id/template/$tplId'
   fileRoutesById: FileRoutesById
@@ -236,6 +262,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PainelRoute: typeof PainelRouteWithChildren
   PSlugRoute: typeof PSlugRoute
+  ApiPublicWhatsappBroadcastTickRoute: typeof ApiPublicWhatsappBroadcastTickRoute
+  ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -352,6 +380,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCandidatosIdIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/whatsapp/webhook': {
+      id: '/api/public/whatsapp/webhook'
+      path: '/api/public/whatsapp/webhook'
+      fullPath: '/api/public/whatsapp/webhook'
+      preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/whatsapp/broadcast-tick': {
+      id: '/api/public/whatsapp/broadcast-tick'
+      path: '/api/public/whatsapp/broadcast-tick'
+      fullPath: '/api/public/whatsapp/broadcast-tick'
+      preLoaderRoute: typeof ApiPublicWhatsappBroadcastTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/candidatos/$id/template/$tplId': {
       id: '/admin/candidatos/$id/template/$tplId'
       path: '/candidatos/$id/template/$tplId'
@@ -407,6 +449,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PainelRoute: PainelRouteWithChildren,
   PSlugRoute: PSlugRoute,
+  ApiPublicWhatsappBroadcastTickRoute: ApiPublicWhatsappBroadcastTickRoute,
+  ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
