@@ -6,13 +6,16 @@ import { normalizeSupabaseUrl } from "@/integrations/supabase/url";
 const BRIDGE_URL =
   "https://vxqvrsaxppbgxookyimz.supabase.co/functions/v1/whatsapp-bridge";
 
-const APP_BASE_URL =
-  process.env.APP_BASE_URL ||
-  "https://project--7a279b36-7b6b-4e1c-bf0e-253f1a812c48.lovable.app";
+function resolveAppBaseUrl(): string {
+  return (
+    process.env.APP_BASE_URL ||
+    "https://project--7a279b36-7b6b-4e1c-bf0e-253f1a812c48.lovable.app"
+  );
+}
 
 /** Webhook URL the WhatsHub motor should POST events to. */
 export function webhookUrl(): string {
-  return `${APP_BASE_URL}/api/public/whatsapp/webhook`;
+  return `${resolveAppBaseUrl()}/api/public/whatsapp/webhook`;
 }
 
 /** 13-digit BR phone normalizer: 55 + DDD + 9 + 8 digits. */
@@ -33,21 +36,13 @@ export function normalizePhoneBR(raw: string): string {
 export async function bridge(
   action: string,
   payload: Record<string, unknown>,
-  auth: { apiKey?: string; master?: boolean }
+  auth: { apiKey?: string; master?: boolean; masterToken?: string | null }
 ): Promise<{ status: number; data: any }> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
   if (auth.master) {
-    const token = process.env.WHATSHUB_MASTER_TOKEN;
-    console.log("[whatsapp] env diagnostic:", {
-      hasMaster: !!token,
-      masterLen: token?.length ?? 0,
-      envKeysWithWhats: Object.keys(process.env).filter((k) => k.toLowerCase().includes("whats")),
-      hasAppBaseUrl: !!process.env.APP_BASE_URL,
-      hasViteSupabaseUrl: !!process.env.VITE_SUPABASE_URL,
-      totalEnvKeys: Object.keys(process.env).length,
-    });
+    const token = auth.masterToken?.trim() || process.env.WHATSHUB_MASTER_TOKEN?.trim();
     if (!token) throw new Error("WHATSHUB_MASTER_TOKEN not configured");
     headers["X-Bridge-Token"] = token;
   } else {
