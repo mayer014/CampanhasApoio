@@ -1,6 +1,6 @@
 // Server-only helpers for the WhatsApp module.
 // NEVER import from client code.
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const BRIDGE_URL =
   "https://vxqvrsaxppbgxookyimz.supabase.co/functions/v1/whatsapp-bridge";
@@ -61,7 +61,10 @@ export async function bridge(
 }
 
 /** Get the API key + ownership for a candidate. Throws if missing. */
-export async function getInstanceForUser(userId: string): Promise<{
+export async function getInstanceForUser(
+  sb: SupabaseClient,
+  candidateId: string
+): Promise<{
   id: string;
   candidate_id: string;
   instance_id: string | null;
@@ -73,12 +76,12 @@ export async function getInstanceForUser(userId: string): Promise<{
   quiet_hours_start: number;
   quiet_hours_end: number;
 }> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await sb
     .from("whatsapp_instances")
     .select(
       "id, candidate_id, instance_id, api_key, status, phone_number, webhook_registered, daily_cap, quiet_hours_start, quiet_hours_end"
     )
-    .eq("candidate_id", userId)
+    .eq("candidate_id", candidateId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Instância WhatsApp não configurada");
@@ -87,12 +90,12 @@ export async function getInstanceForUser(userId: string): Promise<{
 
 /** Resolve effective candidate target: admin can act on behalf of any user. */
 export async function resolveTargetCandidate(
+  sb: SupabaseClient,
   callerId: string,
   targetCandidateId?: string | null
 ): Promise<string> {
   if (!targetCandidateId || targetCandidateId === callerId) return callerId;
-  // Check admin
-  const { data: r } = await supabaseAdmin
+  const { data: r } = await sb
     .from("user_roles")
     .select("role")
     .eq("user_id", callerId)
@@ -116,7 +119,7 @@ export async function userIdFromToken(token: string): Promise<string> {
 }
 
 /** Create a Supabase client scoped to the authenticated user token (RLS applies). */
-export async function userClientFromToken(token: string) {
+export async function userClientFromToken(token: string): Promise<SupabaseClient> {
   const { createClient } = await import("@supabase/supabase-js");
   const SUPABASE_URL = process.env.SUPABASE_URL!;
   const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
@@ -132,10 +135,13 @@ export async function userClientFromToken(token: string) {
 }
 
 /** Check daily cap usage for an instance. Returns sent count today. */
-export async function dailySentCount(candidateId: string): Promise<number> {
+export async function dailySentCount(
+  sb: SupabaseClient,
+  candidateId: string
+): Promise<number> {
   const since = new Date();
   since.setHours(0, 0, 0, 0);
-  const { count } = await supabaseAdmin
+  const { count } = await sb
     .from("whatsapp_send_log")
     .select("*", { count: "exact", head: true })
     .eq("candidate_id", candidateId)
@@ -146,14 +152,11 @@ export async function dailySentCount(candidateId: string): Promise<number> {
 
 /** Is current time inside the quiet hours window? */
 export function isQuietHour(start: number, end: number): boolean {
-  // Use server's local hour (Brazil-relevant). On Cloudflare workerd it's UTC, so
-  // convert to BRT (UTC-3) for politicians' typical schedule.
   const now = new Date();
   const utcH = now.getUTCHours();
   const brtH = (utcH - 3 + 24) % 24;
   if (start === end) return false;
   if (start < end) return brtH >= start && brtH < end;
-  // window crosses midnight (e.g. 22 -> 7)
   return brtH >= start || brtH < end;
 }
 

@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   applyTemplate,
   bridge,
@@ -10,8 +9,8 @@ import {
   normalizePhoneBR,
   randBetween,
   resolveTargetCandidate,
-  userIdFromToken,
   userClientFromToken,
+  userIdFromToken,
   webhookUrl,
 } from "./whatsapp.server";
 
@@ -27,14 +26,15 @@ export const createInstance = createServerFn({ method: "POST" })
     TokenInput.extend({ name: z.string().min(1).max(100) }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
     const candidateId = await resolveTargetCandidate(
+      sb,
       callerId,
       data.candidate_id
     );
 
-    // Lookup candidate profile for name fallback
-    const { data: prof } = await supabaseAdmin
+    const { data: prof } = await sb
       .from("candidate_profiles")
       .select("full_name")
       .eq("id", candidateId)
@@ -44,14 +44,12 @@ export const createInstance = createServerFn({ method: "POST" })
       data.name ||
       (prof?.full_name ? `WhatsApp ${prof.full_name}` : `WhatsApp ${candidateId.slice(0, 6)}`);
 
-    // Try to find existing local row
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await sb
       .from("whatsapp_instances")
       .select("*")
       .eq("candidate_id", candidateId)
       .maybeSingle();
 
-    // Call bridge create_instance (master mode) — bridge dedupes by phone/name on its side
     const { status, data: res } = await bridge(
       "create_instance",
       {
@@ -85,12 +83,9 @@ export const createInstance = createServerFn({ method: "POST" })
     };
 
     if (existing) {
-      await supabaseAdmin
-        .from("whatsapp_instances")
-        .update(row)
-        .eq("id", existing.id);
+      await sb.from("whatsapp_instances").update(row).eq("id", existing.id);
     } else {
-      await supabaseAdmin.from("whatsapp_instances").insert(row);
+      await sb.from("whatsapp_instances").insert(row);
     }
 
     return {
@@ -104,12 +99,10 @@ export const createInstance = createServerFn({ method: "POST" })
 export const getInstanceStatus = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(
-      callerId,
-      data.candidate_id
-    );
-    const inst = await getInstanceForUser(candidateId);
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    const inst = await getInstanceForUser(sb, candidateId);
     if (!inst.api_key) {
       return {
         configured: false as const,
@@ -136,7 +129,7 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
       | "connected"
       | "connecting"
       | "disconnected";
-    await supabaseAdmin
+    await sb
       .from("whatsapp_instances")
       .update({
         status: newStatus,
@@ -157,9 +150,10 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
 export const reconnectInstance = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(callerId, data.candidate_id);
-    const inst = await getInstanceForUser(candidateId);
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    const inst = await getInstanceForUser(sb, candidateId);
     if (!inst.api_key) throw new Error("Instância sem API key");
     const { status, data: res } = await bridge("reconnect", {}, { apiKey: inst.api_key });
     if (status >= 400) throw new Error(res?.error || `reconnect ${status}`);
@@ -169,12 +163,13 @@ export const reconnectInstance = createServerFn({ method: "POST" })
 export const disconnectInstance = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(callerId, data.candidate_id);
-    const inst = await getInstanceForUser(candidateId);
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    const inst = await getInstanceForUser(sb, candidateId);
     if (!inst.api_key) throw new Error("Instância sem API key");
     await bridge("disconnect", {}, { apiKey: inst.api_key });
-    await supabaseAdmin
+    await sb
       .from("whatsapp_instances")
       .update({ status: "disconnected" })
       .eq("candidate_id", candidateId);
@@ -190,9 +185,10 @@ export const updateInstanceSettings = createServerFn({ method: "POST" })
     }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(callerId, data.candidate_id);
-    await supabaseAdmin
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    await sb
       .from("whatsapp_instances")
       .update({
         daily_cap: data.daily_cap,
@@ -208,15 +204,15 @@ export const updateInstanceSettings = createServerFn({ method: "POST" })
 export const syncChats = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(callerId, data.candidate_id);
-    const inst = await getInstanceForUser(candidateId);
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    const inst = await getInstanceForUser(sb, candidateId);
     if (!inst.api_key) throw new Error("Instância sem API key");
     const { status, data: res } = await bridge("chats", {}, { apiKey: inst.api_key });
     if (status >= 400) throw new Error(res?.error || `chats ${status}`);
     const chats = Array.isArray(res.chats) ? res.chats : [];
 
-    // Upsert chats + groups
     const chatRows = chats.map((c: any) => ({
       candidate_id: candidateId,
       jid: c.id,
@@ -231,7 +227,7 @@ export const syncChats = createServerFn({ method: "POST" })
     }));
 
     if (chatRows.length) {
-      await supabaseAdmin.from("whatsapp_chats").upsert(chatRows, {
+      await sb.from("whatsapp_chats").upsert(chatRows, {
         onConflict: "candidate_id,jid",
       });
     }
@@ -250,9 +246,8 @@ export const syncChats = createServerFn({ method: "POST" })
         last_synced_at: new Date().toISOString(),
       }));
     if (groupRows.length) {
-      // upsert but DON'T clobber is_favorite
       for (const g of groupRows) {
-        await supabaseAdmin
+        await sb
           .from("whatsapp_groups")
           .upsert(g, { onConflict: "candidate_id,jid", ignoreDuplicates: false });
       }
@@ -264,9 +259,10 @@ export const syncChats = createServerFn({ method: "POST" })
 export const syncContacts = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(callerId, data.candidate_id);
-    const inst = await getInstanceForUser(candidateId);
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    const inst = await getInstanceForUser(sb, candidateId);
     if (!inst.api_key) throw new Error("Instância sem API key");
     const { status, data: res } = await bridge("contacts", {}, { apiKey: inst.api_key });
     if (status >= 400) throw new Error(res?.error || `contacts ${status}`);
@@ -282,7 +278,7 @@ export const syncContacts = createServerFn({ method: "POST" })
         last_synced_at: new Date().toISOString(),
       }));
     if (rows.length) {
-      await supabaseAdmin.from("whatsapp_contacts").upsert(rows, {
+      await sb.from("whatsapp_contacts").upsert(rows, {
         onConflict: "candidate_id,jid",
       });
     }
@@ -297,9 +293,10 @@ export const fetchMessages = createServerFn({ method: "POST" })
     }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(callerId, data.candidate_id);
-    const inst = await getInstanceForUser(candidateId);
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    const inst = await getInstanceForUser(sb, candidateId);
     if (!inst.api_key) throw new Error("Instância sem API key");
     const { status, data: res } = await bridge(
       "fetch_messages",
@@ -307,8 +304,7 @@ export const fetchMessages = createServerFn({ method: "POST" })
       { apiKey: inst.api_key }
     );
     if (status >= 400) {
-      // Fall back to local cache only
-      const { data: local } = await supabaseAdmin
+      const { data: local } = await sb
         .from("whatsapp_messages")
         .select("*")
         .eq("candidate_id", candidateId)
@@ -318,7 +314,6 @@ export const fetchMessages = createServerFn({ method: "POST" })
       return { messages: local || [], source: "cache" as const };
     }
     const msgs = Array.isArray(res.messages) ? res.messages : [];
-    // Cache them
     const rows = msgs.map((m: any) => ({
       candidate_id: candidateId,
       message_id: m.key?.id || `${data.jid}-${m.messageTimestamp}`,
@@ -336,7 +331,7 @@ export const fetchMessages = createServerFn({ method: "POST" })
         : new Date().toISOString(),
     }));
     for (const r of rows) {
-      await supabaseAdmin
+      await sb
         .from("whatsapp_messages")
         .upsert(r, { onConflict: "candidate_id,message_id" });
     }
@@ -355,9 +350,10 @@ export const sendMessage = createServerFn({ method: "POST" })
     }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(callerId, data.candidate_id);
-    const inst = await getInstanceForUser(candidateId);
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    const inst = await getInstanceForUser(sb, candidateId);
     if (!inst.api_key) throw new Error("Instância sem API key");
 
     const isGroup = data.jid.endsWith("@g.us");
@@ -383,7 +379,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       apiKey: inst.api_key,
     });
 
-    await supabaseAdmin.from("whatsapp_send_log").insert({
+    await sb.from("whatsapp_send_log").insert({
       candidate_id: candidateId,
       jid: data.jid,
       status: status < 400 && res?.success ? "sent" : "failed",
@@ -393,9 +389,8 @@ export const sendMessage = createServerFn({ method: "POST" })
       throw new Error(res?.error || `send ${status}`);
     }
 
-    // Cache outgoing message
     if (res.messageId) {
-      await supabaseAdmin
+      await sb
         .from("whatsapp_messages")
         .upsert(
           {
@@ -422,15 +417,16 @@ export const toggleGroupFavorite = createServerFn({ method: "POST" })
     TokenInput.extend({ group_id: z.string().uuid() }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const { data: g, error } = await supabaseAdmin
+    const { data: g, error } = await sb
       .from("whatsapp_groups")
       .select("id, candidate_id, is_favorite")
       .eq("id", data.group_id)
       .maybeSingle();
     if (error || !g) throw new Error("Grupo não encontrado");
-    await resolveTargetCandidate(callerId, g.candidate_id);
-    await supabaseAdmin
+    await resolveTargetCandidate(sb, callerId, g.candidate_id);
+    await sb
       .from("whatsapp_groups")
       .update({ is_favorite: !g.is_favorite })
       .eq("id", g.id);
@@ -447,9 +443,10 @@ export const addOptOut = createServerFn({ method: "POST" })
     }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(callerId, data.candidate_id);
-    await supabaseAdmin
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    await sb
       .from("whatsapp_optouts")
       .upsert(
         { candidate_id: candidateId, jid: data.jid, reason: data.reason || null },
@@ -463,15 +460,16 @@ export const removeOptOut = createServerFn({ method: "POST" })
     TokenInput.extend({ id: z.string().uuid() }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const { data: o } = await supabaseAdmin
+    const { data: o } = await sb
       .from("whatsapp_optouts")
       .select("id, candidate_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!o) return { success: true };
-    await resolveTargetCandidate(callerId, o.candidate_id);
-    await supabaseAdmin.from("whatsapp_optouts").delete().eq("id", o.id);
+    await resolveTargetCandidate(sb, callerId, o.candidate_id);
+    await sb.from("whatsapp_optouts").delete().eq("id", o.id);
     return { success: true };
   });
 
@@ -498,14 +496,14 @@ export const createBroadcast = createServerFn({ method: "POST" })
     }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(callerId, data.candidate_id);
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
 
     if (data.interval_max_seconds < data.interval_min_seconds) {
       throw new Error("Intervalo máximo deve ser maior que o mínimo");
     }
 
-    // Dedup recipients by jid
     const seen = new Set<string>();
     const dedup = data.recipients.filter((r) => {
       if (seen.has(r.jid)) return false;
@@ -513,7 +511,7 @@ export const createBroadcast = createServerFn({ method: "POST" })
       return true;
     });
 
-    const { data: bc, error } = await supabaseAdmin
+    const { data: bc, error } = await sb
       .from("whatsapp_broadcasts")
       .insert({
         candidate_id: candidateId,
@@ -539,9 +537,8 @@ export const createBroadcast = createServerFn({ method: "POST" })
       variables: r.variables || {},
       status: "pending" as const,
     }));
-    // Insert in chunks
     for (let i = 0; i < rows.length; i += 500) {
-      await supabaseAdmin
+      await sb
         .from("whatsapp_broadcast_recipients")
         .insert(rows.slice(i, i + 500));
     }
@@ -554,15 +551,16 @@ export const startBroadcast = createServerFn({ method: "POST" })
     TokenInput.extend({ id: z.string().uuid() }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const { data: bc } = await supabaseAdmin
+    const { data: bc } = await sb
       .from("whatsapp_broadcasts")
       .select("id, candidate_id, status")
       .eq("id", data.id)
       .maybeSingle();
     if (!bc) throw new Error("Campanha não encontrada");
-    await resolveTargetCandidate(callerId, bc.candidate_id);
-    await supabaseAdmin
+    await resolveTargetCandidate(sb, callerId, bc.candidate_id);
+    await sb
       .from("whatsapp_broadcasts")
       .update({
         status: "running",
@@ -578,15 +576,16 @@ export const pauseBroadcast = createServerFn({ method: "POST" })
     TokenInput.extend({ id: z.string().uuid() }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const { data: bc } = await supabaseAdmin
+    const { data: bc } = await sb
       .from("whatsapp_broadcasts")
       .select("id, candidate_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!bc) throw new Error("Campanha não encontrada");
-    await resolveTargetCandidate(callerId, bc.candidate_id);
-    await supabaseAdmin
+    await resolveTargetCandidate(sb, callerId, bc.candidate_id);
+    await sb
       .from("whatsapp_broadcasts")
       .update({ status: "paused" })
       .eq("id", bc.id);
@@ -598,15 +597,16 @@ export const deleteBroadcast = createServerFn({ method: "POST" })
     TokenInput.extend({ id: z.string().uuid() }).parse(input)
   )
   .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
-    const { data: bc } = await supabaseAdmin
+    const { data: bc } = await sb
       .from("whatsapp_broadcasts")
       .select("id, candidate_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!bc) throw new Error("Campanha não encontrada");
-    await resolveTargetCandidate(callerId, bc.candidate_id);
-    await supabaseAdmin.from("whatsapp_broadcasts").delete().eq("id", bc.id);
+    await resolveTargetCandidate(sb, callerId, bc.candidate_id);
+    await sb.from("whatsapp_broadcasts").delete().eq("id", bc.id);
     return { success: true };
   });
 
@@ -614,12 +614,14 @@ export const deleteBroadcast = createServerFn({ method: "POST" })
 /**
  * Process ONE pending recipient per running broadcast (per candidate).
  * Called by pg_cron via /api/public/whatsapp/broadcast-tick every 30s.
- * Returns summary.
+ * Uses service role to bypass RLS since no user context exists.
  */
 export async function tickBroadcastsInternal(): Promise<{
   processed: number;
   details: any[];
 }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
   const { data: running } = await supabaseAdmin
     .from("whatsapp_broadcasts")
     .select("*")
@@ -632,13 +634,11 @@ export async function tickBroadcastsInternal(): Promise<{
 
   for (const bc of running || []) {
     try {
-      // Respect next_send_at
       if (bc.next_send_at && new Date(bc.next_send_at) > new Date()) {
         details.push({ id: bc.id, skip: "waiting interval" });
         continue;
       }
-      // Get instance
-      const inst = await getInstanceForUser(bc.candidate_id).catch(() => null);
+      const inst = await getInstanceForUser(supabaseAdmin as any, bc.candidate_id).catch(() => null);
       if (!inst || !inst.api_key) {
         await supabaseAdmin
           .from("whatsapp_broadcasts")
@@ -648,9 +648,7 @@ export async function tickBroadcastsInternal(): Promise<{
         continue;
       }
 
-      // Quiet hours
       if (bc.respect_quiet_hours && isQuietHour(inst.quiet_hours_start, inst.quiet_hours_end)) {
-        // Recheck in 5 min
         const next = new Date(Date.now() + 5 * 60_000);
         await supabaseAdmin
           .from("whatsapp_broadcasts")
@@ -660,9 +658,8 @@ export async function tickBroadcastsInternal(): Promise<{
         continue;
       }
 
-      // Daily cap
       const cap = Math.min(bc.daily_cap, inst.daily_cap);
-      const sentToday = await dailySentCount(bc.candidate_id);
+      const sentToday = await dailySentCount(supabaseAdmin as any, bc.candidate_id);
       if (sentToday >= cap) {
         const next = new Date();
         next.setDate(next.getDate() + 1);
@@ -675,7 +672,6 @@ export async function tickBroadcastsInternal(): Promise<{
         continue;
       }
 
-      // Get next pending recipient
       const { data: rcpt } = await supabaseAdmin
         .from("whatsapp_broadcast_recipients")
         .select("*")
@@ -686,7 +682,6 @@ export async function tickBroadcastsInternal(): Promise<{
         .maybeSingle();
 
       if (!rcpt) {
-        // All done
         await supabaseAdmin
           .from("whatsapp_broadcasts")
           .update({
@@ -698,7 +693,6 @@ export async function tickBroadcastsInternal(): Promise<{
         continue;
       }
 
-      // Check opt-out
       const { data: opt } = await supabaseAdmin
         .from("whatsapp_optouts")
         .select("id")
@@ -720,12 +714,10 @@ export async function tickBroadcastsInternal(): Promise<{
         continue;
       }
 
-      // Build personalized text
       const vars = (rcpt.variables || {}) as Record<string, string>;
       if (rcpt.display_name && !vars.nome) vars.nome = rcpt.display_name;
       const text = applyTemplate(bc.message_text, vars);
 
-      // Send via bridge
       const isGroup = rcpt.jid.endsWith("@g.us");
       const phone = !isGroup
         ? (() => {
@@ -767,7 +759,6 @@ export async function tickBroadcastsInternal(): Promise<{
 
       if (status >= 400 || !res?.success) {
         const errMsg = res?.error || `HTTP ${status}`;
-        // Detect disconnect -> pause
         if (status === 409 || /not connected/i.test(errMsg)) {
           await supabaseAdmin
             .from("whatsapp_broadcasts")
@@ -803,7 +794,6 @@ export async function tickBroadcastsInternal(): Promise<{
         .eq("id", rcpt.id);
 
       const newSent = bc.sent_count + 1;
-      // Extra pause every 50 sends (5-10 min)
       const intervalSec =
         newSent > 0 && newSent % 50 === 0
           ? randBetween(300, 600)
@@ -864,7 +854,6 @@ export const adminListInstances = createServerFn({ method: "POST" })
       )
       .order("created_at", { ascending: false });
 
-    // Join candidate names
     const ids = (list || []).map((i) => i.candidate_id);
     const { data: profs } = ids.length
       ? await supabaseUser
