@@ -35,6 +35,7 @@ function PainelLayout() {
     { to: "/painel/templates", label: "Meus templates", icon: ImageIcon },
     { to: "/painel/link", label: "Link público", icon: Link2 },
     { to: "/painel/leads", label: "Eleitores", icon: Users },
+    { to: "/painel/whatsapp", label: "WhatsApp", icon: MessageCircle },
   ];
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
