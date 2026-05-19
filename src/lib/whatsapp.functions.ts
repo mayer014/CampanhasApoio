@@ -11,6 +11,7 @@ import {
   randBetween,
   resolveTargetCandidate,
   userIdFromToken,
+  userClientFromToken,
   webhookUrl,
 } from "./whatsapp.server";
 
@@ -846,14 +847,17 @@ export const adminListInstances = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const callerId = await userIdFromToken(data.access_token);
-    const { data: r } = await supabaseAdmin
+    const supabaseUser = await userClientFromToken(data.access_token);
+
+    const { data: r } = await supabaseUser
       .from("user_roles")
       .select("role")
       .eq("user_id", callerId)
       .eq("role", "admin")
       .maybeSingle();
     if (!r) throw new Error("Forbidden");
-    const { data: list } = await supabaseAdmin
+
+    const { data: list } = await supabaseUser
       .from("whatsapp_instances")
       .select(
         "id, candidate_id, name, phone_number, status, last_connected_at, daily_cap"
@@ -863,7 +867,7 @@ export const adminListInstances = createServerFn({ method: "POST" })
     // Join candidate names
     const ids = (list || []).map((i) => i.candidate_id);
     const { data: profs } = ids.length
-      ? await supabaseAdmin
+      ? await supabaseUser
           .from("candidate_profiles")
           .select("id, full_name, email")
           .in("id", ids)
@@ -873,7 +877,7 @@ export const adminListInstances = createServerFn({ method: "POST" })
     const sinceMidnight = new Date();
     sinceMidnight.setHours(0, 0, 0, 0);
     const todaysSent = ids.length
-      ? await supabaseAdmin
+      ? await supabaseUser
           .from("whatsapp_send_log")
           .select("candidate_id")
           .in("candidate_id", ids)

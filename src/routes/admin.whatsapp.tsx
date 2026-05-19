@@ -1,16 +1,36 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccessToken } from "@/hooks/use-access-token";
-import { adminListInstances } from "@/lib/whatsapp.functions";
-import { ConnectionPanel } from "@/components/whatsapp/ConnectionPanel";
-import { ChatPanel } from "@/components/whatsapp/ChatPanel";
-import { GroupsPanel } from "@/components/whatsapp/GroupsPanel";
-import { BroadcastsPanel } from "@/components/whatsapp/BroadcastsPanel";
-import { OptOutsPanel } from "@/components/whatsapp/OptOutsPanel";
+import { adminListInstances } from "@/lib/whatsapp-admin.functions";
+
+const ConnectionPanel = lazy(async () => {
+  const mod = await import("@/components/whatsapp/ConnectionPanel");
+  return { default: mod.ConnectionPanel };
+});
+
+const ChatPanel = lazy(async () => {
+  const mod = await import("@/components/whatsapp/ChatPanel");
+  return { default: mod.ChatPanel };
+});
+
+const GroupsPanel = lazy(async () => {
+  const mod = await import("@/components/whatsapp/GroupsPanel");
+  return { default: mod.GroupsPanel };
+});
+
+const BroadcastsPanel = lazy(async () => {
+  const mod = await import("@/components/whatsapp/BroadcastsPanel");
+  return { default: mod.BroadcastsPanel };
+});
+
+const OptOutsPanel = lazy(async () => {
+  const mod = await import("@/components/whatsapp/OptOutsPanel");
+  return { default: mod.OptOutsPanel };
+});
 
 export const Route = createFileRoute("/admin/whatsapp")({
   component: AdminWhatsApp,
@@ -96,30 +116,32 @@ function AdminWhatsApp() {
               </span>
             </div>
           </div>
-          <Tabs defaultValue="conexao">
-            <TabsList>
-              <TabsTrigger value="conexao">Conexão</TabsTrigger>
-              <TabsTrigger value="conversas">Conversas</TabsTrigger>
-              <TabsTrigger value="grupos">Grupos</TabsTrigger>
-              <TabsTrigger value="disparos">Disparos</TabsTrigger>
-              <TabsTrigger value="bloqueios">Bloqueios</TabsTrigger>
-            </TabsList>
-            <TabsContent value="conexao" className="mt-4">
-              <ConnectionPanel accessToken={token} candidateId={selected} defaultName={sel?.candidate?.full_name || "WhatsApp"} />
-            </TabsContent>
-            <TabsContent value="conversas" className="mt-4">
-              <ChatPanel accessToken={token} candidateId={selected} />
-            </TabsContent>
-            <TabsContent value="grupos" className="mt-4">
-              <GroupsPanel accessToken={token} candidateId={selected} />
-            </TabsContent>
-            <TabsContent value="disparos" className="mt-4">
-              <BroadcastsPanel accessToken={token} candidateId={selected} />
-            </TabsContent>
-            <TabsContent value="bloqueios" className="mt-4">
-              <OptOutsPanel accessToken={token} candidateId={selected} />
-            </TabsContent>
-          </Tabs>
+          <Suspense fallback={<Card className="p-6 text-center text-muted-foreground">Carregando módulo…</Card>}>
+            <Tabs defaultValue="conexao">
+              <TabsList>
+                <TabsTrigger value="conexao">Conexão</TabsTrigger>
+                <TabsTrigger value="conversas">Conversas</TabsTrigger>
+                <TabsTrigger value="grupos">Grupos</TabsTrigger>
+                <TabsTrigger value="disparos">Disparos</TabsTrigger>
+                <TabsTrigger value="bloqueios">Bloqueios</TabsTrigger>
+              </TabsList>
+              <TabsContent value="conexao" className="mt-4">
+                <ConnectionPanel accessToken={token} candidateId={selected} defaultName={sel?.candidate?.full_name || "WhatsApp"} />
+              </TabsContent>
+              <TabsContent value="conversas" className="mt-4">
+                <ChatPanel accessToken={token} candidateId={selected} />
+              </TabsContent>
+              <TabsContent value="grupos" className="mt-4">
+                <GroupsPanel accessToken={token} candidateId={selected} />
+              </TabsContent>
+              <TabsContent value="disparos" className="mt-4">
+                <BroadcastsPanel accessToken={token} candidateId={selected} />
+              </TabsContent>
+              <TabsContent value="bloqueios" className="mt-4">
+                <OptOutsPanel accessToken={token} candidateId={selected} />
+              </TabsContent>
+            </Tabs>
+          </Suspense>
         </div>
       )}
     </div>
