@@ -4,11 +4,12 @@
 // For user-authenticated queries (with RLS), use the auth middleware instead.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { normalizeSupabaseUrl } from './url';
 
 function createSupabaseAdminClient() {
   const SUPABASE_URL =
-    process.env.SUPABASE_URL ||
-    process.env.VITE_SUPABASE_URL ||
+    normalizeSupabaseUrl(process.env.SUPABASE_URL) ||
+    normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL) ||
     "https://pfppmkqsdqawvykkgafe.supabase.co";
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
