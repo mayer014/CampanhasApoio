@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { userClientFromToken, userIdFromToken } from "./whatsapp-auth.server";
+import { userClientFromToken, userIdFromToken } from "./whatsapp.server";
 
 export const adminListInstances = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
@@ -8,7 +8,7 @@ export const adminListInstances = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const callerId = await userIdFromToken(data.access_token);
-    const supabaseUser = userClientFromToken(data.access_token);
+    const supabaseUser = await userClientFromToken(data.access_token);
 
     const { data: roleRow } = await supabaseUser
       .from("user_roles")
