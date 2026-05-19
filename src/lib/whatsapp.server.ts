@@ -115,6 +115,22 @@ export async function userIdFromToken(token: string): Promise<string> {
   return data.user.id;
 }
 
+/** Create a Supabase client scoped to the authenticated user token (RLS applies). */
+export async function userClientFromToken(token: string) {
+  const { createClient } = await import("@supabase/supabase-js");
+  const SUPABASE_URL = process.env.SUPABASE_URL!;
+  const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
+
+  return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+}
+
 /** Check daily cap usage for an instance. Returns sent count today. */
 export async function dailySentCount(candidateId: string): Promise<number> {
   const since = new Date();
