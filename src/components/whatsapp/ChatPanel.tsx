@@ -1,0 +1,528 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
+import {
+  Send,
+  RefreshCw,
+  Image as ImageIcon,
+  Star,
+  Search,
+  Loader2,
+  Users,
+  User,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  fetchMessages,
+  sendMessage,
+  syncChats,
+  syncContacts,
+  toggleGroupFavorite,
+} from "@/lib/whatsapp.functions";
+
+type Chat = {
+  id: string;
+  jid: string;
+  name: string | null;
+  is_group: boolean;
+  unread_count: number;
+  last_message_text: string | null;
+  last_message_at: string | null;
+  last_message_from_me: boolean | null;
+};
+
+type Msg = {
+  id?: string;
+  message_id: string;
+  jid: string;
+  from_me: boolean;
+  push_name: string | null;
+  message_type: string;
+  text: string | null;
+  media_url: string | null;
+  ts: string;
+};
+
+export function ChatPanel({
+  accessToken,
+  candidateId,
+}: {
+  accessToken: string | null;
+  candidateId: string;
+}) {
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [favoriteGroups, setFavoriteGroups] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Chat | null>(null);
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [filter, setFilter] = useState<"all" | "1to1" | "group" | "fav">("all");
+  const [search, setSearch] = useState("");
+  const [text, setText] = useState("");
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const loadChats = async () => {
+    const { data } = await supabase
+      .from("whatsapp_chats")
+      .select("*")
+      .eq("candidate_id", candidateId)
+      .order("last_message_at", { ascending: false, nullsFirst: false });
+    setChats(data || []);
+    const { data: favs } = await supabase
+      .from("whatsapp_groups")
+      .select("jid, is_favorite")
+      .eq("candidate_id", candidateId)
+      .eq("is_favorite", true);
+    setFavoriteGroups(new Set((favs || []).map((f) => f.jid)));
+  };
+
+  useEffect(() => {
+    loadChats();
+    const channel = supabase
+      .channel(`wa-chat-${candidateId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "whatsapp_chats",
+          filter: `candidate_id=eq.${candidateId}`,
+        },
+        () => loadChats()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "whatsapp_messages",
+          filter: `candidate_id=eq.${candidateId}`,
+        },
+        (payload: any) => {
+          const m = payload.new as Msg;
+          if (selected && m.jid === selected.jid) {
+            setMessages((prev) =>
+              prev.find((x) => x.message_id === m.message_id) ? prev : [...prev, m]
+            );
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [candidateId, selected?.jid]);
+
+  const loadMessages = async (chat: Chat) => {
+    setLoadingMsgs(true);
+    setMessages([]);
+    // Cache first
+    const { data: cached } = await supabase
+      .from("whatsapp_messages")
+      .select("*")
+      .eq("candidate_id", candidateId)
+      .eq("jid", chat.jid)
+      .order("ts", { ascending: true })
+      .limit(100);
+    setMessages((cached || []) as any);
+    setLoadingMsgs(false);
+    // Then live (best-effort)
+    if (accessToken) {
+      try {
+        const res = await fetchMessages({
+          data: {
+            access_token: accessToken,
+            candidate_id: candidateId,
+            jid: chat.jid,
+            limit: 50,
+          },
+        });
+        if (res.messages?.length) {
+          // Reload from cache (server fn just upserted)
+          const { data: fresh } = await supabase
+            .from("whatsapp_messages")
+            .select("*")
+            .eq("candidate_id", candidateId)
+            .eq("jid", chat.jid)
+            .order("ts", { ascending: true })
+            .limit(100);
+          setMessages((fresh || []) as any);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    // mark as read locally
+    await supabase
+      .from("whatsapp_chats")
+      .update({ unread_count: 0 })
+      .eq("candidate_id", candidateId)
+      .eq("jid", chat.jid);
+  };
+
+  useEffect(() => {
+    if (selected) loadMessages(selected);
+  }, [selected?.jid]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const onSync = async () => {
+    if (!accessToken) return;
+    setSyncing(true);
+    try {
+      await Promise.all([
+        syncChats({ data: { access_token: accessToken, candidate_id: candidateId } }),
+        syncContacts({ data: { access_token: accessToken, candidate_id: candidateId } }),
+      ]);
+      toast.success("Conversas sincronizadas");
+      loadChats();
+    } catch (e: any) {
+      toast.error(e?.message || "Falha");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const onUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${candidateId}/chat/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("whatsapp-media")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from("whatsapp-media").getPublicUrl(path);
+      setMediaUrl(data.publicUrl);
+      toast.success("Imagem anexada");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao enviar imagem");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onSend = async () => {
+    if (!selected || !accessToken) return;
+    if (!text && !mediaUrl) return;
+    setSending(true);
+    try {
+      await sendMessage({
+        data: {
+          access_token: accessToken,
+          candidate_id: candidateId,
+          jid: selected.jid,
+          text: text || undefined,
+          media_url: mediaUrl || undefined,
+          caption: text || undefined,
+        },
+      });
+      setText("");
+      setMediaUrl(null);
+      // reload
+      setTimeout(() => loadMessages(selected), 300);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao enviar");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const onToggleFav = async (chat: Chat) => {
+    if (!chat.is_group || !accessToken) return;
+    const { data: g } = await supabase
+      .from("whatsapp_groups")
+      .select("id")
+      .eq("candidate_id", candidateId)
+      .eq("jid", chat.jid)
+      .maybeSingle();
+    if (!g) return;
+    try {
+      const res = await toggleGroupFavorite({
+        data: {
+          access_token: accessToken,
+          candidate_id: candidateId,
+          group_id: g.id,
+        },
+      });
+      setFavoriteGroups((prev) => {
+        const n = new Set(prev);
+        if (res.is_favorite) n.add(chat.jid);
+        else n.delete(chat.jid);
+        return n;
+      });
+    } catch (e: any) {
+      toast.error(e?.message || "Falha");
+    }
+  };
+
+  const filteredChats = useMemo(() => {
+    return chats.filter((c) => {
+      if (filter === "1to1" && c.is_group) return false;
+      if (filter === "group" && !c.is_group) return false;
+      if (filter === "fav" && !favoriteGroups.has(c.jid)) return false;
+      if (search) {
+        const s = search.toLowerCase();
+        if (!(c.name || "").toLowerCase().includes(s) && !c.jid.toLowerCase().includes(s))
+          return false;
+      }
+      return true;
+    });
+  }, [chats, filter, search, favoriteGroups]);
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="grid h-[70vh] grid-cols-1 md:grid-cols-[320px_1fr]">
+        {/* Sidebar */}
+        <div className="flex flex-col border-r bg-muted/20">
+          <div className="space-y-2 border-b p-3">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-8"
+                  placeholder="Buscar…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Button size="icon" variant="outline" onClick={onSync} disabled={syncing}>
+                {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className="flex gap-1">
+              {(
+                [
+                  ["all", "Todos"],
+                  ["1to1", "1:1"],
+                  ["group", "Grupos"],
+                  ["fav", "★"],
+                ] as const
+              ).map(([v, l]) => (
+                <Button
+                  key={v}
+                  size="sm"
+                  variant={filter === v ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setFilter(v as any)}
+                >
+                  {l}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <ScrollArea className="flex-1">
+            {filteredChats.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                Nenhuma conversa. Clique em sincronizar.
+              </div>
+            ) : (
+              filteredChats.map((c) => (
+                <button
+                  key={c.jid}
+                  onClick={() => setSelected(c)}
+                  className={`flex w-full items-start gap-2 border-b px-3 py-2 text-left hover:bg-accent ${
+                    selected?.jid === c.jid ? "bg-accent" : ""
+                  }`}
+                >
+                  <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    {c.is_group ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-medium">
+                        {c.name || c.jid.split("@")[0]}
+                      </span>
+                      {c.last_message_at && (
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {new Date(c.last_message_at).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <p className="truncate text-xs text-muted-foreground">
+                        {c.last_message_text || (c.is_group ? "Grupo" : "Conversa")}
+                      </p>
+                      {c.unread_count > 0 && (
+                        <Badge className="ml-auto h-5 min-w-5 px-1.5 text-xs">
+                          {c.unread_count}
+                        </Badge>
+                      )}
+                      {c.is_group && favoriteGroups.has(c.jid) && (
+                        <Star className="ml-auto h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
+          </ScrollArea>
+        </div>
+
+        {/* Chat area */}
+        <div className="flex flex-col">
+          {!selected ? (
+            <div className="flex flex-1 items-center justify-center text-muted-foreground">
+              Selecione uma conversa
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between border-b px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                    {selected.is_group ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">
+                      {selected.name || selected.jid.split("@")[0]}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{selected.jid}</div>
+                  </div>
+                </div>
+                {selected.is_group && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onToggleFav(selected)}
+                  >
+                    <Star
+                      className={`h-4 w-4 ${
+                        favoriteGroups.has(selected.jid)
+                          ? "fill-yellow-400 text-yellow-400"
+                          : ""
+                      }`}
+                    />
+                  </Button>
+                )}
+              </div>
+
+              <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-muted/10 p-4">
+                {loadingMsgs && (
+                  <div className="text-center text-sm text-muted-foreground">
+                    <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                  </div>
+                )}
+                {messages.map((m) => (
+                  <div
+                    key={m.message_id}
+                    className={`flex ${m.from_me ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
+                        m.from_me
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-card border"
+                      }`}
+                    >
+                      {selected.is_group && !m.from_me && m.push_name && (
+                        <div className="mb-1 text-xs font-semibold opacity-80">
+                          {m.push_name}
+                        </div>
+                      )}
+                      {m.media_url && /image/.test(m.message_type) && (
+                        <img
+                          src={m.media_url}
+                          alt=""
+                          className="mb-1 max-h-64 rounded"
+                        />
+                      )}
+                      {m.media_url && /audio/.test(m.message_type) && (
+                        <audio controls src={m.media_url} className="mb-1 max-w-full" />
+                      )}
+                      {m.media_url && /video/.test(m.message_type) && (
+                        <video
+                          controls
+                          src={m.media_url}
+                          className="mb-1 max-h-64 w-full rounded"
+                        />
+                      )}
+                      {m.media_url && /document/.test(m.message_type) && (
+                        <a
+                          href={m.media_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mb-1 block underline"
+                        >
+                          📎 Documento
+                        </a>
+                      )}
+                      {m.text && <div className="whitespace-pre-wrap">{m.text}</div>}
+                      <div className="mt-1 text-right text-[10px] opacity-60">
+                        {new Date(m.ts).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t p-3">
+                {mediaUrl && (
+                  <div className="mb-2 flex items-center gap-2 rounded border bg-muted/40 p-2 text-sm">
+                    <ImageIcon className="h-4 w-4" />
+                    <span className="flex-1 truncate">{mediaUrl.split("/").pop()}</span>
+                    <Button size="sm" variant="ghost" onClick={() => setMediaUrl(null)}>
+                      Remover
+                    </Button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <label className="inline-flex">
+                    <input
+                      type="file"
+                      accept="image/*,video/*,audio/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) onUpload(f);
+                      }}
+                    />
+                    <Button asChild variant="outline" size="icon" disabled={uploading}>
+                      <span>
+                        {uploading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ImageIcon className="h-4 w-4" />
+                        )}
+                      </span>
+                    </Button>
+                  </label>
+                  <Input
+                    placeholder="Mensagem"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        onSend();
+                      }
+                    }}
+                  />
+                  <Button onClick={onSend} disabled={sending || (!text && !mediaUrl)}>
+                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
