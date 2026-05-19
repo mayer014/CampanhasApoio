@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.admin-reset-password]
 verify_jwt = true
+
+[functions.whatsapp-bridge-proxy]
+verify_jwt = true
