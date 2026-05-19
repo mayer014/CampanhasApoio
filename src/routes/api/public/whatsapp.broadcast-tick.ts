@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { tickBroadcastsInternal } from "@/lib/whatsapp.functions";
+import { tickBroadcastsInternal } from "@/lib/whatsapp.server";
 
 /** Called by pg_cron every 30s. Processes one recipient per running broadcast. */
 export const Route = createFileRoute("/api/public/whatsapp/broadcast-tick")({
