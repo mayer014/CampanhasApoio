@@ -378,7 +378,7 @@ export function ChatPanel({
         </div>
 
         {/* Chat area */}
-        <div className="flex flex-col">
+        <div className="flex min-h-0 flex-col">
           {!selected ? (
             <div className="flex flex-1 items-center justify-center text-muted-foreground">
               Selecione uma conversa
@@ -414,7 +414,7 @@ export function ChatPanel({
                 )}
               </div>
 
-              <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-muted/10 p-4">
+              <div ref={scrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-muted/10 p-4">
                 {loadingMsgs && (
                   <div className="text-center text-sm text-muted-foreground">
                     <Loader2 className="mx-auto h-4 w-4 animate-spin" />
