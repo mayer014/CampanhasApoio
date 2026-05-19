@@ -333,6 +333,389 @@ export type Database = {
           },
         ]
       }
+      whatsapp_broadcast_recipients: {
+        Row: {
+          broadcast_id: string
+          created_at: string
+          display_name: string | null
+          error_message: string | null
+          id: string
+          jid: string
+          message_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["whatsapp_recipient_status"]
+          variables: Json
+        }
+        Insert: {
+          broadcast_id: string
+          created_at?: string
+          display_name?: string | null
+          error_message?: string | null
+          id?: string
+          jid: string
+          message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_recipient_status"]
+          variables?: Json
+        }
+        Update: {
+          broadcast_id?: string
+          created_at?: string
+          display_name?: string | null
+          error_message?: string | null
+          id?: string
+          jid?: string
+          message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_recipient_status"]
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_broadcast_recipients_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_broadcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_broadcasts: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          daily_cap: number
+          failed_count: number
+          finished_at: string | null
+          id: string
+          interval_max_seconds: number
+          interval_min_seconds: number
+          media_url: string | null
+          message_text: string
+          name: string
+          next_send_at: string | null
+          respect_quiet_hours: boolean
+          sent_count: number
+          skipped_count: number
+          started_at: string | null
+          status: Database["public"]["Enums"]["whatsapp_broadcast_status"]
+          target_type: Database["public"]["Enums"]["whatsapp_target_type"]
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          daily_cap?: number
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          interval_max_seconds?: number
+          interval_min_seconds?: number
+          media_url?: string | null
+          message_text: string
+          name: string
+          next_send_at?: string | null
+          respect_quiet_hours?: boolean
+          sent_count?: number
+          skipped_count?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_broadcast_status"]
+          target_type?: Database["public"]["Enums"]["whatsapp_target_type"]
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          daily_cap?: number
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          interval_max_seconds?: number
+          interval_min_seconds?: number
+          media_url?: string | null
+          message_text?: string
+          name?: string
+          next_send_at?: string | null
+          respect_quiet_hours?: boolean
+          sent_count?: number
+          skipped_count?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_broadcast_status"]
+          target_type?: Database["public"]["Enums"]["whatsapp_target_type"]
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_chats: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          is_group: boolean
+          jid: string
+          last_message_at: string | null
+          last_message_from_me: boolean | null
+          last_message_text: string | null
+          name: string | null
+          unread_count: number
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          is_group?: boolean
+          jid: string
+          last_message_at?: string | null
+          last_message_from_me?: boolean | null
+          last_message_text?: string | null
+          name?: string | null
+          unread_count?: number
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          is_group?: boolean
+          jid?: string
+          last_message_at?: string | null
+          last_message_from_me?: boolean | null
+          last_message_text?: string | null
+          name?: string | null
+          unread_count?: number
+        }
+        Relationships: []
+      }
+      whatsapp_contacts: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          jid: string
+          last_synced_at: string
+          name: string | null
+          phone: string | null
+          push_name: string | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          jid: string
+          last_synced_at?: string
+          name?: string | null
+          phone?: string | null
+          push_name?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          jid?: string
+          last_synced_at?: string
+          name?: string | null
+          phone?: string | null
+          push_name?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_groups: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          is_admin: boolean
+          is_favorite: boolean
+          jid: string
+          last_message_at: string | null
+          last_synced_at: string
+          name: string | null
+          participants_count: number | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          is_favorite?: boolean
+          jid: string
+          last_message_at?: string | null
+          last_synced_at?: string
+          name?: string | null
+          participants_count?: number | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          is_favorite?: boolean
+          jid?: string
+          last_message_at?: string | null
+          last_synced_at?: string
+          name?: string | null
+          participants_count?: number | null
+        }
+        Relationships: []
+      }
+      whatsapp_instances: {
+        Row: {
+          api_key: string | null
+          candidate_id: string
+          created_at: string
+          daily_cap: number
+          id: string
+          instance_id: string | null
+          last_connected_at: string | null
+          last_qr: string | null
+          name: string
+          phone_number: string | null
+          quiet_hours_end: number
+          quiet_hours_start: number
+          status: Database["public"]["Enums"]["whatsapp_instance_status"]
+          updated_at: string
+          webhook_registered: boolean
+        }
+        Insert: {
+          api_key?: string | null
+          candidate_id: string
+          created_at?: string
+          daily_cap?: number
+          id?: string
+          instance_id?: string | null
+          last_connected_at?: string | null
+          last_qr?: string | null
+          name: string
+          phone_number?: string | null
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          status?: Database["public"]["Enums"]["whatsapp_instance_status"]
+          updated_at?: string
+          webhook_registered?: boolean
+        }
+        Update: {
+          api_key?: string | null
+          candidate_id?: string
+          created_at?: string
+          daily_cap?: number
+          id?: string
+          instance_id?: string | null
+          last_connected_at?: string | null
+          last_qr?: string | null
+          name?: string
+          phone_number?: string | null
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          status?: Database["public"]["Enums"]["whatsapp_instance_status"]
+          updated_at?: string
+          webhook_registered?: boolean
+        }
+        Relationships: []
+      }
+      whatsapp_messages: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          from_me: boolean
+          id: string
+          jid: string
+          media_filename: string | null
+          media_mime: string | null
+          media_size: number | null
+          media_url: string | null
+          message_id: string
+          message_type: string
+          push_name: string | null
+          text: string | null
+          ts: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          from_me?: boolean
+          id?: string
+          jid: string
+          media_filename?: string | null
+          media_mime?: string | null
+          media_size?: number | null
+          media_url?: string | null
+          message_id: string
+          message_type?: string
+          push_name?: string | null
+          text?: string | null
+          ts?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          from_me?: boolean
+          id?: string
+          jid?: string
+          media_filename?: string | null
+          media_mime?: string | null
+          media_size?: number | null
+          media_url?: string | null
+          message_id?: string
+          message_type?: string
+          push_name?: string | null
+          text?: string | null
+          ts?: string
+        }
+        Relationships: []
+      }
+      whatsapp_optouts: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          jid: string
+          reason: string | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          jid: string
+          reason?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          jid?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_send_log: {
+        Row: {
+          broadcast_id: string | null
+          candidate_id: string
+          created_at: string
+          id: string
+          jid: string
+          status: string
+        }
+        Insert: {
+          broadcast_id?: string | null
+          candidate_id: string
+          created_at?: string
+          id?: string
+          jid: string
+          status: string
+        }
+        Update: {
+          broadcast_id?: string | null
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          jid?: string
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_app_settings: {
@@ -417,6 +800,20 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "candidate"
+      whatsapp_broadcast_status:
+        | "draft"
+        | "running"
+        | "paused"
+        | "completed"
+        | "failed"
+      whatsapp_instance_status: "connecting" | "connected" | "disconnected"
+      whatsapp_recipient_status: "pending" | "sent" | "failed" | "skipped"
+      whatsapp_target_type:
+        | "contacts"
+        | "groups"
+        | "leads"
+        | "manual_list"
+        | "mixed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -545,6 +942,22 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "candidate"],
+      whatsapp_broadcast_status: [
+        "draft",
+        "running",
+        "paused",
+        "completed",
+        "failed",
+      ],
+      whatsapp_instance_status: ["connecting", "connected", "disconnected"],
+      whatsapp_recipient_status: ["pending", "sent", "failed", "skipped"],
+      whatsapp_target_type: [
+        "contacts",
+        "groups",
+        "leads",
+        "manual_list",
+        "mixed",
+      ],
     },
   },
 } as const
