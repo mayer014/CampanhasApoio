@@ -105,12 +105,27 @@ export async function resolveTargetCandidate(
   return targetCandidateId;
 }
 
+const SUPABASE_URL_FALLBACK = "https://pfppmkqsdqawvykkgafe.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY_FALLBACK =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmcHBta3FzZHFhd3Z5a2tnYWZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjM3MzcsImV4cCI6MjA5MzE5OTczN30.LkEeROQWXN2HkRsEiiI4sjzBQf4OdDVuuCep48wL3Rg";
+
+function resolveSupabasePublicEnv() {
+  const url =
+    process.env.SUPABASE_URL ||
+    process.env.VITE_SUPABASE_URL ||
+    SUPABASE_URL_FALLBACK;
+  const key =
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    SUPABASE_PUBLISHABLE_KEY_FALLBACK;
+  return { url, key };
+}
+
 /** Validate Supabase access token -> user id */
 export async function userIdFromToken(token: string): Promise<string> {
   const { createClient } = await import("@supabase/supabase-js");
-  const SUPABASE_URL = process.env.SUPABASE_URL!;
-  const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
-  const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  const { url, key } = resolveSupabasePublicEnv();
+  const sb = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await sb.auth.getUser(token);
@@ -121,10 +136,9 @@ export async function userIdFromToken(token: string): Promise<string> {
 /** Create a Supabase client scoped to the authenticated user token (RLS applies). */
 export async function userClientFromToken(token: string): Promise<SupabaseClient> {
   const { createClient } = await import("@supabase/supabase-js");
-  const SUPABASE_URL = process.env.SUPABASE_URL!;
-  const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
+  const { url, key } = resolveSupabasePublicEnv();
 
-  return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
       headers: {
@@ -133,6 +147,7 @@ export async function userClientFromToken(token: string): Promise<SupabaseClient
     },
   });
 }
+
 
 /** Check daily cap usage for an instance. Returns sent count today. */
 export async function dailySentCount(
