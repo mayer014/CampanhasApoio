@@ -102,8 +102,8 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
     const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
     const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
-    const inst = await getInstanceForUser(sb, candidateId);
-    if (!inst.api_key) {
+    const inst = await getInstanceForUser(sb, candidateId).catch(() => null);
+    if (!inst || !inst.api_key) {
       return {
         configured: false as const,
         status: "disconnected" as const,
