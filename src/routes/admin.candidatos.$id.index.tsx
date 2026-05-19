@@ -111,6 +111,8 @@ function CandidateDetail() {
             <div><Label>Observações (CRM)</Label><Textarea value={profile.notes ?? ""} onChange={(e) => setProfile({ ...profile, notes: e.target.value })} /></div>
             <Button onClick={saveProfile}>Salvar</Button>
           </Card>
+
+          <SecurityCard userId={id} />
         </TabsContent>
 
         <TabsContent value="templates">
