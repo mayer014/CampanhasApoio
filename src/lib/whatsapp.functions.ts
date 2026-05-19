@@ -201,6 +201,22 @@ export const updateInstanceSettings = createServerFn({ method: "POST" })
 
 /* ===================== SYNC ===================== */
 
+/** Normalize WhatsHub timestamps which can be number, Long {low,high}, or string. */
+function tsToIso(t: any): string | null {
+  if (t == null) return null;
+  if (typeof t === "number" && isFinite(t)) {
+    return new Date(t * 1000).toISOString();
+  }
+  if (typeof t === "string" && /^\d+$/.test(t)) {
+    return new Date(parseInt(t, 10) * 1000).toISOString();
+  }
+  if (typeof t === "object" && typeof t.low === "number") {
+    const v = (t.high || 0) * 4294967296 + (t.low >>> 0);
+    return new Date(v * 1000).toISOString();
+  }
+  return null;
+}
+
 export const syncChats = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
@@ -211,49 +227,78 @@ export const syncChats = createServerFn({ method: "POST" })
     if (!inst.api_key) throw new Error("Instância sem API key");
     const { status, data: res } = await bridge("chats", {}, { apiKey: inst.api_key });
     if (status >= 400) throw new Error(res?.error || `chats ${status}`);
-    const chats = Array.isArray(res.chats) ? res.chats : [];
 
-    const chatRows = chats.map((c: any) => ({
-      candidate_id: candidateId,
-      jid: c.id,
-      name: c.name || c.subject || null,
-      is_group: !!c.isGroup,
-      unread_count: c.unreadCount || 0,
-      last_message_text: c.lastMessage?.text || null,
-      last_message_at: c.lastMessage?.timestamp
-        ? new Date(c.lastMessage.timestamp * 1000).toISOString()
-        : null,
-      last_message_from_me: c.lastMessage?.fromMe ?? null,
-    }));
+    // Bridge can return either a bare array or an object { chats: [...] } / { data: [...] }
+    const chats: any[] = Array.isArray(res)
+      ? res
+      : Array.isArray(res?.chats)
+      ? res.chats
+      : Array.isArray(res?.data)
+      ? res.data
+      : [];
 
+    const chatRows = chats
+      .map((c: any) => {
+        const jid: string | undefined = c.id || c.jid || c.remoteJid;
+        if (!jid) return null;
+        const isGroup = !!(c.isGroup ?? c.is_group ?? jid.endsWith("@g.us"));
+        return {
+          candidate_id: candidateId,
+          jid,
+          name: c.name || c.subject || c.pushName || null,
+          is_group: isGroup,
+          unread_count: c.unreadCount || c.unread_count || 0,
+          last_message_text: c.lastMessage?.text || c.last_message_text || null,
+          last_message_at: tsToIso(c.lastMessage?.timestamp ?? c.last_message_at),
+          last_message_from_me: c.lastMessage?.fromMe ?? c.last_message_from_me ?? null,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    let chatErr: string | null = null;
     if (chatRows.length) {
-      await sb.from("whatsapp_chats").upsert(chatRows, {
-        onConflict: "candidate_id,jid",
-      });
+      const { error } = await sb
+        .from("whatsapp_chats")
+        .upsert(chatRows, { onConflict: "candidate_id,jid" });
+      if (error) chatErr = error.message;
     }
 
     const groupRows = chats
-      .filter((c: any) => c.isGroup)
+      .filter((c: any) => {
+        const jid = c.id || c.jid || c.remoteJid || "";
+        return c.isGroup || c.is_group || jid.endsWith("@g.us");
+      })
       .map((c: any) => ({
         candidate_id: candidateId,
-        jid: c.id,
+        jid: c.id || c.jid,
         name: c.name || c.subject || null,
-        participants_count: c.participants_count || null,
-        is_admin: !!c.isAdmin,
-        last_message_at: c.lastMessage?.timestamp
-          ? new Date(c.lastMessage.timestamp * 1000).toISOString()
-          : null,
+        participants_count: c.participants_count ?? c.participantsCount ?? null,
+        is_admin: !!(c.isAdmin ?? c.is_admin ?? c.iAmAdmin),
+        last_message_at: tsToIso(c.lastMessage?.timestamp),
         last_synced_at: new Date().toISOString(),
-      }));
+      }))
+      .filter((r: any) => !!r.jid);
+
+    let grpErr: string | null = null;
     if (groupRows.length) {
-      for (const g of groupRows) {
-        await sb
-          .from("whatsapp_groups")
-          .upsert(g, { onConflict: "candidate_id,jid", ignoreDuplicates: false });
-      }
+      const { error } = await sb
+        .from("whatsapp_groups")
+        .upsert(groupRows, { onConflict: "candidate_id,jid" });
+      if (error) grpErr = error.message;
     }
 
-    return { success: true, count: chatRows.length };
+    if (chatErr || grpErr) {
+      throw new Error(
+        `Falha ao gravar: ${chatErr || ""}${chatErr && grpErr ? " | " : ""}${grpErr || ""}`
+      );
+    }
+
+    return {
+      success: true,
+      received: chats.length,
+      chats_saved: chatRows.length,
+      groups_saved: groupRows.length,
+    };
   });
 
 export const syncContacts = createServerFn({ method: "POST" })
@@ -313,30 +358,49 @@ export const fetchMessages = createServerFn({ method: "POST" })
         .limit(data.limit);
       return { messages: local || [], source: "cache" as const };
     }
-    const msgs = Array.isArray(res.messages) ? res.messages : [];
-    const rows = msgs.map((m: any) => ({
-      candidate_id: candidateId,
-      message_id: m.key?.id || `${data.jid}-${m.messageTimestamp}`,
-      jid: data.jid,
-      from_me: !!m.key?.fromMe,
-      push_name: m.pushName || null,
-      message_type: m.messageType || "text",
-      text: m.text || null,
-      media_url: m.mediaUrl || null,
-      media_mime: m.mediaMimeType || null,
-      media_filename: m.mediaFileName || null,
-      media_size: m.mediaSizeBytes || null,
-      ts: m.messageTimestamp
-        ? new Date(m.messageTimestamp * 1000).toISOString()
-        : new Date().toISOString(),
-    }));
-    for (const r of rows) {
-      await sb
+    const msgs = Array.isArray(res?.messages)
+      ? res.messages
+      : Array.isArray(res)
+      ? res
+      : [];
+    const rows = msgs
+      .map((m: any) => {
+        const messageId =
+          m.key?.id ||
+          m.messageId ||
+          m.id ||
+          `${data.jid}-${JSON.stringify(m.messageTimestamp)}`;
+        return {
+          candidate_id: candidateId,
+          message_id: messageId,
+          jid: data.jid,
+          from_me: !!(m.key?.fromMe ?? m.fromMe),
+          push_name: m.pushName || null,
+          message_type: m.messageType || "text",
+          text: m.text || m.message?.conversation || null,
+          media_url: m.mediaUrl || null,
+          media_mime: m.mediaMimeType || null,
+          media_filename: m.mediaFileName || null,
+          media_size: m.mediaSizeBytes || null,
+          ts: tsToIso(m.messageTimestamp) || new Date().toISOString(),
+        };
+      })
+      .filter((r: any) => !!r.message_id);
+
+    let saveErr: string | null = null;
+    if (rows.length) {
+      const { error } = await sb
         .from("whatsapp_messages")
-        .upsert(r, { onConflict: "candidate_id,message_id" });
+        .upsert(rows, { onConflict: "candidate_id,message_id" });
+      if (error) saveErr = error.message;
     }
-    return { messages: rows, source: "live" as const };
+    if (saveErr) {
+      // Don't throw — still return what we got so the UI can render
+      console.error("[fetchMessages] upsert error:", saveErr);
+    }
+    return { messages: rows, source: "live" as const, saved: rows.length, error: saveErr };
   });
+
 
 /* ===================== SEND ===================== */
 

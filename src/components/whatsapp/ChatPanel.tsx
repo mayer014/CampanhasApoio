@@ -181,11 +181,14 @@ export function ChatPanel({
     if (!accessToken) return;
     setSyncing(true);
     try {
-      await Promise.all([
+      const [chatsRes] = await Promise.all([
         syncChats({ data: { access_token: accessToken, candidate_id: candidateId } }),
         syncContacts({ data: { access_token: accessToken, candidate_id: candidateId } }),
       ]);
-      toast.success("Conversas sincronizadas");
+      const r: any = chatsRes;
+      toast.success(
+        `Sincronizado: ${r?.chats_saved ?? 0} conversas, ${r?.groups_saved ?? 0} grupos`
+      );
       loadChats();
     } catch (e: any) {
       toast.error(e?.message || "Falha");
@@ -193,6 +196,7 @@ export function ChatPanel({
       setSyncing(false);
     }
   };
+
 
   const onUpload = async (file: File) => {
     setUploading(true);
