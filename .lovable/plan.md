@@ -1,29 +1,32 @@
 ## Objetivo
-Corrigir o chat do `/painel/whatsapp` para abrir na mensagem mais recente, permitir rolagem manual sem “puxar de volta” e carregar histórico antigo ao subir.
-
-## Diagnóstico
-- O `ChatPanel` hoje busca só os últimos 100 registros do cache local (`whatsapp_messages`), então o “início” real da conversa nunca fica acessível.
-- Ao selecionar/enviar mensagens, o componente mistura recarga de dados com auto-scroll, o que explica abrir em posição errada ou travar a navegação manual.
-- O layout pai principal parece aceitável; o gargalo mais forte está na estratégia de carregamento/ancoragem do scroll, não só em CSS.
-- A server function `fetchMessages` aceita apenas `jid` + `limit`; não há suporte atual para paginação do histórico antigo.
+Corrigir o chat do `/painel/whatsapp` para abrir sempre na mensagem mais recente, permitir rolagem manual sem “puxar de volta” e carregar o histórico antigo quando você subir a conversa.
 
 ## Plano
-1. Ajustar a abertura da conversa
-   - Separar claramente os cenários “abrir chat”, “chegou mensagem nova” e “usuário está navegando no histórico”.
-   - Ao abrir uma conversa, posicionar explicitamente no final após a primeira renderização estável.
-   - Impedir que updates posteriores forcem scroll quando o usuário estiver longe do rodapé.
+1. **Ajustar a abertura da conversa**
+   - Separar o comportamento de “abrir chat” do comportamento de “nova mensagem chegando”.
+   - Fazer a conversa abrir ancorada no fim apenas na primeira carga da conversa.
+   - Evitar reposicionamento automático depois que o usuário começar a navegar manualmente.
 
-2. Implementar histórico paginado para cima
-   - Adicionar paginação no frontend usando `ts`/cursor da mensagem mais antiga carregada.
-   - Buscar blocos anteriores no Supabase ao atingir o topo e prependar sem perder a posição visual.
-   - Se necessário, estender `fetchMessages` para aceitar cursor/`before` e persistir mensagens mais antigas vindas do motor.
+2. **Consertar o scroll interno**
+   - Revisar a lógica de `scrollRef`, `isNearBottom` e `stickToBottomRef` para não disparar auto-scroll em momentos errados.
+   - Preservar a posição do usuário ao atualizar a lista de mensagens.
+   - Garantir que o container de mensagens seja o único responsável pela rolagem do chat.
 
-3. Corrigir a ancoragem do scroll
-   - Preservar a posição ao prependar mensagens antigas (medindo `scrollHeight` antes/depois).
-   - Manter auto-scroll apenas para abertura inicial e novas mensagens quando o usuário estiver perto do fim.
-   - Evitar recargas completas desnecessárias após enviar mensagem, preferindo append/refresh controlado.
+3. **Adicionar histórico paginado para cima**
+   - Carregar os últimos itens ao abrir a conversa.
+   - Ao chegar no topo, buscar mensagens mais antigas no banco e inseri-las no início da lista.
+   - Manter a posição visual estável ao prependar mensagens antigas, sem “pular” a tela.
 
-4. Validar no preview
-   - Abrir uma conversa e confirmar que ela inicia na mensagem mais recente.
-   - Subir manualmente e verificar que o scroll não volta sozinho.
-   - Carregar mensagens antigas ao alcançar o topo e confirmar que dá para chegar ao começo da conversa.
+4. **Estender a busca de mensagens se necessário**
+   - Se o cache local não tiver histórico suficiente, ajustar `fetchMessages` para aceitar paginação/cursor de mensagens antigas.
+   - Persistir os blocos antigos recebidos para que o histórico continue acessível nas próximas aberturas.
+
+5. **Validar no preview**
+   - Confirmar que a conversa abre na mensagem mais recente.
+   - Confirmar que dá para subir manualmente sem o chat voltar sozinho.
+   - Confirmar que o topo carrega histórico antigo e que dá para chegar ao começo da conversa.
+
+## Detalhes técnicos
+- Hoje o `ChatPanel` carrega só uma janela curta do histórico local, então o início real da conversa não fica disponível.
+- A lógica atual mistura recarga de mensagens e auto-scroll, o que explica o comportamento instável.
+- A correção ficará focada em `src/components/whatsapp/ChatPanel.tsx` e, se necessário, em `src/lib/whatsapp.functions.ts` para paginação do backend.
