@@ -474,12 +474,20 @@ export function ChatPanel({
 
               <div
                 ref={scrollRef}
-                onScroll={() => {
-                  stickToBottomRef.current = isNearBottom();
-                }}
+                onScroll={onContainerScroll}
                 className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-muted/10 p-4"
               >
-                {loadingMsgs && (
+                {loadingOlder && (
+                  <div className="text-center text-xs text-muted-foreground py-1">
+                    <Loader2 className="mx-auto h-3 w-3 animate-spin" />
+                  </div>
+                )}
+                {!hasMoreOlder && messages.length > 0 && (
+                  <div className="text-center text-[10px] text-muted-foreground py-1 opacity-60">
+                    Início da conversa
+                  </div>
+                )}
+                {loadingMsgs && messages.length === 0 && (
                   <div className="text-center text-sm text-muted-foreground">
                     <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                   </div>
