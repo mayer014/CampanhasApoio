@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Camera, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu } from "lucide-react";
+import { Camera, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/painel")({
   component: PainelLayout,
@@ -35,6 +35,7 @@ function PainelLayout() {
     { to: "/painel/templates", label: "Meus templates", icon: ImageIcon },
     { to: "/painel/link", label: "Link público", icon: Link2 },
     { to: "/painel/leads", label: "Eleitores", icon: Users },
+    { to: "/painel/whatsapp", label: "WhatsApp", icon: MessageCircle },
   ];
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (

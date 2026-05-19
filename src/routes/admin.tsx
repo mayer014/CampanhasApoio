@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Camera, LayoutDashboard, Users, LogOut, Settings, Menu } from "lucide-react";
+import { Camera, LayoutDashboard, Users, LogOut, Settings, Menu, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -34,6 +34,7 @@ function AdminLayout() {
   const nav = [
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { to: "/admin/candidatos", label: "Candidatos", icon: Users },
+    { to: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
     { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
   ];
 
