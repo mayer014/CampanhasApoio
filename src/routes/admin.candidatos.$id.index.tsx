@@ -267,3 +267,46 @@ function PaymentsCard({ candidateId, payments, onChange }: { candidateId: string
     </Card>
   );
 }
+
+function SecurityCard({ userId }: { userId: string }) {
+  const [open, setOpen] = useState(false);
+  const [pwd, setPwd] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwd.length < 8) return toast.error("A senha deve ter pelo menos 8 caracteres");
+    if (pwd !== confirm) return toast.error("As senhas não coincidem");
+    setSaving(true);
+    const { error } = await supabase.functions.invoke("admin-reset-password", {
+      body: { user_id: userId, new_password: pwd },
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Senha alterada com sucesso");
+    setPwd(""); setConfirm(""); setOpen(false);
+  };
+
+  return (
+    <Card className="mt-4 space-y-3 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold">Segurança</h3>
+          <p className="text-sm text-muted-foreground">Defina uma nova senha caso o candidato a esqueça.</p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button variant="outline">Alterar senha</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Alterar senha do candidato</DialogTitle></DialogHeader>
+            <form onSubmit={submit} className="space-y-3">
+              <div><Label>Nova senha</Label><Input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={pwd} onChange={(e) => setPwd(e.target.value)} /></div>
+              <div><Label>Confirmar senha</Label><Input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={(e) => setConfirm(e.target.value)} /></div>
+              <DialogFooter><Button type="submit" disabled={saving}>{saving ? "Salvando…" : "Salvar"}</Button></DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Card>
+  );
+}
