@@ -1,0 +1,1 @@
+CREATE POLICY "wa_inst_owner_insert" ON public.whatsapp_instances FOR INSERT TO authenticated WITH CHECK (candidate_id = auth.uid());
