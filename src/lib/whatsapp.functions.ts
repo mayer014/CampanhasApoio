@@ -26,7 +26,6 @@ export const createInstance = createServerFn({ method: "POST" })
     TokenInput.extend({ name: z.string().min(1).max(100) }).parse(input)
   )
   .handler(async ({ data }) => {
-    const masterToken = process.env.WHATSHUB_MASTER_TOKEN?.trim();
     const sb = await userClientFromToken(data.access_token);
     const callerId = await userIdFromToken(data.access_token);
     const candidateId = await resolveTargetCandidate(
@@ -57,7 +56,7 @@ export const createInstance = createServerFn({ method: "POST" })
         name: instanceName,
         webhook_url: webhookUrl(),
       },
-      { master: true, masterToken }
+      { master: true, accessToken: data.access_token }
     );
     if (status >= 400 || !res?.success) {
       throw new Error(res?.error || `Bridge create_instance failed (${status})`);

@@ -32,30 +32,79 @@ export function normalizePhoneBR(raw: string): string {
   return d;
 }
 
-/** Low-level call to the WhatsHub Bridge. */
+function resolveSupabaseUrl(): string {
+  return (
+    normalizeSupabaseUrl(process.env.SUPABASE_URL) ||
+    normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL) ||
+    "https://pfppmkqsdqawvykkgafe.supabase.co"
+  );
+}
+
+function resolveSupabaseAnonKey(): string {
+  return (
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmcHBta3FzZHFhd3Z5a2tnYWZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjM3MzcsImV4cCI6MjA5MzE5OTczN30.LkEeROQWXN2HkRsEiiI4sjzBQf4OdDVuuCep48wL3Rg"
+  );
+}
+
+/** Low-level call to the WhatsHub Bridge.
+ *  - `master: true` → goes through the Supabase Edge Function `whatsapp-bridge-proxy`
+ *    (so WHATSHUB_MASTER_TOKEN lives as a Supabase secret, not as an env on the app server)
+ *  - `apiKey` → calls the bridge directly with the instance api key
+ */
 export async function bridge(
   action: string,
   payload: Record<string, unknown>,
-  auth: { apiKey?: string; master?: boolean; masterToken?: string | null }
+  auth: { apiKey?: string; master?: boolean; accessToken?: string | null }
 ): Promise<{ status: number; data: any }> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
   if (auth.master) {
-    const token = auth.masterToken?.trim() || process.env.WHATSHUB_MASTER_TOKEN?.trim();
-    if (!token) throw new Error("WHATSHUB_MASTER_TOKEN not configured");
-    headers["X-Bridge-Token"] = token;
-  } else {
-    if (!auth.apiKey) throw new Error("Bridge call without api key");
-    headers["X-Api-Key"] = auth.apiKey;
+    if (!auth.accessToken) {
+      throw new Error("Bridge master call requires user access token");
+    }
+    const supabaseUrl = resolveSupabaseUrl();
+    const anonKey = resolveSupabaseAnonKey();
+    const proxyUrl = `${supabaseUrl}/functions/v1/whatsapp-bridge-proxy`;
+    const res = await fetch(proxyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: anonKey,
+        Authorization: `Bearer ${auth.accessToken}`,
+      },
+      body: JSON.stringify({ action, payload }),
+    });
+    const text = await res.text();
+    let parsed: any = null;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = { raw: text };
+    }
+    if (!res.ok) {
+      return {
+        status: res.status,
+        data: { error: parsed?.error || `proxy ${res.status}` },
+      };
+    }
+    // Edge function returns { status, data } — unwrap to keep callers untouched.
+    return {
+      status: typeof parsed?.status === "number" ? parsed.status : 200,
+      data: parsed?.data ?? parsed,
+    };
   }
+
+  if (!auth.apiKey) throw new Error("Bridge call without api key");
   const res = await fetch(BRIDGE_URL, {
     method: "POST",
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Api-Key": auth.apiKey,
+    },
     body: JSON.stringify({ action, ...payload }),
   });
-  let data: any = null;
   const text = await res.text();
+  let data: any = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
