@@ -88,9 +88,8 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
             { onConflict: "candidate_id,jid" }
           );
 
-          // Increment unread (best-effort)
-          await supabaseAdmin.rpc("touch_updated_at"); // no-op fallback
-          // raw increment via SQL not needed -- the chat list shows unread from messages count if missing.
+          // Unread count is approximated client-side from messages list when needed.
+
 
           return new Response("ok", { status: 200 });
         } catch (e: any) {
