@@ -400,7 +400,7 @@ export const fetchMessages = createServerFn({ method: "POST" })
     }
     return { messages: rows, source: "live" as const, saved: rows.length, error: saveErr };
   });
-  });
+
 
 /* ===================== SEND ===================== */
 
