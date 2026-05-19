@@ -34,6 +34,7 @@ function AdminLayout() {
   const nav = [
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { to: "/admin/candidatos", label: "Candidatos", icon: Users },
+    { to: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
     { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
   ];
 
