@@ -1,53 +1,47 @@
-## Diagnóstico
+## Objetivo
+Fazer conversas, grupos e mensagens aparecerem no `/painel/whatsapp`, já que a conexão está ativa e os contatos estão sincronizando, mas chats/grupos/mensagens seguem vazios.
 
-Mesmo problema da conexão, agora replicado em **todas** as tabelas de dados do WhatsApp: as policies de RLS só permitem que **administradores** insiram, e dão ao dono apenas `SELECT`/`UPDATE`. Os botões "Sincronizar" e o carregamento de mensagens chamam `.upsert(...)` no banco com o cliente autenticado como candidato — o Postgres rejeita silenciosamente e nada aparece na UI.
+## O que já foi confirmado
+- A instância WhatsApp está **conectada** no banco.
+- A tabela `whatsapp_contacts` já recebeu **7.560 contatos**, então autenticação, token e parte do bridge estão funcionando.
+- As tabelas `whatsapp_chats`, `whatsapp_groups` e `whatsapp_messages` continuam com **0 registros**.
+- As políticas RLS de criação que faltavam já existem; portanto o bloqueio principal agora **não é mais RLS básico**.
+- As constraints únicas para `upsert` existem no banco, então o problema **não é falta de índice/unique key**.
 
-Tabelas afetadas (faltando INSERT pro dono):
+## Plano
+1. **Corrigir a camada de sincronização de chats/mensagens**
+   - Revisar `syncChats` e `fetchMessages` para aceitar o formato real retornado pelo motor/bridge.
+   - Tratar variações de payload (`res.chats`, `res.data`, listas vazias, nomes de campos diferentes como `is_group`, `remoteJid`, `conversation`, etc.).
+   - Parar de falhar silenciosamente: toda gravação no Supabase deve verificar `error` e lançar mensagem útil.
 
-- `whatsapp_chats` — sincronização de conversas
-- `whatsapp_groups` — sincronização de grupos
-- `whatsapp_contacts` — sincronização de contatos
-- `whatsapp_messages` — cache local de mensagens (lidas/enviadas)
-- `whatsapp_send_log` — log de envios (usado para cap diário)
-- `whatsapp_broadcast_recipients` — destinatários ao criar disparos
+2. **Adicionar diagnóstico explícito no backend**
+   - Registrar quantos chats/mensagens vieram do bridge e quantos foram persistidos.
+   - Logar erros de `upsert/insert` por tabela (`whatsapp_chats`, `whatsapp_groups`, `whatsapp_messages`).
+   - Retornar no server function um resumo técnico (`recebidos`, `gravados`, `ignorados`, `erro`) para o frontend.
 
-E também faltam algumas regras complementares:
+3. **Consertar a estrutura do módulo WhatsApp**
+   - Separar `src/lib/whatsapp.functions.ts` em wrappers finos de server function e helpers server-only.
+   - Mover `tickBroadcastsInternal` e qualquer uso de `client.server` para arquivo `*.server.ts` próprio.
+   - Isso elimina o vazamento transitive import client/server que já está aparecendo nos logs do dev-server e reduz comportamento inconsistente.
 
-- `whatsapp_chats` precisa de `DELETE` pro dono (caso de limpar conversa antiga — opcional, posso deixar fora se preferir).
-- `whatsapp_send_log` precisa só de INSERT (UPDATE/DELETE não fazem sentido).
+4. **Melhorar a validação no frontend**
+   - Fazer o botão de sincronizar mostrar o resultado real: por exemplo “0 chats recebidos do motor” em vez de sempre “Conversas sincronizadas”.
+   - Exibir falha real se o backend não gravar nada.
+   - Recarregar chats/grupos só quando houver persistência confirmada.
 
-## O que vou fazer
+5. **Validar ponta a ponta**
+   - Rodar sincronização novamente.
+   - Confirmar no banco que `whatsapp_chats` e `whatsapp_groups` passaram a ter registros.
+   - Abrir uma conversa e validar que `fetchMessages` popula `whatsapp_messages` e renderiza no painel.
 
-**Uma migration única** adicionando as policies de INSERT (e WITH CHECK = `candidate_id = auth.uid()`) nas 6 tabelas acima. Sem mudança em código de aplicação.
+## Detalhes técnicos
+- O sinal mais forte é este: **contatos entram, chats não entram**. Isso normalmente indica incompatibilidade entre o payload do endpoint `chats/fetch_messages` e o mapeamento atual do código — não falha geral de autenticação.
+- Também há um problema estrutural no arquivo `src/lib/whatsapp.functions.ts`: ele mistura server functions chamadas pelo cliente com lógica server-only/admin. Os logs já mostram imports transitivos problemáticos envolvendo `client.server.ts` e `whatsapp.server.ts`.
+- Não pretendo mexer no visual nem em fluxos fora do WhatsApp; a correção ficará focada em sincronização, persistência e feedback de erro.
 
-Depois disso o fluxo passa a funcionar:
-
-```
-clicar "Sincronizar"
-   → syncChats / syncContacts (server fn)
-   → bridge motor traz chats/contatos
-   → upsert em whatsapp_chats / whatsapp_groups / whatsapp_contacts ✔
-   → realtime do Supabase atualiza a UI ✔
-
-abrir conversa
-   → fetchMessages → motor → upsert em whatsapp_messages ✔
-   → ChatPanel exibe ✔
-
-enviar mensagem
-   → sendMessage → motor → upsert em whatsapp_messages + insert em whatsapp_send_log ✔
-```
-
-## Pós-implementação (passos do usuário)
-
-1. Aprovar a migration.
-2. Recarregar `/painel/whatsapp`.
-3. Clicar em **Sincronizar** (botão de refresh na lista de conversas) — deve trazer chats e grupos imediatamente.
-4. Abrir uma conversa — mensagens vão carregar e novas mensagens chegam em tempo real conforme o motor da VPS dispara o webhook.
-
-## Por que isso não foi pego antes
-
-Quando o módulo foi migrado pra usar `userClientFromToken` (cliente escopado ao usuário, sem service-role), as policies originais — escritas pensando num cliente admin — passaram a bloquear todas as gravações silenciosas (upserts). A correção da conexão revelou a primeira camada do problema (instância); essa migration completa o resto.
-
-## Observação
-
-O webhook público (`/api/public/whatsapp/webhook`) já usa `supabaseAdmin` (bypassa RLS), então mensagens recebidas em tempo real **já funcionariam** assim que o motor da VPS chamar o webhook. Vale conferir, depois das policies, se o motor está postando para `https://project--7a279b36-7b6b-4e1c-bf0e-253f1a812c48.lovable.app/api/public/whatsapp/webhook` — se não estiver, mensagens novas só aparecem após clicar em "Sincronizar" ou abrir o chat (fetch ativo).
+## Resultado esperado
+Depois da implementação:
+- **Sincronizar** deve popular conversas e grupos.
+- Abrir uma conversa deve trazer e salvar mensagens.
+- O painel deve mostrar erro verdadeiro quando o motor devolver formato inesperado ou quando a gravação falhar.
+- O módulo WhatsApp fica estável e mais fácil de depurar nas próximas falhas.
