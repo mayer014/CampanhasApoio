@@ -1,47 +1,29 @@
 ## Objetivo
-Fazer conversas, grupos e mensagens aparecerem no `/painel/whatsapp`, já que a conexão está ativa e os contatos estão sincronizando, mas chats/grupos/mensagens seguem vazios.
+Corrigir o chat do `/painel/whatsapp` para abrir na mensagem mais recente, permitir rolagem manual sem “puxar de volta” e carregar histórico antigo ao subir.
 
-## O que já foi confirmado
-- A instância WhatsApp está **conectada** no banco.
-- A tabela `whatsapp_contacts` já recebeu **7.560 contatos**, então autenticação, token e parte do bridge estão funcionando.
-- As tabelas `whatsapp_chats`, `whatsapp_groups` e `whatsapp_messages` continuam com **0 registros**.
-- As políticas RLS de criação que faltavam já existem; portanto o bloqueio principal agora **não é mais RLS básico**.
-- As constraints únicas para `upsert` existem no banco, então o problema **não é falta de índice/unique key**.
+## Diagnóstico
+- O `ChatPanel` hoje busca só os últimos 100 registros do cache local (`whatsapp_messages`), então o “início” real da conversa nunca fica acessível.
+- Ao selecionar/enviar mensagens, o componente mistura recarga de dados com auto-scroll, o que explica abrir em posição errada ou travar a navegação manual.
+- O layout pai principal parece aceitável; o gargalo mais forte está na estratégia de carregamento/ancoragem do scroll, não só em CSS.
+- A server function `fetchMessages` aceita apenas `jid` + `limit`; não há suporte atual para paginação do histórico antigo.
 
 ## Plano
-1. **Corrigir a camada de sincronização de chats/mensagens**
-   - Revisar `syncChats` e `fetchMessages` para aceitar o formato real retornado pelo motor/bridge.
-   - Tratar variações de payload (`res.chats`, `res.data`, listas vazias, nomes de campos diferentes como `is_group`, `remoteJid`, `conversation`, etc.).
-   - Parar de falhar silenciosamente: toda gravação no Supabase deve verificar `error` e lançar mensagem útil.
+1. Ajustar a abertura da conversa
+   - Separar claramente os cenários “abrir chat”, “chegou mensagem nova” e “usuário está navegando no histórico”.
+   - Ao abrir uma conversa, posicionar explicitamente no final após a primeira renderização estável.
+   - Impedir que updates posteriores forcem scroll quando o usuário estiver longe do rodapé.
 
-2. **Adicionar diagnóstico explícito no backend**
-   - Registrar quantos chats/mensagens vieram do bridge e quantos foram persistidos.
-   - Logar erros de `upsert/insert` por tabela (`whatsapp_chats`, `whatsapp_groups`, `whatsapp_messages`).
-   - Retornar no server function um resumo técnico (`recebidos`, `gravados`, `ignorados`, `erro`) para o frontend.
+2. Implementar histórico paginado para cima
+   - Adicionar paginação no frontend usando `ts`/cursor da mensagem mais antiga carregada.
+   - Buscar blocos anteriores no Supabase ao atingir o topo e prependar sem perder a posição visual.
+   - Se necessário, estender `fetchMessages` para aceitar cursor/`before` e persistir mensagens mais antigas vindas do motor.
 
-3. **Consertar a estrutura do módulo WhatsApp**
-   - Separar `src/lib/whatsapp.functions.ts` em wrappers finos de server function e helpers server-only.
-   - Mover `tickBroadcastsInternal` e qualquer uso de `client.server` para arquivo `*.server.ts` próprio.
-   - Isso elimina o vazamento transitive import client/server que já está aparecendo nos logs do dev-server e reduz comportamento inconsistente.
+3. Corrigir a ancoragem do scroll
+   - Preservar a posição ao prependar mensagens antigas (medindo `scrollHeight` antes/depois).
+   - Manter auto-scroll apenas para abertura inicial e novas mensagens quando o usuário estiver perto do fim.
+   - Evitar recargas completas desnecessárias após enviar mensagem, preferindo append/refresh controlado.
 
-4. **Melhorar a validação no frontend**
-   - Fazer o botão de sincronizar mostrar o resultado real: por exemplo “0 chats recebidos do motor” em vez de sempre “Conversas sincronizadas”.
-   - Exibir falha real se o backend não gravar nada.
-   - Recarregar chats/grupos só quando houver persistência confirmada.
-
-5. **Validar ponta a ponta**
-   - Rodar sincronização novamente.
-   - Confirmar no banco que `whatsapp_chats` e `whatsapp_groups` passaram a ter registros.
-   - Abrir uma conversa e validar que `fetchMessages` popula `whatsapp_messages` e renderiza no painel.
-
-## Detalhes técnicos
-- O sinal mais forte é este: **contatos entram, chats não entram**. Isso normalmente indica incompatibilidade entre o payload do endpoint `chats/fetch_messages` e o mapeamento atual do código — não falha geral de autenticação.
-- Também há um problema estrutural no arquivo `src/lib/whatsapp.functions.ts`: ele mistura server functions chamadas pelo cliente com lógica server-only/admin. Os logs já mostram imports transitivos problemáticos envolvendo `client.server.ts` e `whatsapp.server.ts`.
-- Não pretendo mexer no visual nem em fluxos fora do WhatsApp; a correção ficará focada em sincronização, persistência e feedback de erro.
-
-## Resultado esperado
-Depois da implementação:
-- **Sincronizar** deve popular conversas e grupos.
-- Abrir uma conversa deve trazer e salvar mensagens.
-- O painel deve mostrar erro verdadeiro quando o motor devolver formato inesperado ou quando a gravação falhar.
-- O módulo WhatsApp fica estável e mais fácil de depurar nas próximas falhas.
+4. Validar no preview
+   - Abrir uma conversa e confirmar que ela inicia na mensagem mais recente.
+   - Subir manualmente e verificar que o scroll não volta sozinho.
+   - Carregar mensagens antigas ao alcançar o topo e confirmar que dá para chegar ao começo da conversa.
