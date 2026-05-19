@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccessToken } from "@/hooks/use-access-token";
-import { adminListInstances } from "@/lib/whatsapp.functions";
+import { adminListInstances } from "@/lib/whatsapp-admin.functions";
 import { ConnectionPanel } from "@/components/whatsapp/ConnectionPanel";
 import { ChatPanel } from "@/components/whatsapp/ChatPanel";
 import { GroupsPanel } from "@/components/whatsapp/GroupsPanel";
