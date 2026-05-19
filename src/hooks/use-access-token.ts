@@ -8,6 +8,9 @@ export function useAccessToken(): string | null {
   useEffect(() => {
     let active = true;
 
+    const isExpiredOrExpiring = (expiresAt?: number | null) =>
+      typeof expiresAt === "number" && expiresAt * 1000 <= Date.now() + 60_000;
+
     const resolveToken = async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error || !active) return;
@@ -18,9 +21,7 @@ export function useAccessToken(): string | null {
         return;
       }
 
-      const expiresSoon =
-        typeof session.expires_at === "number" &&
-        session.expires_at * 1000 <= Date.now() + 60_000;
+      const expiresSoon = isExpiredOrExpiring(session.expires_at);
 
       if (!expiresSoon) {
         setToken(session.access_token ?? null);
@@ -31,7 +32,7 @@ export function useAccessToken(): string | null {
       if (!active) return;
 
       if (refreshError) {
-        setToken(session.access_token ?? null);
+        setToken(null);
         return;
       }
 
@@ -40,9 +41,28 @@ export function useAccessToken(): string | null {
 
     void resolveToken();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
       if (!active) return;
-      setToken(s?.access_token ?? null);
+
+      if (!s) {
+        setToken(null);
+        return;
+      }
+
+      if (!isExpiredOrExpiring(s.expires_at)) {
+        setToken(s.access_token ?? null);
+        return;
+      }
+
+      const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+      if (!active) return;
+
+      if (refreshError) {
+        setToken(null);
+        return;
+      }
+
+      setToken(refreshed.session?.access_token ?? null);
     });
 
     return () => {
