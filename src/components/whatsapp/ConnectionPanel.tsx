@@ -62,21 +62,22 @@ export function ConnectionPanel({
     if (!accessToken) return;
     fetchStatus();
     // Load instance settings
-    import("@/integrations/supabase/client").then(({ supabase }) =>
-      supabase
+    (async () => {
+      if (!candidateId) return;
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase
         .from("whatsapp_instances")
         .select("daily_cap, quiet_hours_start, quiet_hours_end")
-        .eq("candidate_id", candidateId ?? undefined)
-        .maybeSingle()
-        .then(({ data }: any) => {
-          if (data) {
-            setDailyCap(data.daily_cap);
-            setQuietStart(data.quiet_hours_start);
-            setQuietEnd(data.quiet_hours_end);
-          }
-        })
-    );
+        .eq("candidate_id", candidateId)
+        .maybeSingle();
+      if (data) {
+        setDailyCap(data.daily_cap);
+        setQuietStart(data.quiet_hours_start);
+        setQuietEnd(data.quiet_hours_end);
+      }
+    })();
   }, [accessToken, candidateId]);
+
 
   // Poll status when connecting
   useEffect(() => {
