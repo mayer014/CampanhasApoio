@@ -73,7 +73,11 @@ function LoginPage() {
           <div>
             <Label htmlFor="password">Senha</Label>
             <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
+          {errorMsg && (
+            <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {errorMsg}
+            </p>
+          )}
           <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? "Entrando..." : "Entrar"}
           </Button>
