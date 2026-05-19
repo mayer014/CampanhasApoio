@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,34 +65,35 @@ export function ChatPanel({
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMoreOlder, setHasMoreOlder] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // true => próximo render deve ancorar no fim (abertura/envio/nova msg quando perto do fim)
   const stickToBottomRef = useRef(true);
+  // usado para preservar a posição visual ao prepender mensagens antigas
+  const preserveScrollRef = useRef<{ prevHeight: number; prevTop: number } | null>(null);
+  const loadedJidRef = useRef<string | null>(null);
 
-  const readCachedMessages = async (jid: string) => {
-    const { data } = await supabase
+  const PAGE_SIZE = 50;
+
+  const fetchPage = async (jid: string, beforeTs?: string) => {
+    let q = supabase
       .from("whatsapp_messages")
       .select("*")
       .eq("candidate_id", candidateId)
       .eq("jid", jid)
       .order("ts", { ascending: false })
-      .limit(100);
-
+      .limit(PAGE_SIZE);
+    if (beforeTs) q = q.lt("ts", beforeTs);
+    const { data } = await q;
     return ((data || []) as Msg[]).reverse();
   };
 
   const isNearBottom = () => {
     const el = scrollRef.current;
     if (!el) return true;
-    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-  };
-
-  const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
-    requestAnimationFrame(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      el.scrollTo({ top: el.scrollHeight, behavior });
-    });
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
   };
 
   const loadChats = async () => {
@@ -135,9 +136,11 @@ export function ChatPanel({
         (payload: any) => {
           const m = payload.new as Msg;
           if (selected && m.jid === selected.jid) {
+            const wasNearBottom = isNearBottom();
             setMessages((prev) =>
               prev.find((x) => x.message_id === m.message_id) ? prev : [...prev, m]
             );
+            if (wasNearBottom) stickToBottomRef.current = true;
           }
         }
       )
@@ -151,11 +154,12 @@ export function ChatPanel({
     stickToBottomRef.current = true;
     setLoadingMsgs(true);
     setMessages([]);
-    // Cache first
-    const cached = await readCachedMessages(chat.jid);
+    setHasMoreOlder(true);
+    loadedJidRef.current = chat.jid;
+    const cached = await fetchPage(chat.jid);
     setMessages(cached);
+    if (cached.length < PAGE_SIZE) setHasMoreOlder(false);
     setLoadingMsgs(false);
-    // Then live (best-effort)
     if (accessToken) {
       try {
         const res = await fetchMessages({
@@ -163,19 +167,20 @@ export function ChatPanel({
             access_token: accessToken,
             candidate_id: candidateId,
             jid: chat.jid,
-            limit: 50,
+            limit: PAGE_SIZE,
           },
         });
-        if (res.messages?.length) {
-          // Reload from cache (server fn just upserted)
-          const fresh = await readCachedMessages(chat.jid);
+        if (res.messages?.length && loadedJidRef.current === chat.jid) {
+          const fresh = await fetchPage(chat.jid);
+          const wasNearBottom = isNearBottom();
           setMessages(fresh);
+          if (fresh.length < PAGE_SIZE) setHasMoreOlder(false);
+          if (wasNearBottom) stickToBottomRef.current = true;
         }
       } catch {
         // ignore
       }
     }
-    // mark as read locally
     await supabase
       .from("whatsapp_chats")
       .update({ unread_count: 0 })
@@ -183,16 +188,51 @@ export function ChatPanel({
       .eq("jid", chat.jid);
   };
 
-  useEffect(() => {
-    if (selected) loadMessages(selected);
-  }, [selected?.jid]);
+  const loadOlder = async () => {
+    if (!selected || loadingOlder || !hasMoreOlder || messages.length === 0) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    setLoadingOlder(true);
+    preserveScrollRef.current = { prevHeight: el.scrollHeight, prevTop: el.scrollTop };
+    const oldest = messages[0].ts;
+    const older = await fetchPage(selected.jid, oldest);
+    if (older.length === 0) {
+      setHasMoreOlder(false);
+      preserveScrollRef.current = null;
+    } else {
+      if (older.length < PAGE_SIZE) setHasMoreOlder(false);
+      setMessages((prev) => [...older, ...prev]);
+    }
+    setLoadingOlder(false);
+  };
 
   useEffect(() => {
-    if (stickToBottomRef.current || isNearBottom()) {
-      scrollToBottom();
+    if (selected) loadMessages(selected);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.jid]);
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (preserveScrollRef.current) {
+      const { prevHeight, prevTop } = preserveScrollRef.current;
+      el.scrollTop = el.scrollHeight - prevHeight + prevTop;
+      preserveScrollRef.current = null;
+      return;
     }
-    stickToBottomRef.current = false;
-  }, [messages, selected?.jid]);
+    if (stickToBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+      stickToBottomRef.current = false;
+    }
+  }, [messages]);
+
+  const onContainerScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (el.scrollTop <= 40 && hasMoreOlder && !loadingOlder && !loadingMsgs) {
+      void loadOlder();
+    }
+  };
 
   const onSync = async () => {
     if (!accessToken) return;
@@ -434,12 +474,20 @@ export function ChatPanel({
 
               <div
                 ref={scrollRef}
-                onScroll={() => {
-                  stickToBottomRef.current = isNearBottom();
-                }}
+                onScroll={onContainerScroll}
                 className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-muted/10 p-4"
               >
-                {loadingMsgs && (
+                {loadingOlder && (
+                  <div className="text-center text-xs text-muted-foreground py-1">
+                    <Loader2 className="mx-auto h-3 w-3 animate-spin" />
+                  </div>
+                )}
+                {!hasMoreOlder && messages.length > 0 && (
+                  <div className="text-center text-[10px] text-muted-foreground py-1 opacity-60">
+                    Início da conversa
+                  </div>
+                )}
+                {loadingMsgs && messages.length === 0 && (
                   <div className="text-center text-sm text-muted-foreground">
                     <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                   </div>
