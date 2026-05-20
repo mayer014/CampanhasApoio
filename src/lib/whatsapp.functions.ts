@@ -552,10 +552,29 @@ export const createBroadcast = createServerFn({ method: "POST" })
       name: z.string().min(1).max(150),
       message_text: z.string().min(1).max(4096),
       media_url: z.string().url().optional().nullable(),
+      media_urls: z.array(z.string().url()).max(10).optional(),
       interval_min_seconds: z.number().int().min(15).max(3600),
       interval_max_seconds: z.number().int().min(15).max(3600),
       daily_cap: z.number().int().min(10).max(1000),
+      hour_cap: z.number().int().min(5).max(500).optional(),
       respect_quiet_hours: z.boolean().default(true),
+      allowed_weekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+      daytime_windows: z
+        .array(
+          z.object({
+            start: z.string().regex(/^\d{2}:\d{2}$/),
+            end: z.string().regex(/^\d{2}:\d{2}$/),
+          })
+        )
+        .max(4)
+        .optional(),
+      simulate_typing: z.boolean().optional(),
+      long_pause_every: z.number().int().min(0).max(500).optional(),
+      long_pause_seconds_min: z.number().int().min(30).max(7200).optional(),
+      long_pause_seconds_max: z.number().int().min(30).max(7200).optional(),
+      recipient_cooldown_hours: z.number().int().min(0).max(720).optional(),
+      append_optout_footer: z.boolean().optional(),
+      shuffle_recipients: z.boolean().optional(),
       target_type: z.enum(["contacts", "groups", "leads", "manual_list", "mixed"]),
       recipients: z.array(RecipientSchema).min(1).max(10000),
     }).parse(input)
@@ -568,6 +587,13 @@ export const createBroadcast = createServerFn({ method: "POST" })
     if (data.interval_max_seconds < data.interval_min_seconds) {
       throw new Error("Intervalo máximo deve ser maior que o mínimo");
     }
+    if (
+      data.long_pause_seconds_min != null &&
+      data.long_pause_seconds_max != null &&
+      data.long_pause_seconds_max < data.long_pause_seconds_min
+    ) {
+      throw new Error("Pausa longa: máximo deve ser maior que o mínimo");
+    }
 
     const seen = new Set<string>();
     const dedup = data.recipients.filter((r) => {
@@ -576,21 +602,34 @@ export const createBroadcast = createServerFn({ method: "POST" })
       return true;
     });
 
+    const insertPayload: Record<string, unknown> = {
+      candidate_id: candidateId,
+      name: data.name,
+      message_text: data.message_text,
+      media_url: data.media_url || null,
+      media_urls: data.media_urls && data.media_urls.length > 0 ? data.media_urls : [],
+      interval_min_seconds: data.interval_min_seconds,
+      interval_max_seconds: data.interval_max_seconds,
+      daily_cap: data.daily_cap,
+      respect_quiet_hours: data.respect_quiet_hours,
+      target_type: data.target_type,
+      total: dedup.length,
+      status: "draft",
+    };
+    if (data.hour_cap != null) insertPayload.hour_cap = data.hour_cap;
+    if (data.allowed_weekdays) insertPayload.allowed_weekdays = data.allowed_weekdays;
+    if (data.daytime_windows) insertPayload.daytime_windows = data.daytime_windows;
+    if (data.simulate_typing != null) insertPayload.simulate_typing = data.simulate_typing;
+    if (data.long_pause_every != null) insertPayload.long_pause_every = data.long_pause_every;
+    if (data.long_pause_seconds_min != null) insertPayload.long_pause_seconds_min = data.long_pause_seconds_min;
+    if (data.long_pause_seconds_max != null) insertPayload.long_pause_seconds_max = data.long_pause_seconds_max;
+    if (data.recipient_cooldown_hours != null) insertPayload.recipient_cooldown_hours = data.recipient_cooldown_hours;
+    if (data.append_optout_footer != null) insertPayload.append_optout_footer = data.append_optout_footer;
+    if (data.shuffle_recipients != null) insertPayload.shuffle_recipients = data.shuffle_recipients;
+
     const { data: bc, error } = await sb
       .from("whatsapp_broadcasts")
-      .insert({
-        candidate_id: candidateId,
-        name: data.name,
-        message_text: data.message_text,
-        media_url: data.media_url || null,
-        interval_min_seconds: data.interval_min_seconds,
-        interval_max_seconds: data.interval_max_seconds,
-        daily_cap: data.daily_cap,
-        respect_quiet_hours: data.respect_quiet_hours,
-        target_type: data.target_type,
-        total: dedup.length,
-        status: "draft",
-      })
+      .insert(insertPayload as any)
       .select("id")
       .single();
     if (error || !bc) throw new Error(error?.message || "Falha ao criar campanha");
@@ -610,6 +649,7 @@ export const createBroadcast = createServerFn({ method: "POST" })
 
     return { success: true, id: bc.id, total: rows.length };
   });
+
 
 export const startBroadcast = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>

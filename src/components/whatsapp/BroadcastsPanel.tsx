@@ -10,6 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -24,8 +30,12 @@ import {
   Pause,
   Plus,
   Send,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -35,6 +45,7 @@ import {
   pauseBroadcast,
   startBroadcast,
 } from "@/lib/whatsapp.functions";
+
 
 type Broadcast = {
   id: string;
@@ -245,13 +256,30 @@ function BroadcastWizard({
 }) {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("Olá {nome}! ");
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [intMin, setIntMin] = useState(30);
-  const [intMax, setIntMax] = useState(90);
+  const [intMin, setIntMin] = useState(45);
+  const [intMax, setIntMax] = useState(120);
   const [cap, setCap] = useState(200);
+  const [hourCap, setHourCap] = useState(60);
   const [quiet, setQuiet] = useState(true);
   const [busy, setBusy] = useState(false);
+
+  // Advanced anti-ban
+  const [weekdays, setWeekdays] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
+  const [windows, setWindows] = useState<Array<{ start: string; end: string }>>([
+    { start: "09:00", end: "12:00" },
+    { start: "14:00", end: "18:00" },
+  ]);
+  const [simulateTyping, setSimulateTyping] = useState(true);
+  const [longEvery, setLongEvery] = useState(30);
+  const [longMin, setLongMin] = useState(300);
+  const [longMax, setLongMax] = useState(900);
+  const [cooldownH, setCooldownH] = useState(72);
+  const [footer, setFooter] = useState(true);
+  const [shuffle, setShuffle] = useState(true);
+  const [spinPreview, setSpinPreview] = useState(0);
+
 
   // Sources
   const [tab, setTab] = useState<"leads" | "contacts" | "groups" | "manual">("leads");
@@ -298,7 +326,7 @@ function BroadcastWizard({
         .upload(path, file);
       if (error) throw error;
       const { data } = supabase.storage.from("whatsapp-media").getPublicUrl(path);
-      setMediaUrl(data.publicUrl);
+      setMediaUrls((prev) => [...prev, data.publicUrl].slice(0, 5));
       toast.success("Imagem carregada");
     } catch (e: any) {
       toast.error(e?.message || "Falha");
@@ -306,6 +334,7 @@ function BroadcastWizard({
       setUploading(false);
     }
   };
+
 
   const recipients = useMemo<Recipient[]>(() => {
     const out: Recipient[] = [];
@@ -390,6 +419,7 @@ function BroadcastWizard({
     if (!message.trim()) return toast.error("Mensagem vazia");
     if (recipients.length === 0) return toast.error("Sem destinatários");
     if (intMax < intMin) return toast.error("Intervalo inválido");
+    if (weekdays.size === 0) return toast.error("Escolha ao menos um dia da semana");
     setBusy(true);
     try {
       const res = await createBroadcast({
@@ -398,11 +428,22 @@ function BroadcastWizard({
           candidate_id: candidateId,
           name: name.trim(),
           message_text: message,
-          media_url: mediaUrl,
+          media_url: mediaUrls[0] || null,
+          media_urls: mediaUrls,
           interval_min_seconds: intMin,
           interval_max_seconds: intMax,
           daily_cap: cap,
+          hour_cap: hourCap,
           respect_quiet_hours: quiet,
+          allowed_weekdays: Array.from(weekdays).sort(),
+          daytime_windows: windows,
+          simulate_typing: simulateTyping,
+          long_pause_every: longEvery,
+          long_pause_seconds_min: longMin,
+          long_pause_seconds_max: longMax,
+          recipient_cooldown_hours: cooldownH,
+          append_optout_footer: footer,
+          shuffle_recipients: shuffle,
           target_type: targetType,
           recipients,
         },
@@ -422,6 +463,7 @@ function BroadcastWizard({
     }
   };
 
+
   return (
     <div>
       <DialogHeader>
@@ -434,8 +476,8 @@ function BroadcastWizard({
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Convite comício" />
           </div>
           <div>
-            <Label>Imagem (opcional)</Label>
-            <div className="flex items-center gap-2">
+            <Label>Imagens (opcional — até 5, rotação anti-spam)</Label>
+            <div className="flex flex-wrap items-center gap-2">
               <label className="inline-flex">
                 <input
                   type="file"
@@ -444,26 +486,35 @@ function BroadcastWizard({
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) upload(f);
+                    e.target.value = "";
                   }}
                 />
-                <Button asChild variant="outline" size="sm" disabled={uploading}>
+                <Button asChild variant="outline" size="sm" disabled={uploading || mediaUrls.length >= 5}>
                   <span>
                     {uploading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                       <ImageIcon className="mr-2 h-4 w-4" />
                     )}
-                    {mediaUrl ? "Trocar" : "Enviar imagem"}
+                    {mediaUrls.length > 0 ? `+ Adicionar (${mediaUrls.length}/5)` : "Enviar imagem"}
                   </span>
                 </Button>
               </label>
-              {mediaUrl && (
-                <Button size="sm" variant="ghost" onClick={() => setMediaUrl(null)}>
-                  Remover
-                </Button>
-              )}
+              {mediaUrls.map((u, i) => (
+                <div key={u} className="relative">
+                  <img src={u} alt="" className="h-10 w-10 rounded border object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setMediaUrls((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
+
         </div>
 
         <div>
@@ -514,6 +565,197 @@ function BroadcastWizard({
           />
           Respeitar horário de silêncio configurado na conexão
         </label>
+
+        {/* Spintax preview */}
+        {message.match(/\{[^{}]*\|[^{}]*\}/) && (
+          <Card className="border-dashed bg-muted/30 p-3">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-xs font-medium">Pré-visualização (variação {spinPreview + 1})</span>
+              <Button size="sm" variant="ghost" onClick={() => setSpinPreview((n) => n + 1)}>
+                Sortear outra
+              </Button>
+            </div>
+            <p className="whitespace-pre-wrap text-sm">{previewSpintax(message, spinPreview)}</p>
+          </Card>
+        )}
+
+        <Accordion type="single" collapsible className="rounded-lg border">
+          <AccordionItem value="adv" className="border-0">
+            <AccordionTrigger className="px-4">
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <Shield className="h-4 w-4" /> Proteção anti-banimento (avançado)
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 px-4 pb-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Limite por hora</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    max={500}
+                    value={hourCap}
+                    onChange={(e) => setHourCap(parseInt(e.target.value) || 60)}
+                  />
+                </div>
+                <div>
+                  <Label>Cooldown por destinatário (h)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={720}
+                    value={cooldownH}
+                    onChange={(e) => setCooldownH(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Dias da semana permitidos</Label>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d, i) => {
+                    const active = weekdays.has(i);
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() =>
+                          setWeekdays((prev) => {
+                            const n = new Set(prev);
+                            if (n.has(i)) n.delete(i);
+                            else n.add(i);
+                            return n;
+                          })
+                        }
+                        className={`rounded px-3 py-1 text-xs ${
+                          active
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <Label>Janelas de envio (horário de Brasília)</Label>
+                <div className="mt-2 space-y-2">
+                  {windows.map((w, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        value={w.start}
+                        onChange={(e) =>
+                          setWindows((prev) =>
+                            prev.map((x, idx) => (idx === i ? { ...x, start: e.target.value } : x))
+                          )
+                        }
+                        className="w-32"
+                      />
+                      <span className="text-xs text-muted-foreground">até</span>
+                      <Input
+                        type="time"
+                        value={w.end}
+                        onChange={(e) =>
+                          setWindows((prev) =>
+                            prev.map((x, idx) => (idx === i ? { ...x, end: e.target.value } : x))
+                          )
+                        }
+                        className="w-32"
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setWindows((prev) => prev.filter((_, idx) => idx !== i))}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {windows.length < 4 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setWindows((prev) => [...prev, { start: "09:00", end: "18:00" }])
+                      }
+                    >
+                      <Plus className="mr-1 h-3 w-3" /> Janela
+                    </Button>
+                  )}
+                  {windows.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Sem janelas = pode enviar a qualquer hora (sujeito ao quiet hours).
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <Label>Pausa longa a cada</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={longEvery}
+                    onChange={(e) => setLongEvery(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div>
+                  <Label>Pausa mín (s)</Label>
+                  <Input
+                    type="number"
+                    min={30}
+                    value={longMin}
+                    onChange={(e) => setLongMin(parseInt(e.target.value) || 300)}
+                  />
+                </div>
+                <div>
+                  <Label>Pausa máx (s)</Label>
+                  <Input
+                    type="number"
+                    min={30}
+                    value={longMax}
+                    onChange={(e) => setLongMax(parseInt(e.target.value) || 900)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={simulateTyping} onCheckedChange={(v) => setSimulateTyping(!!v)} />
+                  Simular "digitando…" antes de enviar
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={footer} onCheckedChange={(v) => setFooter(!!v)} />
+                  Adicionar rodapé "Responda SAIR para não receber mais"
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={shuffle} onCheckedChange={(v) => setShuffle(!!v)} />
+                  Embaralhar ordem dos destinatários
+                </label>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
+        {/* Risk score */}
+        <RiskScore
+          recipientsCount={recipients.length}
+          intMin={intMin}
+          intMax={intMax}
+          hourCap={hourCap}
+          cap={cap}
+          hasSpintax={!!message.match(/\{[^{}]*\|[^{}]*\}/)}
+          hasMedia={mediaUrls.length > 0}
+          mediaRotation={mediaUrls.length > 1}
+          windows={windows}
+          cooldown={cooldownH}
+        />
+
 
         <div>
           <Label>Destinatários</Label>
@@ -709,6 +951,75 @@ function BroadcastWizard({
     </div>
   );
 }
+
+function previewSpintax(text: string, seed: number): string {
+  // deterministic-ish per seed
+  let i = 0;
+  let prev = "";
+  let cur = text;
+  let safety = 10;
+  while (cur !== prev && safety-- > 0) {
+    prev = cur;
+    cur = cur.replace(/\{([^{}]+)\}/g, (full, body: string) => {
+      if (!body.includes("|")) return full;
+      const opts = body.split("|");
+      const pick = (seed + i++) % opts.length;
+      return opts[pick] ?? "";
+    });
+  }
+  return cur;
+}
+
+function RiskScore(props: {
+  recipientsCount: number;
+  intMin: number;
+  intMax: number;
+  hourCap: number;
+  cap: number;
+  hasSpintax: boolean;
+  hasMedia: boolean;
+  mediaRotation: boolean;
+  windows: Array<{ start: string; end: string }>;
+  cooldown: number;
+}) {
+  let score = 0;
+  const issues: string[] = [];
+  if (props.intMin < 30) { score += 25; issues.push("Intervalo mínimo < 30s — aumente para 45s+"); }
+  else if (props.intMin < 45) { score += 10; }
+  if (props.hourCap > 80) { score += 15; issues.push("Limite por hora alto (>80)"); }
+  if (props.cap > 300) { score += 15; issues.push("Limite diário alto (>300)"); }
+  if (props.recipientsCount > 300 && !props.hasSpintax) { score += 20; issues.push("Sem variação de mensagem (use {opção1|opção2})"); }
+  if (props.recipientsCount > 500 && !props.mediaRotation && props.hasMedia) { score += 10; issues.push("Adicione 2-3 imagens em rotação"); }
+  if (props.windows.length === 0) { score += 10; issues.push("Sem janelas de horário definidas"); }
+  if (props.cooldown < 24) { score += 10; issues.push("Cooldown por destinatário < 24h"); }
+
+  const level = score >= 50 ? "high" : score >= 25 ? "medium" : "low";
+  const cfg = {
+    low: { label: "Baixo", cls: "bg-green-600 text-white", Icon: ShieldCheck },
+    medium: { label: "Médio", cls: "bg-amber-500 text-white", Icon: Shield },
+    high: { label: "Alto", cls: "bg-destructive text-destructive-foreground", Icon: ShieldAlert },
+  }[level];
+  const Icon = cfg.Icon;
+
+  return (
+    <Card className="p-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Icon className="h-4 w-4" /> Risco de banimento
+        </div>
+        <Badge className={cfg.cls}>{cfg.label}</Badge>
+      </div>
+      {issues.length > 0 && (
+        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-muted-foreground">
+          {issues.map((i, idx) => (
+            <li key={idx}>{i}</li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 
 function normalize(digits: string): string {
   let d = digits;
