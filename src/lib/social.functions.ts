@@ -201,9 +201,27 @@ export const forceEnqueueSocial = createServerFn({ method: "POST" })
         return { enqueued: 0, message: "Nenhum perfil ativo." };
       }
 
+      const runtimeEnv = socialEnvStatus();
+      if (!runtimeEnv.hasSupabaseServiceRoleKey) {
+        logSocialError(
+          "forceEnqueueSocial.missing_service_role",
+          new Error("SUPABASE_SERVICE_ROLE_KEY unavailable in runtime"),
+          {
+            candidate_id: candidateId,
+            requested_candidate_id: data.candidate_id ?? null,
+            profiles_count: profiles.length,
+            runtime_env: runtimeEnv,
+          },
+        );
+        return {
+          enqueued: 0,
+          message: "Fila social indisponível no servidor. Verifique SUPABASE_SERVICE_ROLE_KEY no runtime.",
+        };
+      }
+
       let enqueued = 0;
       for (const p of profiles) {
-        const { data: existing, error: existingErr } = await sb
+        const { data: existing, error: existingErr } = await supabaseAdmin
           .from("social_jobs")
           .select("id")
           .eq("profile_id", p.id)
@@ -212,7 +230,7 @@ export const forceEnqueueSocial = createServerFn({ method: "POST" })
           .maybeSingle();
         if (existingErr) throw existingErr;
         if (existing) continue;
-        const { error: insErr } = await sb.from("social_jobs").insert({
+        const { error: insErr } = await supabaseAdmin.from("social_jobs").insert({
           candidate_id: candidateId,
           profile_id: p.id,
           job_type: "crawl_profile",
