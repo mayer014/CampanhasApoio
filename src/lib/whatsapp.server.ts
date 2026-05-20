@@ -454,7 +454,7 @@ export async function tickBroadcastsInternal(): Promise<{
       }
 
       // Daytime windows
-      const windows = Array.isArray(bc.daytime_windows) ? bc.daytime_windows : [];
+      const windows = (Array.isArray(bc.daytime_windows) ? bc.daytime_windows : []) as Array<{ start: string; end: string }>;
       if (!inDaytimeWindow(windows, hour, minute)) {
         const next = new Date(Date.now() + 15 * 60_000);
         await supabaseAdmin
