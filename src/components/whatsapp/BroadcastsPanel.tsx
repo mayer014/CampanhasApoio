@@ -10,6 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -24,8 +30,12 @@ import {
   Pause,
   Plus,
   Send,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -35,6 +45,7 @@ import {
   pauseBroadcast,
   startBroadcast,
 } from "@/lib/whatsapp.functions";
+
 
 type Broadcast = {
   id: string;
