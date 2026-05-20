@@ -2,9 +2,137 @@
 // NEVER import from client code.
 import { createHmac, timingSafeEqual } from "crypto";
 
+type SocialDebugExtra = Record<string, unknown>;
+
+function isDevRuntime() {
+  return process.env.NODE_ENV !== "production";
+}
+
+function simplifyError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause:
+        error.cause instanceof Error
+          ? {
+              name: error.cause.name,
+              message: error.cause.message,
+              stack: error.cause.stack,
+            }
+          : error.cause,
+    };
+  }
+  return {
+    name: typeof error,
+    message: typeof error === "string" ? error : JSON.stringify(error),
+    stack: undefined,
+    cause: undefined,
+  };
+}
+
+function sanitizeExtras(extra?: SocialDebugExtra): SocialDebugExtra | undefined {
+  if (!extra) return undefined;
+  return JSON.parse(JSON.stringify(extra, (_key, value) => {
+    if (value instanceof Error) return simplifyError(value);
+    if (typeof value === "bigint") return String(value);
+    return value;
+  })) as SocialDebugExtra;
+}
+
+export function socialEnvStatus() {
+  return {
+    hasSupabaseUrl: !!process.env.SUPABASE_URL,
+    hasSupabaseServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    hasSocialHmacSecret: !!process.env.SOCIAL_HMAC_SECRET,
+    nodeEnv: process.env.NODE_ENV || "unknown",
+  };
+}
+
+export function assertSocialRuntimeEnv(
+  location: string,
+  required: Array<"SUPABASE_URL" | "SUPABASE_SERVICE_ROLE_KEY" | "SOCIAL_HMAC_SECRET"> = [],
+) {
+  const env = socialEnvStatus();
+  const missing = required.filter((key) => {
+    if (key === "SUPABASE_URL") return !env.hasSupabaseUrl;
+    if (key === "SUPABASE_SERVICE_ROLE_KEY") return !env.hasSupabaseServiceRoleKey;
+    return !env.hasSocialHmacSecret;
+  });
+  if (missing.length > 0) {
+    const error = new Error(`Missing runtime env(s): ${missing.join(", ")}`);
+    logSocialError(location, error, { env });
+    throw error;
+  }
+  return env;
+}
+
+export function logSocialError(location: string, error: unknown, extra?: SocialDebugExtra) {
+  console.error(`[social.debug] ${location}`, {
+    location,
+    ...simplifyError(error),
+    ...sanitizeExtras(extra),
+  });
+}
+
+export function socialDebugPayload(location: string, error: unknown, extra?: SocialDebugExtra) {
+  const simplified = simplifyError(error);
+  return {
+    error: simplified.message,
+    stack: simplified.stack,
+    cause: simplified.cause,
+    location,
+    ...(sanitizeExtras(extra) ?? {}),
+  };
+}
+
+export function throwSocialDebugError(location: string, error: unknown, extra?: SocialDebugExtra): never {
+  logSocialError(location, error, extra);
+  const payload = socialDebugPayload(location, error, extra);
+  throw new Error(isDevRuntime() ? JSON.stringify(payload) : payload.error);
+}
+
+export function socialDebugResponse(
+  location: string,
+  error: unknown,
+  extra?: SocialDebugExtra,
+  status = 500,
+) {
+  logSocialError(location, error, extra);
+  const payload = socialDebugPayload(location, error, extra);
+  return new Response(
+    JSON.stringify(isDevRuntime() ? payload : { error: payload.error, location }),
+    {
+      status,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+}
+
+export function socialHmacHeaderDebug(
+  signatureHeader: string | null,
+  timestampHeader: string | null,
+  workerId?: string | null,
+) {
+  return {
+    hmac: {
+      signature_present: !!signatureHeader,
+      signature_length: signatureHeader?.length ?? 0,
+      timestamp_present: !!timestampHeader,
+      timestamp: timestampHeader,
+      worker_id: workerId ?? null,
+    },
+  };
+}
+
 export function socialHmacSecret(): string {
   const s = process.env.SOCIAL_HMAC_SECRET;
-  if (!s) throw new Error("SOCIAL_HMAC_SECRET not configured");
+  if (!s) {
+    const error = new Error("SOCIAL_HMAC_SECRET not configured");
+    logSocialError("socialHmacSecret", error, { env: socialEnvStatus() });
+    throw error;
+  }
   return s;
 }
 
@@ -18,25 +146,45 @@ export function verifySocialHmac(
   signatureHeader: string | null,
   timestampHeader: string | null,
 ): { ok: true } | { ok: false; reason: string } {
+  const headerDebug = socialHmacHeaderDebug(signatureHeader, timestampHeader);
   if (!signatureHeader || !timestampHeader) {
+    logSocialError("verifySocialHmac.missing_headers", new Error("missing signature/timestamp"), headerDebug);
     return { ok: false, reason: "missing signature/timestamp" };
   }
   const ts = Number(timestampHeader);
-  if (!Number.isFinite(ts)) return { ok: false, reason: "bad timestamp" };
+  if (!Number.isFinite(ts)) {
+    logSocialError("verifySocialHmac.bad_timestamp", new Error("bad timestamp"), headerDebug);
+    return { ok: false, reason: "bad timestamp" };
+  }
   const skew = Math.abs(Date.now() / 1000 - ts);
-  if (skew > 300) return { ok: false, reason: "timestamp skew" };
-
-  const expected = createHmac("sha256", socialHmacSecret())
-    .update(`${rawBody}.${ts}`)
-    .digest("hex");
-  const received = signatureHeader.replace(/^sha256=/, "").trim();
   try {
+    if (skew > 300) {
+      logSocialError("verifySocialHmac.timestamp_skew", new Error("timestamp skew"), {
+        ...headerDebug,
+        skew_seconds: skew,
+      });
+      return { ok: false, reason: "timestamp skew" };
+    }
+
+    const expected = createHmac("sha256", socialHmacSecret())
+      .update(`${rawBody}.${ts}`)
+      .digest("hex");
+    const received = signatureHeader.replace(/^sha256=/, "").trim();
     const a = Buffer.from(expected, "hex");
     const b = Buffer.from(received, "hex");
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      logSocialError("verifySocialHmac.bad_signature", new Error("bad signature"), {
+        ...headerDebug,
+        skew_seconds: skew,
+      });
       return { ok: false, reason: "bad signature" };
     }
-  } catch {
+  } catch (error) {
+    logSocialError("verifySocialHmac.crypto", error, {
+      ...headerDebug,
+      raw_body_length: rawBody.length,
+      crypto_runtime: "node:crypto",
+    });
     return { ok: false, reason: "bad signature encoding" };
   }
   return { ok: true };
