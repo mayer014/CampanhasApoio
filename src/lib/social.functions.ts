@@ -19,6 +19,30 @@ const UsernameSchema = z
 
 const ProfileTypeSchema = z.enum(["own_profile", "competitor", "portal", "influencer"]);
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return "Erro interno";
+}
+
+function isDuplicateProfileError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const message = "message" in error && typeof error.message === "string" ? error.message : "";
+  const details = "details" in error && typeof error.details === "string" ? error.details : "";
+  const code = "code" in error && typeof error.code === "string" ? error.code : "";
+
+  return (
+    code === "23505" ||
+    /duplicate key/i.test(message) ||
+    /duplicate key/i.test(details) ||
+    /social_profiles/i.test(message) ||
+    /social_profiles/i.test(details)
+  );
+}
+
 export const listSocialProfiles = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
@@ -61,6 +85,32 @@ export const createSocialProfile = createServerFn({ method: "POST" })
       const callerId = await userIdFromToken(data.access_token);
       const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
 
+      const { data: existingProfile, error: existingProfileError } = await sb
+        .from("social_profiles")
+        .select("id")
+        .eq("candidate_id", candidateId)
+        .eq("username", username)
+        .maybeSingle();
+
+      if (existingProfileError) {
+        throw new Error(getErrorMessage(existingProfileError));
+      }
+
+      if (existingProfile) {
+        return {
+          ok: false,
+          stage: "createSocialProfile",
+          message: "Perfil já cadastrado",
+          details: {
+            payload,
+            candidate_id: candidateId,
+            username,
+            existing_profile_id: existingProfile.id,
+          },
+          profile: null,
+        };
+      }
+
       const { data: row, error } = await sb
         .from("social_profiles")
         .insert({
@@ -75,10 +125,10 @@ export const createSocialProfile = createServerFn({ method: "POST" })
         .select()
         .single();
       if (error) {
-        if (/duplicate key/i.test(error.message)) {
+        if (isDuplicateProfileError(error)) {
           throw new Error("Perfil já cadastrado");
         }
-        throw error;
+        throw new Error(getErrorMessage(error));
       }
 
       const runtimeEnv = socialEnvStatus();
@@ -114,6 +164,7 @@ export const createSocialProfile = createServerFn({ method: "POST" })
 
       return { ok: true, profile: row };
     } catch (error) {
+      const message = isDuplicateProfileError(error) ? "Perfil já cadastrado" : getErrorMessage(error);
       const details: any = socialDebugPayload("createSocialProfile", error, {
         payload,
         candidate_id: data.candidate_id ?? null,
@@ -127,7 +178,7 @@ export const createSocialProfile = createServerFn({ method: "POST" })
       return {
         ok: false,
         stage: "createSocialProfile",
-        message: details.error,
+        message,
         details,
         profile: null,
       };
