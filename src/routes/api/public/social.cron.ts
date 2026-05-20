@@ -11,7 +11,7 @@ export const Route = createFileRoute("/api/public/social/cron")({
     handlers: {
       POST: async () => {
         try {
-          const env = assertSocialRuntimeEnv("social.cron.post.env", [
+          assertSocialRuntimeEnv("social.cron.post.env", [
             "SUPABASE_URL",
             "SUPABASE_SERVICE_ROLE_KEY",
           ]);
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/public/social/cron")({
       },
       GET: async () => {
         try {
-          const env = assertSocialRuntimeEnv("social.cron.get.env", [
+          assertSocialRuntimeEnv("social.cron.get.env", [
             "SUPABASE_URL",
             "SUPABASE_SERVICE_ROLE_KEY",
           ]);
