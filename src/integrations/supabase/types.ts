@@ -432,6 +432,102 @@ export type Database = {
         }
         Relationships: []
       }
+      social_system_state: {
+        Row: {
+          breaker_open: boolean
+          breaker_opened_at: string | null
+          breaker_reason: string | null
+          breaker_reset_at: string | null
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          breaker_open?: boolean
+          breaker_opened_at?: string | null
+          breaker_reason?: string | null
+          breaker_reset_at?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          breaker_open?: boolean
+          breaker_opened_at?: string | null
+          breaker_reason?: string | null
+          breaker_reset_at?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      social_worker_logs: {
+        Row: {
+          context: Json
+          created_at: string
+          id: number
+          job_id: string | null
+          kind: Database["public"]["Enums"]["social_log_kind"]
+          level: Database["public"]["Enums"]["social_log_level"]
+          message: string
+          profile_id: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: number
+          job_id?: string | null
+          kind?: Database["public"]["Enums"]["social_log_kind"]
+          level?: Database["public"]["Enums"]["social_log_level"]
+          message: string
+          profile_id?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: number
+          job_id?: string | null
+          kind?: Database["public"]["Enums"]["social_log_kind"]
+          level?: Database["public"]["Enums"]["social_log_level"]
+          message?: string
+          profile_id?: string | null
+          worker_id?: string | null
+        }
+        Relationships: []
+      }
+      social_workers: {
+        Row: {
+          created_at: string
+          jobs_processed: number
+          last_error: string | null
+          last_seen_at: string
+          meta: Json
+          status: string
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          jobs_processed?: number
+          last_error?: string | null
+          last_seen_at?: string
+          meta?: Json
+          status?: string
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          jobs_processed?: number
+          last_error?: string | null
+          last_seen_at?: string
+          meta?: Json
+          status?: string
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           candidate_id: string
@@ -1155,6 +1251,18 @@ export type Database = {
         Args: { _template_id: string }
         Returns: undefined
       }
+      social_dashboard_stats: { Args: never; Returns: Json }
+      social_evaluate_breaker: { Args: never; Returns: boolean }
+      social_worker_heartbeat: {
+        Args: {
+          _jobs_processed: number
+          _last_error: string
+          _meta: Json
+          _status: string
+          _worker_id: string
+        }
+        Returns: undefined
+      }
       unaccent: { Args: { "": string }; Returns: string }
       unset_active_template: {
         Args: { _template_id: string }
@@ -1168,6 +1276,17 @@ export type Database = {
       social_alert_type: "viral_post" | "competitor_growth"
       social_job_status: "pending" | "running" | "done" | "failed"
       social_job_type: "crawl_profile" | "crawl_post"
+      social_log_kind:
+        | "login_wall"
+        | "rate_limit"
+        | "timeout"
+        | "parser_failure"
+        | "ingest_failure"
+        | "network_error"
+        | "captcha"
+        | "breaker"
+        | "other"
+      social_log_level: "debug" | "info" | "warn" | "error" | "critical"
       social_platform: "instagram"
       social_post_type: "feed" | "reel" | "carousel" | "story"
       social_profile_type:
@@ -1321,6 +1440,18 @@ export const Constants = {
       social_alert_type: ["viral_post", "competitor_growth"],
       social_job_status: ["pending", "running", "done", "failed"],
       social_job_type: ["crawl_profile", "crawl_post"],
+      social_log_kind: [
+        "login_wall",
+        "rate_limit",
+        "timeout",
+        "parser_failure",
+        "ingest_failure",
+        "network_error",
+        "captcha",
+        "breaker",
+        "other",
+      ],
+      social_log_level: ["debug", "info", "warn", "error", "critical"],
       social_platform: ["instagram"],
       social_post_type: ["feed", "reel", "carousel", "story"],
       social_profile_type: [
