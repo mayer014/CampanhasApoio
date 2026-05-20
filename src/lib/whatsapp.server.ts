@@ -128,11 +128,15 @@ export async function getInstanceForUser(
   daily_cap: number;
   quiet_hours_start: number;
   quiet_hours_end: number;
+  hour_cap: number;
+  warmup_enabled: boolean;
+  warmup_started_at: string | null;
+  warmup_day: number;
 }> {
   const { data, error } = await sb
     .from("whatsapp_instances")
     .select(
-      "id, candidate_id, instance_id, api_key, status, phone_number, webhook_registered, daily_cap, quiet_hours_start, quiet_hours_end"
+      "id, candidate_id, instance_id, api_key, status, phone_number, webhook_registered, daily_cap, quiet_hours_start, quiet_hours_end, hour_cap, warmup_enabled, warmup_started_at, warmup_day"
     )
     .eq("candidate_id", candidateId)
     .maybeSingle();
@@ -140,6 +144,7 @@ export async function getInstanceForUser(
   if (!data) throw new Error("Instância WhatsApp não configurada");
   return data as any;
 }
+
 
 /** Resolve effective candidate target: admin can act on behalf of any user. */
 export async function resolveTargetCandidate(
