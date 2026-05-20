@@ -9,6 +9,7 @@ import { SocialProfilesPanel } from "@/components/social/SocialProfilesPanel";
 import { SocialAlertsPanel } from "@/components/social/SocialAlertsPanel";
 import { SocialOpsPanel } from "@/components/social/SocialOpsPanel";
 import { getSocialDiagnostics } from "@/lib/social.functions";
+import { withSocialAuth, getSocialErrorMessage } from "@/lib/social-client";
 
 export const Route = createFileRoute("/painel/social")({
   component: PainelSocial,
@@ -28,13 +29,13 @@ function PainelSocial() {
     let cancelled = false;
     (async () => {
       try {
-        const r: any = await diagnose();
+        const r: any = await withSocialAuth((options) => diagnose(options));
         if (!cancelled) {
           setDiag(r);
           setDiagError(null);
         }
       } catch (e: any) {
-        if (!cancelled) setDiagError(e?.message || "Falha ao diagnosticar");
+        if (!cancelled) setDiagError(getSocialErrorMessage(e) || "Falha ao diagnosticar");
       }
     })();
     return () => {

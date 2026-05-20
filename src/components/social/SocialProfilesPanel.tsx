@@ -21,8 +21,11 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Trash2, RefreshCw, Instagram, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { withSocialAuth, getSocialErrorMessage as getSocialClientErrorMessage } from "@/lib/social-client";
 
 function readableError(error: unknown): string {
+  const socialMessage = getSocialClientErrorMessage(error);
+  if (socialMessage) return socialMessage;
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   if (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string") {
@@ -88,7 +91,7 @@ export function SocialProfilesPanel({ ready }: { ready: boolean }) {
     if (!ready) return;
     setLoading(true);
     try {
-      const r: any = await list({ data: {} });
+      const r: any = await withSocialAuth((options) => list({ data: {}, ...options }));
       if (r?.ok === false) throw new Error(r?.message || "Erro ao carregar perfis");
       setProfiles((r?.profiles ?? []) as Profile[]);
     } catch (e) {
@@ -108,13 +111,16 @@ export function SocialProfilesPanel({ ready }: { ready: boolean }) {
     if (!ready) return;
     setSubmitting(true);
     try {
-      const result: any = await create({
-        data: {
-          username: username.trim().replace(/^@/, ""),
-          profile_type: profileType,
-          check_interval_minutes: interval,
-        },
-      });
+      const result: any = await withSocialAuth((options) =>
+        create({
+          data: {
+            username: username.trim().replace(/^@/, ""),
+            profile_type: profileType,
+            check_interval_minutes: interval,
+          },
+          ...options,
+        }),
+      );
       if (result?.ok === false) throw new Error(result?.message || "Erro ao adicionar");
       toast.success("Perfil adicionado ao monitoramento");
       setUsername("");
@@ -129,7 +135,9 @@ export function SocialProfilesPanel({ ready }: { ready: boolean }) {
   const handleToggle = async (p: Profile, val: boolean) => {
     if (!ready) return;
     try {
-      const result: any = await toggle({ data: { profile_id: p.id, is_active: val } });
+      const result: any = await withSocialAuth((options) =>
+        toggle({ data: { profile_id: p.id, is_active: val }, ...options }),
+      );
       if (result?.ok === false) throw new Error(result?.message || "Erro ao atualizar perfil");
       setProfiles((prev) => prev.map((x) => (x.id === p.id ? { ...x, is_active: val } : x)));
     } catch (e) {
@@ -141,7 +149,9 @@ export function SocialProfilesPanel({ ready }: { ready: boolean }) {
     if (!ready) return;
     if (!confirm(`Remover @${p.username} do monitoramento?`)) return;
     try {
-      const result: any = await del({ data: { profile_id: p.id } });
+      const result: any = await withSocialAuth((options) =>
+        del({ data: { profile_id: p.id }, ...options }),
+      );
       if (result?.ok === false) throw new Error(result?.message || "Erro ao remover perfil");
       setProfiles((prev) => prev.filter((x) => x.id !== p.id));
       toast.success("Removido");

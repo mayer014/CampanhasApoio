@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { RefreshCw, Flame, TrendingUp } from "lucide-react";
+import { withSocialAuth, getSocialErrorMessage as getSocialClientErrorMessage } from "@/lib/social-client";
 
 function readableError(error: unknown): string {
+  const socialMessage = getSocialClientErrorMessage(error);
+  if (socialMessage) return socialMessage;
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   if (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string") {
@@ -41,7 +44,7 @@ export function SocialAlertsPanel({ ready }: { ready: boolean }) {
     if (!ready) return;
     setLoading(true);
     try {
-      const r: any = await list({ data: {} });
+      const r: any = await withSocialAuth((options) => list({ data: {}, ...options }));
       if (r?.ok === false) throw new Error(r?.message || "Erro ao carregar alertas");
       setAlerts((r?.alerts ?? []) as Alert[]);
     } catch (e) {

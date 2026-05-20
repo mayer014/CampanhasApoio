@@ -7,8 +7,11 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { AlertTriangle, Activity, Database, Users, Clock, ShieldAlert, Zap } from "lucide-react";
+import { withSocialAuth, getSocialErrorMessage as getSocialClientErrorMessage } from "@/lib/social-client";
 
 function readableError(error: unknown): string {
+  const socialMessage = getSocialClientErrorMessage(error);
+  if (socialMessage) return socialMessage;
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   if (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string") {
@@ -41,7 +44,7 @@ export function SocialOpsPanel({ ready }: { ready: boolean }) {
     let stopped = false;
     const load = async () => {
       try {
-        const r: any = await fetchStats();
+        const r: any = await withSocialAuth((options) => fetchStats(options));
         if (r?.ok === false) throw new Error(r?.message || "Erro");
         if (!cancelled) {
           setData(r);
@@ -89,10 +92,10 @@ export function SocialOpsPanel({ ready }: { ready: boolean }) {
   const onForce = async () => {
     setForcing(true);
     try {
-      const r: any = await forceEnqueue({ data: {} });
+      const r: any = await withSocialAuth((options) => forceEnqueue({ data: {}, ...options }));
       if (r?.ok === false) throw new Error(r?.message || "Erro ao forçar coleta");
       toast.success(r?.message || `${r?.enqueued ?? 0} job(s) criado(s)`);
-      const stats: any = await fetchStats();
+      const stats: any = await withSocialAuth((options) => fetchStats(options));
       if (stats?.ok === false) throw new Error(stats?.message || "Erro");
       setData(stats);
     } catch (e) {
