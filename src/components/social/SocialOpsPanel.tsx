@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getSocialOpsStats } from "@/lib/social.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,16 +18,37 @@ function formatRel(iso?: string | null) {
 
 export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) {
   const fetchStats = useServerFn(getSocialOpsStats);
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["social-ops-stats"],
-    queryFn: () => fetchStats({ data: { access_token: accessToken! } }),
-    enabled: !!accessToken,
-    refetchInterval: 15_000,
-  });
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const r = await fetchStats({ data: { access_token: accessToken } });
+        if (!cancelled) {
+          setData(r);
+          setError(null);
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || "Erro");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    const id = setInterval(load, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [accessToken, fetchStats]);
 
   if (!accessToken) return <p className="text-muted-foreground">Sessão necessária.</p>;
-  if (isLoading) return <p className="text-muted-foreground">Carregando estatísticas…</p>;
-  if (error) return <p className="text-destructive text-sm">Erro: {(error as Error).message}</p>;
+  if (loading && !data) return <p className="text-muted-foreground">Carregando estatísticas…</p>;
+  if (error && !data) return <p className="text-destructive text-sm">Erro: {error}</p>;
 
   const s: any = (data as any)?.stats ?? {};
   const jobs = s.jobs ?? {};
