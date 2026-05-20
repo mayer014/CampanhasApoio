@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/public/social/next-job")({
         const headerDebug = socialHmacHeaderDebug(sig, ts, workerId);
 
         try {
-          const env = assertSocialRuntimeEnv("social.next-job.env", [
+          assertSocialRuntimeEnv("social.next-job.env", [
             "SUPABASE_URL",
             "SUPABASE_SERVICE_ROLE_KEY",
             "SOCIAL_HMAC_SECRET",
