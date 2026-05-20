@@ -1,8 +1,11 @@
 // Server-only helpers for Social Intelligence Engine (Fase 1).
 // NEVER import from client code.
 import { createHmac, timingSafeEqual } from "crypto";
+import { normalizeSupabaseUrl } from "@/integrations/supabase/url";
 
 type SocialDebugExtra = Record<string, unknown>;
+
+const FALLBACK_SUPABASE_URL = "https://pfppmkqsdqawvykkgafe.supabase.co";
 
 function isDevRuntime() {
   return process.env.NODE_ENV !== "production";
@@ -41,12 +44,45 @@ function sanitizeExtras(extra?: SocialDebugExtra): SocialDebugExtra | undefined 
   })) as SocialDebugExtra;
 }
 
+function getResolvedSupabaseUrl() {
+  const processUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
+  const processViteUrl = normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL);
+  const importMetaViteUrl = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL);
+
+  if (processUrl) {
+    return { value: processUrl, source: "process.env.SUPABASE_URL" };
+  }
+  if (processViteUrl) {
+    return { value: processViteUrl, source: "process.env.VITE_SUPABASE_URL" };
+  }
+  if (importMetaViteUrl) {
+    return { value: importMetaViteUrl, source: "import.meta.env.VITE_SUPABASE_URL" };
+  }
+  return { value: FALLBACK_SUPABASE_URL, source: "fallback.constant" };
+}
+
+function getRuntimeHints() {
+  return {
+    hasProcess: typeof process !== "undefined",
+    nodeEnv: process.env.NODE_ENV || "unknown",
+    nodeVersion: process.versions?.node ?? null,
+    hasWebSocketPair: "WebSocketPair" in globalThis,
+    hasCaches: typeof caches !== "undefined",
+  };
+}
+
 export function socialEnvStatus() {
+  const supabaseUrl = getResolvedSupabaseUrl();
   return {
     hasSupabaseUrl: !!process.env.SUPABASE_URL,
+    hasProcessViteSupabaseUrl: !!process.env.VITE_SUPABASE_URL,
+    hasImportMetaViteSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
+    hasResolvedSupabaseUrl: !!supabaseUrl.value,
+    resolvedSupabaseUrlSource: supabaseUrl.source,
     hasSupabaseServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     hasSocialHmacSecret: !!process.env.SOCIAL_HMAC_SECRET,
     nodeEnv: process.env.NODE_ENV || "unknown",
+    runtime: getRuntimeHints(),
   };
 }
 
@@ -55,8 +91,16 @@ export function assertSocialRuntimeEnv(
   required: Array<"SUPABASE_URL" | "SUPABASE_SERVICE_ROLE_KEY" | "SOCIAL_HMAC_SECRET"> = [],
 ) {
   const env = socialEnvStatus();
+  console.log("[social.debug] ENV CHECK", {
+    SUPABASE_URL: !!process.env.SUPABASE_URL,
+    SERVICE_ROLE: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    PROCESS_VITE_SUPABASE_URL: !!process.env.VITE_SUPABASE_URL,
+    IMPORT_META_VITE_SUPABASE_URL: !!import.meta.env.VITE_SUPABASE_URL,
+    resolvedSupabaseUrlSource: env.resolvedSupabaseUrlSource,
+    runtime: env.runtime,
+  });
   const missing = required.filter((key) => {
-    if (key === "SUPABASE_URL") return !env.hasSupabaseUrl;
+    if (key === "SUPABASE_URL") return !env.hasResolvedSupabaseUrl;
     if (key === "SUPABASE_SERVICE_ROLE_KEY") return !env.hasSupabaseServiceRoleKey;
     return !env.hasSocialHmacSecret;
   });
