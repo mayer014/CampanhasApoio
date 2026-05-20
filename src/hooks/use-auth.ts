@@ -46,7 +46,7 @@ export function useAuth() {
 
         if (error) throw error;
 
-        const roles = data?.map((x) => x.role) ?? [];
+        const roles = (data?.map((x) => x.role) ?? []) as Array<"admin" | "candidate" | "user">;
         const r = roles.includes("admin")
           ? "admin"
           : roles.includes("candidate")
