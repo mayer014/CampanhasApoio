@@ -117,3 +117,13 @@ export const listSocialAlerts = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { alerts: rows ?? [] };
   });
+
+export const getSocialOpsStats = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => TokenInput.parse(input))
+  .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
+    const { data: stats, error } = await sb.rpc("social_dashboard_stats");
+    if (error) throw new Error(error.message);
+    return { stats };
+  });
+
