@@ -4,6 +4,7 @@ import { useAccessToken } from "@/hooks/use-access-token";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SocialProfilesPanel } from "@/components/social/SocialProfilesPanel";
 import { SocialAlertsPanel } from "@/components/social/SocialAlertsPanel";
+import { SocialOpsPanel } from "@/components/social/SocialOpsPanel";
 
 export const Route = createFileRoute("/painel/social")({
   component: PainelSocial,
@@ -21,11 +22,15 @@ function PainelSocial() {
           Monitore perfis públicos do Instagram: seu candidato, concorrentes, portais e influenciadores.
         </p>
       </div>
-      <Tabs defaultValue="profiles">
+      <Tabs defaultValue="ops">
         <TabsList>
+          <TabsTrigger value="ops">Operação</TabsTrigger>
           <TabsTrigger value="profiles">Perfis monitorados</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
         </TabsList>
+        <TabsContent value="ops" className="mt-4">
+          <SocialOpsPanel accessToken={token} />
+        </TabsContent>
         <TabsContent value="profiles" className="mt-4">
           <SocialProfilesPanel accessToken={token} />
         </TabsContent>
