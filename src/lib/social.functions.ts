@@ -238,7 +238,7 @@ export const forceEnqueueSocial = createServerFn({ method: "POST" })
 
       const { enqueued } = await enqueueMissingSocialCollections(
         candidateId,
-        (profiles ?? []).map((profile) => profile.id),
+        (profiles ?? []).map((profile: { id: string }) => profile.id),
       );
 
       await supabase
