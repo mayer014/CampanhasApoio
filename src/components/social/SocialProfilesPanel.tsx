@@ -22,11 +22,11 @@ import {
 import { toast } from "sonner";
 import { Trash2, RefreshCw, Instagram, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 
-function getReadableErrorMessage(error: unknown): string {
+function readableError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
-  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
-    return error.message;
+  if (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string") {
+    return (error as any).message;
   }
   return "Erro na inteligência social";
 }
@@ -70,7 +70,7 @@ function timeAgo(iso: string | null) {
   return `${Math.floor(h / 24)}d atrás`;
 }
 
-export function SocialProfilesPanel({ accessToken }: { accessToken: string | null }) {
+export function SocialProfilesPanel({ ready }: { ready: boolean }) {
   const list = useServerFn(listSocialProfiles);
   const create = useServerFn(createSocialProfile);
   const toggle = useServerFn(toggleSocialProfile);
@@ -85,79 +85,72 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
   const [interval, setInterval] = useState(360);
 
   const refresh = async () => {
-    if (!accessToken) return;
+    if (!ready) return;
     setLoading(true);
     try {
-      const r: any = await list({ data: { access_token: accessToken } });
-      if (r?.ok === false) {
-        throw new Error(r?.message || "Erro ao carregar perfis");
-      }
+      const r: any = await list({ data: {} });
+      if (r?.ok === false) throw new Error(r?.message || "Erro ao carregar perfis");
       setProfiles((r?.profiles ?? []) as Profile[]);
-    } catch (e: any) {
-      toast.error(getReadableErrorMessage(e));
+    } catch (e) {
+      toast.error(readableError(e));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    refresh();
+    if (ready) refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken]);
+  }, [ready]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accessToken) return;
+    if (!ready) return;
     setSubmitting(true);
     try {
       const result: any = await create({
         data: {
-          access_token: accessToken,
           username: username.trim().replace(/^@/, ""),
           profile_type: profileType,
           check_interval_minutes: interval,
         },
       });
-      if (result?.ok === false) {
-        throw new Error(result?.message || "Erro ao adicionar");
-      }
+      if (result?.ok === false) throw new Error(result?.message || "Erro ao adicionar");
       toast.success("Perfil adicionado ao monitoramento");
       setUsername("");
       await refresh();
-    } catch (e: any) {
-      toast.error(getReadableErrorMessage(e));
+    } catch (e) {
+      toast.error(readableError(e));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleToggle = async (p: Profile, val: boolean) => {
-    if (!accessToken) return;
+    if (!ready) return;
     try {
-      const result: any = await toggle({ data: { access_token: accessToken, profile_id: p.id, is_active: val } });
-      if (result?.ok === false) {
-        throw new Error(result?.message || "Erro ao atualizar perfil");
-      }
+      const result: any = await toggle({ data: { profile_id: p.id, is_active: val } });
+      if (result?.ok === false) throw new Error(result?.message || "Erro ao atualizar perfil");
       setProfiles((prev) => prev.map((x) => (x.id === p.id ? { ...x, is_active: val } : x)));
-    } catch (e: any) {
-      toast.error(getReadableErrorMessage(e));
+    } catch (e) {
+      toast.error(readableError(e));
     }
   };
 
   const handleDelete = async (p: Profile) => {
-    if (!accessToken) return;
+    if (!ready) return;
     if (!confirm(`Remover @${p.username} do monitoramento?`)) return;
     try {
-      const result: any = await del({ data: { access_token: accessToken, profile_id: p.id } });
-      if (result?.ok === false) {
-        throw new Error(result?.message || "Erro ao remover perfil");
-      }
+      const result: any = await del({ data: { profile_id: p.id } });
+      if (result?.ok === false) throw new Error(result?.message || "Erro ao remover perfil");
       setProfiles((prev) => prev.filter((x) => x.id !== p.id));
       toast.success("Removido");
-    } catch (e: any) {
-      toast.error(getReadableErrorMessage(e));
+    } catch (e) {
+      toast.error(readableError(e));
     }
   };
+
+  if (!ready) return <p className="text-muted-foreground">Carregando sessão…</p>;
 
   return (
     <div className="space-y-4">
@@ -203,7 +196,7 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
                 onChange={(e) => setInterval(Number(e.target.value) || 360)}
               />
             </div>
-            <Button type="submit" disabled={submitting || !accessToken}>
+            <Button type="submit" disabled={submitting}>
               {submitting ? "Adicionando…" : "Adicionar"}
             </Button>
           </form>

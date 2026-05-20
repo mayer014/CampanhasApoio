@@ -7,11 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { RefreshCw, Flame, TrendingUp } from "lucide-react";
 
-function getReadableErrorMessage(error: unknown): string {
+function readableError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
-  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
-    return error.message;
+  if (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string") {
+    return (error as any).message;
   }
   return "Erro ao carregar alertas";
 }
@@ -32,32 +32,32 @@ const SEV_VARIANT: Record<Alert["severity"], "default" | "secondary" | "destruct
   critical: "destructive",
 };
 
-export function SocialAlertsPanel({ accessToken }: { accessToken: string | null }) {
+export function SocialAlertsPanel({ ready }: { ready: boolean }) {
   const list = useServerFn(listSocialAlerts);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(false);
 
   const refresh = async () => {
-    if (!accessToken) return;
+    if (!ready) return;
     setLoading(true);
     try {
-      const r: any = await list({ data: { access_token: accessToken } });
-      if (r?.ok === false) {
-        throw new Error(r?.message || "Erro ao carregar alertas");
-      }
+      const r: any = await list({ data: {} });
+      if (r?.ok === false) throw new Error(r?.message || "Erro ao carregar alertas");
       setAlerts((r?.alerts ?? []) as Alert[]);
-    } catch (e: any) {
+    } catch (e) {
       setAlerts([]);
-      toast.error(getReadableErrorMessage(e));
+      toast.error(readableError(e));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    refresh();
+    if (ready) refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken]);
+  }, [ready]);
+
+  if (!ready) return <p className="text-muted-foreground">Carregando sessão…</p>;
 
   return (
     <Card>
@@ -77,10 +77,7 @@ export function SocialAlertsPanel({ accessToken }: { accessToken: string | null 
             {alerts.map((a) => {
               const Icon = a.alert_type === "viral_post" ? Flame : TrendingUp;
               return (
-                <div
-                  key={a.id}
-                  className="flex items-start gap-3 rounded-md border bg-card/50 p-3"
-                >
+                <div key={a.id} className="flex items-start gap-3 rounded-md border bg-card/50 p-3">
                   <Icon className="mt-0.5 h-4 w-4 text-primary" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
