@@ -92,8 +92,25 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
 
           // Unread count is approximated client-side from messages list when needed.
 
+          // Auto opt-out on keyword (only for direct chats, not groups)
+          if (!isGroup) {
+            const txt: string | null = body.text || body.message || null;
+            if (detectOptOutKeyword(txt)) {
+              await supabaseAdmin
+                .from("whatsapp_optouts")
+                .upsert(
+                  {
+                    candidate_id: candidateId,
+                    jid,
+                    reason: `auto: "${(txt || "").slice(0, 50)}"`,
+                  },
+                  { onConflict: "candidate_id,jid", ignoreDuplicates: true }
+                );
+            }
+          }
 
           return new Response("ok", { status: 200 });
+
         } catch (e: any) {
           console.error("[wa webhook] error", e);
           return new Response("error", { status: 200 }); // ack to avoid retries
