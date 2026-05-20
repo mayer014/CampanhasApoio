@@ -32,6 +32,21 @@ function formatHealthError(error: unknown) {
   };
 }
 
+type HealthCheckSuccess<T> = {
+  ok: true;
+  label: string;
+  data: T;
+  count: number | null;
+};
+
+type HealthCheckFailure = {
+  ok: false;
+  label: string;
+  error: ReturnType<typeof formatHealthError>;
+};
+
+type HealthCheckResult<T> = HealthCheckSuccess<T> | HealthCheckFailure;
+
 /**
  * GET /api/public/social/health
  * Public read-only operational status. No PII.
@@ -46,9 +61,12 @@ export const Route = createFileRoute("/api/public/social/health")({
             "SUPABASE_SERVICE_ROLE_KEY",
           ]);
           const nowIso = new Date().toISOString();
-          const check = async <T,>(label: string, promise: Promise<{ data: T; error: unknown; count?: number | null }>) => {
+          const check = async <T,>(
+            label: string,
+            run: () => PromiseLike<{ data: T; error: unknown; count?: number | null }>,
+          ): Promise<HealthCheckResult<T>> => {
             try {
-              const result = await promise;
+              const result = await run();
               if (result.error) {
                 return {
                   ok: false as const,
@@ -73,17 +91,20 @@ export const Route = createFileRoute("/api/public/social/health")({
           };
 
           const [pendingRes, failedRes, runningRes, workersRes, profilesRes, stateRes, lastSuccessRes] = await Promise.all([
-            check("jobs_pending", supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "pending")),
-            check("jobs_failed", supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "failed")),
-            check("jobs_running", supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "running")),
-            check("workers", supabaseAdmin.from("social_workers").select("worker_id, last_seen_at, status, jobs_processed").order("last_seen_at", { ascending: false }).limit(20)),
-            check("profiles_active", supabaseAdmin.from("social_profiles").select("id", { count: "exact", head: true }).eq("is_active", true)),
-            check("system_state", supabaseAdmin.from("social_system_state").select("breaker_open, breaker_reason, breaker_reset_at").eq("id", 1).maybeSingle()),
-            check("last_success", supabaseAdmin.from("social_profiles").select("last_success_at").order("last_success_at", { ascending: false, nullsFirst: false }).limit(1).maybeSingle()),
+            check("jobs_pending", () => supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "pending")),
+            check("jobs_failed", () => supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "failed")),
+            check("jobs_running", () => supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "running")),
+            check("workers", () => supabaseAdmin.from("social_workers").select("worker_id, last_seen_at, status, jobs_processed").order("last_seen_at", { ascending: false }).limit(20)),
+            check("profiles_active", () => supabaseAdmin.from("social_profiles").select("id", { count: "exact", head: true }).eq("is_active", true)),
+            check("system_state", () => supabaseAdmin.from("social_system_state").select("breaker_open, breaker_reason, breaker_reset_at").eq("id", 1).maybeSingle()),
+            check("last_success", () => supabaseAdmin.from("social_profiles").select("last_success_at").order("last_success_at", { ascending: false, nullsFirst: false }).limit(1).maybeSingle()),
           ]);
 
-          const failures = [pendingRes, failedRes, runningRes, workersRes, profilesRes, stateRes, lastSuccessRes].filter((item) => !item.ok);
-          if (failures.length > 0) {
+          if (!pendingRes.ok || !failedRes.ok || !runningRes.ok || !workersRes.ok || !profilesRes.ok || !stateRes.ok || !lastSuccessRes.ok) {
+            const failures: HealthCheckFailure[] = [pendingRes, failedRes, runningRes, workersRes, profilesRes, stateRes, lastSuccessRes].filter(
+              (item): item is HealthCheckFailure => !item.ok,
+            );
+
             return new Response(
               JSON.stringify({
                 status: "degraded",
