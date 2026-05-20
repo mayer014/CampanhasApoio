@@ -66,7 +66,7 @@ function getRuntimeHints() {
     hasProcess: typeof process !== "undefined",
     nodeEnv: process.env.NODE_ENV || "unknown",
     nodeVersion: process.versions?.node ?? null,
-    hasWebSocketPair: typeof WebSocketPair !== "undefined",
+    hasWebSocketPair: "WebSocketPair" in globalThis,
     hasCaches: typeof caches !== "undefined",
   };
 }
