@@ -32,6 +32,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV CLOUDFLARE_INCLUDE_PROCESS_ENV=true
 
 # The build emits a self-contained Worker bundle in dist/server (with its own
 # wrangler.json) and static assets in dist/client. We only need those + wrangler.
