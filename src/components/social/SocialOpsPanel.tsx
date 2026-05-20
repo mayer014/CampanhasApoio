@@ -20,6 +20,8 @@ function formatRel(iso?: string | null) {
 
 export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) {
   const fetchStats = useServerFn(getSocialOpsStats);
+  const forceEnqueue = useServerFn(forceEnqueueSocial);
+  const [forcing, setForcing] = useState(false);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
