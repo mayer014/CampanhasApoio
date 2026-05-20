@@ -159,11 +159,12 @@ export const forceEnqueueSocial = createServerFn({ method: "POST" })
       const { error: insErr } = await sb.from("social_jobs").insert({
         candidate_id: candidateId,
         profile_id: p.id,
-        job_type: "profile_crawl",
+        job_type: "crawl_profile",
         priority: 50,
         scheduled_at: new Date().toISOString(),
       });
-      if (!insErr) enqueued++;
+      if (insErr) throw new Error(`insert job: ${insErr.message}`);
+      enqueued++;
     }
 
     // Also reset last_checked_at so the cron picks them up next tick
