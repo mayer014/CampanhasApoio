@@ -31,6 +31,7 @@ import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/publi
 import { Route as ApiPublicWhatsappBroadcastTickRouteImport } from './routes/api/public/whatsapp.broadcast-tick'
 import { Route as ApiPublicSocialNextJobRouteImport } from './routes/api/public/social.next-job'
 import { Route as ApiPublicSocialIngestRouteImport } from './routes/api/public/social.ingest'
+import { Route as ApiPublicSocialCronRouteImport } from './routes/api/public/social.cron'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
 const PainelRoute = PainelRouteImport.update({
@@ -145,6 +146,11 @@ const ApiPublicSocialIngestRoute = ApiPublicSocialIngestRouteImport.update({
   path: '/api/public/social/ingest',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSocialCronRoute = ApiPublicSocialCronRouteImport.update({
+  id: '/api/public/social/cron',
+  path: '/api/public/social/cron',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCandidatosIdTemplateTplIdRoute =
   AdminCandidatosIdTemplateTplIdRouteImport.update({
     id: '/candidatos/$id/template/$tplId',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/social/cron': typeof ApiPublicSocialCronRoute
   '/api/public/social/ingest': typeof ApiPublicSocialIngestRoute
   '/api/public/social/next-job': typeof ApiPublicSocialNextJobRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
   '/painel/templates': typeof PainelTemplatesIndexRoute
+  '/api/public/social/cron': typeof ApiPublicSocialCronRoute
   '/api/public/social/ingest': typeof ApiPublicSocialIngestRoute
   '/api/public/social/next-job': typeof ApiPublicSocialNextJobRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
@@ -219,6 +227,7 @@ export interface FileRoutesById {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/social/cron': typeof ApiPublicSocialCronRoute
   '/api/public/social/ingest': typeof ApiPublicSocialIngestRoute
   '/api/public/social/next-job': typeof ApiPublicSocialNextJobRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
@@ -246,6 +255,7 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/social/cron'
     | '/api/public/social/ingest'
     | '/api/public/social/next-job'
     | '/api/public/whatsapp/broadcast-tick'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos'
     | '/painel/templates'
+    | '/api/public/social/cron'
     | '/api/public/social/ingest'
     | '/api/public/social/next-job'
     | '/api/public/whatsapp/broadcast-tick'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/social/cron'
     | '/api/public/social/ingest'
     | '/api/public/social/next-job'
     | '/api/public/whatsapp/broadcast-tick'
@@ -310,6 +322,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PainelRoute: typeof PainelRouteWithChildren
   PSlugRoute: typeof PSlugRoute
+  ApiPublicSocialCronRoute: typeof ApiPublicSocialCronRoute
   ApiPublicSocialIngestRoute: typeof ApiPublicSocialIngestRoute
   ApiPublicSocialNextJobRoute: typeof ApiPublicSocialNextJobRoute
   ApiPublicWhatsappBroadcastTickRoute: typeof ApiPublicWhatsappBroadcastTickRoute
@@ -472,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSocialIngestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/social/cron': {
+      id: '/api/public/social/cron'
+      path: '/api/public/social/cron'
+      fullPath: '/api/public/social/cron'
+      preLoaderRoute: typeof ApiPublicSocialCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/candidatos/$id/template/$tplId': {
       id: '/admin/candidatos/$id/template/$tplId'
       path: '/candidatos/$id/template/$tplId'
@@ -531,6 +551,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PainelRoute: PainelRouteWithChildren,
   PSlugRoute: PSlugRoute,
+  ApiPublicSocialCronRoute: ApiPublicSocialCronRoute,
   ApiPublicSocialIngestRoute: ApiPublicSocialIngestRoute,
   ApiPublicSocialNextJobRoute: ApiPublicSocialNextJobRoute,
   ApiPublicWhatsappBroadcastTickRoute: ApiPublicWhatsappBroadcastTickRoute,
@@ -539,3 +560,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
