@@ -36,6 +36,7 @@ function PainelLayout() {
     { to: "/painel/link", label: "Link público", icon: Link2 },
     { to: "/painel/leads", label: "Eleitores", icon: Users },
     { to: "/painel/whatsapp", label: "WhatsApp", icon: MessageCircle },
+    { to: "/painel/social", label: "Inteligência Social", icon: Radar },
   ];
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
