@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getSocialOpsStats } from "@/lib/social.functions";
+import { getSocialOpsStats, forceEnqueueSocial } from "@/lib/social.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, Activity, Database, Users, Clock, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
+import { AlertTriangle, Activity, Database, Users, Clock, ShieldAlert, Zap } from "lucide-react";
 
 function formatRel(iso?: string | null) {
   if (!iso) return "—";
