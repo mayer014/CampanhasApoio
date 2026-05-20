@@ -128,8 +128,17 @@ function getRuntimeHints() {
   };
 }
 
+function getSupabaseKeyFormat(value: string | undefined) {
+  if (!value) return "missing";
+  if (value.startsWith("sb_secret_")) return "sb_secret";
+  if (value.startsWith("sb_publishable_")) return "sb_publishable";
+  if (value.startsWith("eyJ")) return "jwt";
+  return "unknown";
+}
+
 export function socialEnvStatus() {
   const supabaseUrl = getResolvedSupabaseUrl();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   return {
     hasSupabaseUrl: !!process.env.SUPABASE_URL,
     hasProcessViteSupabaseUrl: !!process.env.VITE_SUPABASE_URL,
@@ -137,6 +146,8 @@ export function socialEnvStatus() {
     hasResolvedSupabaseUrl: !!supabaseUrl.value,
     resolvedSupabaseUrlSource: supabaseUrl.source,
     hasSupabaseServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    supabaseServiceRoleKeyFormat: getSupabaseKeyFormat(serviceRoleKey),
+    supabaseServiceRoleKeyLength: serviceRoleKey?.length ?? 0,
     hasSocialHmacSecret: !!process.env.SOCIAL_HMAC_SECRET,
     nodeEnv: process.env.NODE_ENV || "unknown",
     runtime: getRuntimeHints(),
