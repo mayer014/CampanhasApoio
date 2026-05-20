@@ -31,7 +31,10 @@ export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) 
     let cancelled = false;
     const load = async () => {
       try {
-        const r = await fetchStats({ data: { access_token: accessToken } });
+        const r: any = await fetchStats({ data: { access_token: accessToken } });
+        if (r?.ok === false) {
+          throw new Error(r?.message || "Erro");
+        }
         if (!cancelled) {
           setData(r);
           setError(null);
@@ -65,9 +68,15 @@ export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) 
     setForcing(true);
     try {
       const r: any = await forceEnqueue({ data: { access_token: accessToken } });
+      if (r?.ok === false) {
+        throw new Error(r?.message || "Erro ao forçar coleta");
+      }
       toast.success(r?.message || `${r?.enqueued ?? 0} job(s) criado(s)`);
       // refresh stats
-      const stats = await fetchStats({ data: { access_token: accessToken } });
+      const stats: any = await fetchStats({ data: { access_token: accessToken } });
+      if (stats?.ok === false) {
+        throw new Error(stats?.message || "Erro");
+      }
       setData(stats);
     } catch (e: any) {
       toast.error(e?.message || "Erro ao forçar coleta");

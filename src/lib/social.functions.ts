@@ -114,7 +114,7 @@ export const createSocialProfile = createServerFn({ method: "POST" })
 
       return { ok: true, profile: row };
     } catch (error) {
-      const details = socialDebugPayload("createSocialProfile", error, {
+      const details: any = socialDebugPayload("createSocialProfile", error, {
         payload,
         candidate_id: data.candidate_id ?? null,
         username,
@@ -191,7 +191,7 @@ export const getSocialOpsStats = createServerFn({ method: "POST" })
       if (error) throw error;
       return { ok: true, stats };
     } catch (error) {
-      const details = socialDebugPayload("getSocialOpsStats.social_dashboard_stats", error);
+      const details: any = socialDebugPayload("getSocialOpsStats.social_dashboard_stats", error);
       logSocialError("getSocialOpsStats.social_dashboard_stats", error);
       return {
         ok: false,
@@ -277,7 +277,7 @@ export const forceEnqueueSocial = createServerFn({ method: "POST" })
 
       return { ok: true, enqueued, message: `${enqueued} job(s) criado(s).` };
     } catch (error) {
-      const details = socialDebugPayload("forceEnqueueSocial", error, {
+      const details: any = socialDebugPayload("forceEnqueueSocial", error, {
         candidate_id: data.candidate_id ?? null,
       });
       logSocialError("forceEnqueueSocial", error, {
