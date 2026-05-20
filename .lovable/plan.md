@@ -1,108 +1,140 @@
 ## Objetivo
+Parar a oscilação de erros na Inteligência Social e transformar o fluxo em algo previsível no login, na abertura da aba e no cadastro de perfis.
 
-Reduzir bloqueios (ban) do WhatsApp em campanhas, evoluindo a tela "Nova campanha" e o worker de envio com camadas de proteção que imitam comportamento humano e respeitam as regras de uso do WhatsApp.
+## Diagnóstico consolidado
+Hoje o problema parece ser uma combinação de fatores, não um bug isolado:
 
-## Hoje já existe
-- Intervalo aleatório mín/máx entre envios
-- Limite diário (campanha + instância)
-- Horário de silêncio
-- Lista de opt-out (tabela `whatsapp_optouts`)
-- Deduplicação de destinatários
+1. **Autenticação de server functions está incompleta no app**
+   - Existe `src/integrations/supabase/auth-attacher.ts`.
+   - **Não encontrei `src/start.ts` nem registro de `functionMiddleware`/`attachSupabaseAuth`**.
+   - Isso indica que a arquitetura de autenticação padrão do TanStack Start não está fechada.
 
-## O que falta — propostas
+2. **O módulo social usa um fluxo paralelo/manual de token**
+   - `painel.social.tsx` pega token via `useAccessToken()`.
+   - `social.functions.ts` usa `access_token` manual + `userClientFromToken()` + decode local de JWT.
+   - Isso evita parte do problema, mas cria outro: **sessão, role e token podem ficar fora de sincronia logo após login**.
 
-### 1. Aquecimento (warm-up) progressivo da instância
-Toda conta nova ou recém-reconectada começa com cap baixo e cresce ao longo de dias:
-- Dia 1: 20 msgs, Dia 2: 40, Dia 3: 80… até o cap configurado
-- Bloquear envios acima da cota de aquecimento, mostrando aviso no wizard
-- Novos campos em `whatsapp_instances`: `warmup_started_at`, `warmup_day`, `warmup_enabled`
+3. **Há dependência forte de runtime/env e de objetos do banco que talvez não estejam 100% alinhados no ambiente ativo**
+   - O módulo depende de `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, RPCs e tabelas do social.
+   - Já houve indício anterior de `hasSupabaseServiceRoleKey: false`.
+   - Não consegui validar o banco pelo shell porque **não há acesso PG nesta sessão** (`PGHOST_MISSING`).
 
-### 2. Spintax / variações de mensagem
-Permitir sintaxe `{Olá|Oi|E aí} {nome}, {tudo bem|como vai}?` para gerar mensagens únicas por destinatário, evitando detecção de "mensagem em massa idêntica".
-- Preview no wizard mostrando 3 variações de exemplo
-- Validador: aviso se a mensagem não tem nenhuma variação
+4. **A aba “Operação” depende de RPC e estado global do social**
+   - `getSocialOpsStats()` chama `social_dashboard_stats()`.
+   - Se faltar função, permissão, tabela auxiliar ou linha base em `social_system_state`, a aba quebra.
 
-### 3. Simulação de digitação e presença
-Antes de cada envio:
-- Enviar `presence: composing` ao JID por N segundos proporcionais ao tamanho da mensagem (ex.: 40 caracteres/seg de "digitação")
-- Pequena pausa "lida" entre composing e envio
-- Campo `simulate_typing` na campanha
+5. **Há pouca observabilidade útil no ambiente atual**
+   - Não vieram logs de runtime pelo agregador agora.
+   - Sem uma rota de diagnóstico forte, o sistema cai em “internal error; reference = ...” e mascara a causa real.
 
-### 4. Janelas de envio (business hours) + pausas humanas
-Além do quiet hours:
-- Definir dias da semana permitidos (ex.: seg–sex)
-- Janelas múltiplas por dia (ex.: 09:00–12:00 e 14:00–18:00)
-- "Pausa para almoço" automática
-- Micro-pausas aleatórias mais longas a cada N envios (ex.: a cada 25–40 envios, pausa de 5–15 min)
+## Plano de implementação
 
-### 5. Rate limiting por hora + ramp-up dentro do dia
-- Limite por hora além do diário (ex.: máx 40/h)
-- Começar devagar nas primeiras horas (ramp-up) em vez de disparar tudo no início
+### Fase 1 — Fechar a fundação de autenticação
+1. **Criar/ajustar a bootstrap do TanStack Start**
+   - Registrar `attachSupabaseAuth` no `functionMiddleware`.
+   - Garantir que server functions autenticadas recebam o bearer token automaticamente.
 
-### 6. Validação prévia de números (check)
-Antes de incluir na fila, usar endpoint do bridge para verificar se o número existe no WhatsApp; marcar inválidos como `skipped` sem tentar enviar (números inválidos geram sinal forte de spam).
-- Cache em `whatsapp_contacts.is_on_whatsapp` para não repetir checagem
+2. **Padronizar o gate de autenticação das rotas do painel**
+   - Evitar que `/painel` e `/painel/social` renderizem enquanto sessão e role ainda estão hidratando.
+   - Invalidar router/cache em mudanças de auth no root.
 
-### 7. Opt-out automático e palavras-chave
-- Webhook de mensagens recebidas detecta palavras: "PARAR", "SAIR", "REMOVER", "DESCADASTRAR", "STOP"
-- Insere automaticamente em `whatsapp_optouts`
-- Rodapé opcional injetado: _"Responda SAIR para não receber mais."_
+3. **Parar de depender de token manual nas server functions do social**
+   - Migrar `social.functions.ts` para `requireSupabaseAuth`.
+   - Ler `userId`/`supabase` do contexto autenticado do servidor, em vez de transportar `access_token` pelo componente.
 
-### 8. Detecção de bloqueios e circuit breaker
-- Se taxa de falha > X% nas últimas N msgs OU código de erro do bridge indicar `forbidden`/`blocked`/`429`, pausar automaticamente a campanha e alertar
-- Cooldown automático antes de retomar
+### Fase 2 — Reestruturar o backend do módulo social
+1. **Separar responsabilidades**
+   - Manter `.functions.ts` só como camada RPC.
+   - Mover lógica pesada/diagnóstico para `.server.ts` específicos.
 
-### 9. Cooldown por destinatário entre campanhas
-Não enviar para o mesmo JID se houve envio nas últimas X horas/dias (configurável). Evita "perseguição" do mesmo contato.
-- Tabela `whatsapp_send_log` (ou query em `whatsapp_broadcast_recipients`) para checar último envio
+2. **Remover pontos frágeis do fluxo atual**
+   - Reduzir uso de `userIdFromToken()` e `userClientFromToken()` onde não for mais necessário.
+   - Garantir respostas sempre serializáveis e homogêneas (`{ ok, message, details }`).
 
-### 10. Priorização e embaralhamento
-- Embaralhar ordem dos destinatários (não enviar em sequência alfabética/numérica)
-- Misturar conversas existentes primeiro (contatos com quem já houve troca têm risco menor)
+3. **Blindar chamadas que hoje podem explodir no runtime**
+   - Tratar explicitamente RPC ausente, permissão insuficiente, tabela sem seed, conflito duplicado e secret ausente.
+   - Evitar qualquer throw bruto que volte como “internal error”.
 
-### 11. Variação de mídia
-- Quando há imagem, permitir 2–3 imagens em rotação aleatória, evitando hash idêntico repetido
+### Fase 3 — Validar o contrato de banco e ambiente
+1. **Auditar o estado real do Supabase do projeto**
+   - Confirmar existência de:
+     - `social_profiles`
+     - `social_jobs`
+     - `social_alerts`
+     - `social_workers`
+     - `social_worker_logs`
+     - `social_system_state`
+     - funções `social_dashboard_stats`, `claim_next_social_job`, `enqueue_due_social_profiles`, `complete_social_job`
+   - Confirmar que `social_system_state` tem a linha `id = 1`.
 
-### 12. Score de risco antes de criar
-Mostrar no rodapé do wizard um indicador (Baixo/Médio/Alto) baseado em:
-- Idade da instância vs warmup
-- Tamanho da lista vs cap
-- Intervalo configurado
-- Uso de spintax/imagem
-- % de números nunca contatados antes
-Com sugestões de ajuste antes de "Criar e iniciar".
+2. **Revisar permissões/RLS**
+   - Confirmar que candidatos conseguem operar em `social_profiles` e `social_alerts`.
+   - Confirmar que RPCs e jobs administrativos estão corretos para `service_role`.
 
-### 13. Confirmação de duplo opt-in (opcional)
-Para listas frias (lista manual), oferecer fluxo de mensagem curta de confirmação antes do disparo real.
+3. **Confirmar secrets no runtime ativo**
+   - Validar `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SOCIAL_HMAC_SECRET` no ambiente que realmente atende preview/publicação.
 
-## Mudanças técnicas resumidas
+### Fase 4 — Criar diagnóstico confiável e UX estável
+1. **Adicionar diagnóstico operacional do social**
+   - Uma resposta clara para diferenciar:
+     - sessão inválida
+     - role ausente
+     - secret ausente
+     - migration faltando
+     - RPC faltando
+     - RLS bloqueando
+     - worker offline
 
-### UI — `BroadcastsPanel.tsx` (Wizard)
-- Acordeão "Proteção anti-banimento (avançado)" com:
-  janelas de envio, dias da semana, pausa longa, limite/hora, typing, spintax preview, cooldown por destinatário, rodapé opt-out, rotação de mídia
-- Card de "Score de risco" + recomendações
-- Aviso de warm-up quando instância nova
+2. **Melhorar estados da UI**
+   - “Sessão carregando”
+   - “Ambiente social incompleto”
+   - “Sem worker ativo”
+   - “Fila indisponível”
+   - “Perfil já cadastrado”
+   - sem toast genérico em loop
 
-### Backend — `whatsapp.server.ts` (worker)
-- Estender lógica de seleção de próximo envio para considerar:
-  warm-up cap, janela de horas, hora-rate, micro-pausas, cooldown por JID, shuffle
-- Antes do `sendMessage`: `presence` composing
-- Pós-envio: detectar erros de bloqueio → circuit breaker
-- Renderizador de spintax + substituição de variáveis
-- Validador de números (chamada ao bridge `check_number`)
+3. **Parar polling enquanto pré-requisitos não estiverem prontos**
+   - Só consultar stats/alerts quando sessão, role e módulo estiverem estáveis.
 
-### Banco — nova migration
-- `whatsapp_broadcasts`: `hour_cap`, `allowed_weekdays int[]`, `daytime_windows jsonb`, `simulate_typing bool`, `long_pause_every int`, `long_pause_seconds_min/max`, `recipient_cooldown_hours`, `append_optout_footer bool`, `media_urls text[]`
-- `whatsapp_instances`: `warmup_enabled`, `warmup_started_at`, `warmup_day`, `hour_cap`
-- `whatsapp_contacts`: `is_on_whatsapp bool`, `last_checked_at`
-- Trigger/função para incrementar warmup day a cada 24h
+### Fase 5 — Validação final ponta a ponta
+Executar a sequência real:
+1. login
+2. abrir `/painel/social`
+3. entrar na aba Operação
+4. entrar na aba Perfis
+5. cadastrar perfil novo
+6. cadastrar perfil duplicado
+7. forçar coleta
+8. validar respostas sem “internal error; reference”
 
-## Próximo passo
-Posso priorizar e começar pelas camadas de maior impacto:
-1. Spintax + footer opt-out + auto opt-out por palavra-chave
-2. Warm-up + score de risco no wizard
-3. Janelas/dias + hora-cap + micro-pausas
-4. Typing + circuit breaker + cooldown por destinatário
-5. Validação prévia de números + rotação de mídia
+## O que eu acredito que está faltando hoje
+As lacunas mais prováveis são estas:
 
-Quer que eu siga essa ordem ou prefere escolher um subconjunto?
+- **bootstrap de autenticação incompleta do TanStack Start**
+- **fluxo social improvisado com token manual, sujeito a corrida de sessão após login**
+- **algum descompasso entre código, migrations aplicadas e secrets disponíveis no runtime real**
+- **falta de diagnóstico determinístico para separar erro de app, erro de RLS, erro de RPC e erro de env**
+
+## Entrega esperada depois da implementação
+- Login não dispara erro oscilante na Inteligência Social.
+- A aba Operação abre com estado claro, mesmo se não houver worker.
+- Cadastro de perfil responde sempre com mensagem legível.
+- Falta de secret/migration vira erro explícito e rastreável.
+- O módulo deixa de depender de truques de token manual e fica alinhado com o padrão correto do stack.
+
+## Detalhes técnicos
+- Arquivos principais a revisar/ajustar:
+  - `src/routes/painel.social.tsx`
+  - `src/components/social/SocialOpsPanel.tsx`
+  - `src/components/social/SocialProfilesPanel.tsx`
+  - `src/lib/social.functions.ts`
+  - `src/lib/social.server.ts`
+  - `src/lib/whatsapp.server.ts`
+  - `src/routes/__root.tsx`
+  - bootstrap do TanStack Start (`src/start.ts` ou equivalente ausente)
+- Banco/migrations a validar:
+  - `supabase/migrations/20260520180142_1a3576ee-371c-45bd-ba9a-25f3170079ba.sql`
+  - `supabase/migrations/20260520181651_4c2f00f6-5a9c-4cc2-a2c1-f3f4335aa051.sql`
+
+## Resultado do plano
+Vou atacar primeiro a **fundação** (auth + bootstrap + contrato do banco), depois o **módulo social**, e só então a **UI**. Isso evita continuar corrigindo sintomas enquanto a base ainda está inconsistente.
