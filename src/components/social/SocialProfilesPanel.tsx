@@ -88,8 +88,11 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
     if (!accessToken) return;
     setLoading(true);
     try {
-      const r = await list({ data: { access_token: accessToken } });
-      setProfiles((r.profiles ?? []) as Profile[]);
+      const r: any = await list({ data: { access_token: accessToken } });
+      if (r?.ok === false) {
+        throw new Error(r?.message || "Erro ao carregar perfis");
+      }
+      setProfiles((r?.profiles ?? []) as Profile[]);
     } catch (e: any) {
       toast.error(getReadableErrorMessage(e));
     } finally {
@@ -131,7 +134,10 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
   const handleToggle = async (p: Profile, val: boolean) => {
     if (!accessToken) return;
     try {
-      await toggle({ data: { access_token: accessToken, profile_id: p.id, is_active: val } });
+      const result: any = await toggle({ data: { access_token: accessToken, profile_id: p.id, is_active: val } });
+      if (result?.ok === false) {
+        throw new Error(result?.message || "Erro ao atualizar perfil");
+      }
       setProfiles((prev) => prev.map((x) => (x.id === p.id ? { ...x, is_active: val } : x)));
     } catch (e: any) {
       toast.error(getReadableErrorMessage(e));
@@ -142,7 +148,10 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
     if (!accessToken) return;
     if (!confirm(`Remover @${p.username} do monitoramento?`)) return;
     try {
-      await del({ data: { access_token: accessToken, profile_id: p.id } });
+      const result: any = await del({ data: { access_token: accessToken, profile_id: p.id } });
+      if (result?.ok === false) {
+        throw new Error(result?.message || "Erro ao remover perfil");
+      }
       setProfiles((prev) => prev.filter((x) => x.id !== p.id));
       toast.success("Removido");
     } catch (e: any) {

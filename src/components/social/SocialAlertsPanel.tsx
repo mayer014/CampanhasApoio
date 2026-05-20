@@ -7,6 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { RefreshCw, Flame, TrendingUp } from "lucide-react";
 
+function getReadableErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return "Erro ao carregar alertas";
+}
+
 type Alert = {
   id: string;
   alert_type: "viral_post" | "competitor_growth";
@@ -32,10 +41,14 @@ export function SocialAlertsPanel({ accessToken }: { accessToken: string | null 
     if (!accessToken) return;
     setLoading(true);
     try {
-      const r = await list({ data: { access_token: accessToken } });
-      setAlerts(r.alerts as Alert[]);
+      const r: any = await list({ data: { access_token: accessToken } });
+      if (r?.ok === false) {
+        throw new Error(r?.message || "Erro ao carregar alertas");
+      }
+      setAlerts((r?.alerts ?? []) as Alert[]);
     } catch (e: any) {
-      toast.error(e?.message || "Erro");
+      setAlerts([]);
+      toast.error(getReadableErrorMessage(e));
     } finally {
       setLoading(false);
     }

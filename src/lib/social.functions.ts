@@ -46,16 +46,26 @@ function isDuplicateProfileError(error: unknown): boolean {
 export const listSocialProfiles = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
-    const sb = await userClientFromToken(data.access_token);
-    const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
-    const { data: rows, error } = await sb
-      .from("social_profiles")
-      .select("*")
-      .eq("candidate_id", candidateId)
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return { profiles: rows ?? [] };
+    try {
+      const sb = await userClientFromToken(data.access_token);
+      const callerId = await userIdFromToken(data.access_token);
+      const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+      const { data: rows, error } = await sb
+        .from("social_profiles")
+        .select("*")
+        .eq("candidate_id", candidateId)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return { ok: true, profiles: rows ?? [] };
+    } catch (error) {
+      const details: any = socialDebugPayload("listSocialProfiles", error, {
+        candidate_id: data.candidate_id ?? null,
+      });
+      logSocialError("listSocialProfiles", error, {
+        candidate_id: data.candidate_id ?? null,
+      });
+      return { ok: false, message: details.error, details, profiles: [] };
+    }
   });
 
 export const createSocialProfile = createServerFn({ method: "POST" })
@@ -193,13 +203,25 @@ export const toggleSocialProfile = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data }) => {
-    const sb = await userClientFromToken(data.access_token);
-    const { error } = await sb
-      .from("social_profiles")
-      .update({ is_active: data.is_active })
-      .eq("id", data.profile_id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
+    try {
+      const sb = await userClientFromToken(data.access_token);
+      const { error } = await sb
+        .from("social_profiles")
+        .update({ is_active: data.is_active })
+        .eq("id", data.profile_id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    } catch (error) {
+      const details: any = socialDebugPayload("toggleSocialProfile", error, {
+        profile_id: data.profile_id,
+        is_active: data.is_active,
+      });
+      logSocialError("toggleSocialProfile", error, {
+        profile_id: data.profile_id,
+        is_active: data.is_active,
+      });
+      return { ok: false, message: details.error, details };
+    }
   });
 
 export const deleteSocialProfile = createServerFn({ method: "POST" })
@@ -207,30 +229,50 @@ export const deleteSocialProfile = createServerFn({ method: "POST" })
     TokenInput.extend({ profile_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data }) => {
-    const sb = await userClientFromToken(data.access_token);
-    const { error } = await sb
-      .from("social_profiles")
-      .delete()
-      .eq("id", data.profile_id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
+    try {
+      const sb = await userClientFromToken(data.access_token);
+      const { error } = await sb
+        .from("social_profiles")
+        .delete()
+        .eq("id", data.profile_id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    } catch (error) {
+      const details: any = socialDebugPayload("deleteSocialProfile", error, {
+        profile_id: data.profile_id,
+      });
+      logSocialError("deleteSocialProfile", error, {
+        profile_id: data.profile_id,
+      });
+      return { ok: false, message: details.error, details };
+    }
   });
 
 export const listSocialAlerts = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
-    const sb = await userClientFromToken(data.access_token);
-    const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
-    const { data: rows, error } = await sb
-      .from("social_alerts")
-      .select("*")
-      .eq("candidate_id", candidateId)
-      .eq("is_dismissed", false)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (error) throw new Error(error.message);
-    return { alerts: rows ?? [] };
+    try {
+      const sb = await userClientFromToken(data.access_token);
+      const callerId = await userIdFromToken(data.access_token);
+      const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+      const { data: rows, error } = await sb
+        .from("social_alerts")
+        .select("*")
+        .eq("candidate_id", candidateId)
+        .eq("is_dismissed", false)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw new Error(error.message);
+      return { ok: true, alerts: rows ?? [] };
+    } catch (error) {
+      const details: any = socialDebugPayload("listSocialAlerts", error, {
+        candidate_id: data.candidate_id ?? null,
+      });
+      logSocialError("listSocialAlerts", error, {
+        candidate_id: data.candidate_id ?? null,
+      });
+      return { ok: false, message: details.error, details, alerts: [] };
+    }
   });
 
 export const getSocialOpsStats = createServerFn({ method: "POST" })
