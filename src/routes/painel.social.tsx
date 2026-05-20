@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/painel/social")({
 function PainelSocial() {
   const { user } = useAuth();
   const token = useAccessToken();
+  const [activeTab, setActiveTab] = useState<"ops" | "profiles" | "alerts">("ops");
   if (!user) return <div className="text-muted-foreground">Carregando…</div>;
   return (
     <div className="space-y-4">
@@ -22,20 +24,20 @@ function PainelSocial() {
           Monitore perfis públicos do Instagram: seu candidato, concorrentes, portais e influenciadores.
         </p>
       </div>
-      <Tabs defaultValue="ops">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
         <TabsList>
           <TabsTrigger value="ops">Operação</TabsTrigger>
           <TabsTrigger value="profiles">Perfis monitorados</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
         </TabsList>
         <TabsContent value="ops" className="mt-4">
-          <SocialOpsPanel accessToken={token} />
+          {activeTab === "ops" ? <SocialOpsPanel accessToken={token} /> : null}
         </TabsContent>
         <TabsContent value="profiles" className="mt-4">
-          <SocialProfilesPanel accessToken={token} />
+          {activeTab === "profiles" ? <SocialProfilesPanel accessToken={token} /> : null}
         </TabsContent>
         <TabsContent value="alerts" className="mt-4">
-          <SocialAlertsPanel accessToken={token} />
+          {activeTab === "alerts" ? <SocialAlertsPanel accessToken={token} /> : null}
         </TabsContent>
       </Tabs>
     </div>
