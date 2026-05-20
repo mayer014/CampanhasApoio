@@ -80,7 +80,7 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
     setLoading(true);
     try {
       const r = await list({ data: { access_token: accessToken } });
-      setProfiles(r.profiles as Profile[]);
+      setProfiles((r.profiles ?? []) as Profile[]);
     } catch (e: any) {
       toast.error(e?.message || "Erro ao listar perfis");
     } finally {
@@ -98,7 +98,7 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
     if (!accessToken) return;
     setSubmitting(true);
     try {
-      await create({
+      const result: any = await create({
         data: {
           access_token: accessToken,
           username: username.trim().replace(/^@/, ""),
@@ -106,6 +106,9 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
           check_interval_minutes: interval,
         },
       });
+      if (result?.ok === false) {
+        throw new Error(result?.message || "Erro ao adicionar");
+      }
       toast.success("Perfil adicionado ao monitoramento");
       setUsername("");
       await refresh();

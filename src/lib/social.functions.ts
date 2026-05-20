@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { resolveTargetCandidate, userClientFromToken, userIdFromToken } from "./whatsapp.server";
-import { assertSocialRuntimeEnv, logSocialError, socialEnvStatus, throwSocialDebugError } from "./social.server";
+import { assertSocialRuntimeEnv, logSocialError, socialDebugPayload, socialEnvStatus } from "./social.server";
 
 const TokenInput = z.object({
   access_token: z.string().min(10),
@@ -112,13 +112,25 @@ export const createSocialProfile = createServerFn({ method: "POST" })
         });
       }
 
-      return { profile: row };
+      return { ok: true, profile: row };
     } catch (error) {
-      throwSocialDebugError("createSocialProfile", error, {
+      const details: any = socialDebugPayload("createSocialProfile", error, {
         payload,
         candidate_id: data.candidate_id ?? null,
         username,
       });
+      logSocialError("createSocialProfile", error, {
+        payload,
+        candidate_id: data.candidate_id ?? null,
+        username,
+      });
+      return {
+        ok: false,
+        stage: "createSocialProfile",
+        message: details.error,
+        details,
+        profile: null,
+      };
     }
   });
 
@@ -177,9 +189,17 @@ export const getSocialOpsStats = createServerFn({ method: "POST" })
       const sb = await userClientFromToken(data.access_token);
       const { data: stats, error } = await sb.rpc("social_dashboard_stats");
       if (error) throw error;
-      return { stats };
+      return { ok: true, stats };
     } catch (error) {
-      throwSocialDebugError("getSocialOpsStats.social_dashboard_stats", error);
+      const details: any = socialDebugPayload("getSocialOpsStats.social_dashboard_stats", error);
+      logSocialError("getSocialOpsStats.social_dashboard_stats", error);
+      return {
+        ok: false,
+        stage: "getSocialOpsStats.social_dashboard_stats",
+        message: details.error,
+        details,
+        stats: null,
+      };
     }
   });
 
@@ -198,12 +218,37 @@ export const forceEnqueueSocial = createServerFn({ method: "POST" })
         .eq("is_active", true);
       if (pErr) throw pErr;
       if (!profiles || profiles.length === 0) {
-        return { enqueued: 0, message: "Nenhum perfil ativo." };
+        return { ok: true, enqueued: 0, message: "Nenhum perfil ativo." };
+      }
+
+      const runtimeEnv = socialEnvStatus();
+      if (!runtimeEnv.hasSupabaseServiceRoleKey) {
+        logSocialError(
+          "forceEnqueueSocial.missing_service_role",
+          new Error("SUPABASE_SERVICE_ROLE_KEY unavailable in runtime"),
+          {
+            candidate_id: candidateId,
+            requested_candidate_id: data.candidate_id ?? null,
+            profiles_count: profiles.length,
+            runtime_env: runtimeEnv,
+          },
+        );
+        return {
+          ok: false,
+          enqueued: 0,
+          message: "Fila social indisponível no servidor. Verifique SUPABASE_SERVICE_ROLE_KEY no runtime.",
+          details: {
+            candidate_id: candidateId,
+            requested_candidate_id: data.candidate_id ?? null,
+            profiles_count: profiles.length,
+            runtime_env: runtimeEnv,
+          },
+        };
       }
 
       let enqueued = 0;
       for (const p of profiles) {
-        const { data: existing, error: existingErr } = await sb
+        const { data: existing, error: existingErr } = await supabaseAdmin
           .from("social_jobs")
           .select("id")
           .eq("profile_id", p.id)
@@ -212,7 +257,7 @@ export const forceEnqueueSocial = createServerFn({ method: "POST" })
           .maybeSingle();
         if (existingErr) throw existingErr;
         if (existing) continue;
-        const { error: insErr } = await sb.from("social_jobs").insert({
+        const { error: insErr } = await supabaseAdmin.from("social_jobs").insert({
           candidate_id: candidateId,
           profile_id: p.id,
           job_type: "crawl_profile",
@@ -230,11 +275,21 @@ export const forceEnqueueSocial = createServerFn({ method: "POST" })
         .eq("is_active", true);
       if (resetErr) throw resetErr;
 
-      return { enqueued, message: `${enqueued} job(s) criado(s).` };
+      return { ok: true, enqueued, message: `${enqueued} job(s) criado(s).` };
     } catch (error) {
-      throwSocialDebugError("forceEnqueueSocial", error, {
+      const details: any = socialDebugPayload("forceEnqueueSocial", error, {
         candidate_id: data.candidate_id ?? null,
       });
+      logSocialError("forceEnqueueSocial", error, {
+        candidate_id: data.candidate_id ?? null,
+      });
+      return {
+        ok: false,
+        stage: "forceEnqueueSocial",
+        message: details.error,
+        details,
+        enqueued: 0,
+      };
     }
   });
 
