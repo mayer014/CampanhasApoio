@@ -2,6 +2,39 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertSocialRuntimeEnv, socialDebugResponse, socialEnvStatus } from "@/lib/social.server";
 
+async function runRawSupabaseRestProbe() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    return {
+      ok: false,
+      skipped: true,
+      reason: "missing env",
+    };
+  }
+
+  try {
+    const response = await fetch(`${url}/rest/v1/social_jobs?select=id&limit=1`, {
+      headers: {
+        apikey: key,
+      },
+    });
+
+    const text = await response.text();
+    return {
+      ok: response.ok,
+      status: response.status,
+      body_preview: text.slice(0, 300),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: formatHealthError(error),
+    };
+  }
+}
+
 function formatHealthError(error: unknown) {
   if (error instanceof Error) {
     return {
@@ -104,12 +137,14 @@ export const Route = createFileRoute("/api/public/social/health")({
             const failures: HealthCheckFailure[] = [pendingRes, failedRes, runningRes, workersRes, profilesRes, stateRes, lastSuccessRes].filter(
               (item): item is HealthCheckFailure => !item.ok,
             );
+            const raw_probe = await runRawSupabaseRestProbe();
 
             return new Response(
               JSON.stringify({
                 status: "degraded",
                 timestamp: nowIso,
                 runtime_env: socialEnvStatus(),
+                raw_probe,
                 failed_checks: failures,
               }),
               { status: 503, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
