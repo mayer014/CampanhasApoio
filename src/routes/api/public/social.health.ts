@@ -2,6 +2,51 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertSocialRuntimeEnv, socialDebugResponse, socialEnvStatus } from "@/lib/social.server";
 
+function formatHealthError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+    };
+  }
+
+  if (error && typeof error === "object") {
+    const plain = error as Record<string, unknown>;
+    return {
+      name: typeof plain.name === "string" ? plain.name : "unknown",
+      message:
+        typeof plain.message === "string"
+          ? plain.message
+          : typeof plain.error === "string"
+            ? plain.error
+            : JSON.stringify(plain),
+      code: typeof plain.code === "string" ? plain.code : undefined,
+      details: typeof plain.details === "string" ? plain.details : undefined,
+      hint: typeof plain.hint === "string" ? plain.hint : undefined,
+    };
+  }
+
+  return {
+    name: typeof error,
+    message: String(error),
+  };
+}
+
+type HealthCheckSuccess<T> = {
+  ok: true;
+  label: string;
+  data: T;
+  count: number | null;
+};
+
+type HealthCheckFailure = {
+  ok: false;
+  label: string;
+  error: ReturnType<typeof formatHealthError>;
+};
+
+type HealthCheckResult<T> = HealthCheckSuccess<T> | HealthCheckFailure;
+
 /**
  * GET /api/public/social/health
  * Public read-only operational status. No PII.
@@ -16,18 +61,60 @@ export const Route = createFileRoute("/api/public/social/health")({
             "SUPABASE_SERVICE_ROLE_KEY",
           ]);
           const nowIso = new Date().toISOString();
-          const [{ count: pending }, { count: failed }, { count: running }, workersRes, profilesRes, stateRes, lastSuccessRes] = await Promise.all([
-            supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "pending"),
-            supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "failed"),
-            supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "running"),
-            supabaseAdmin.from("social_workers").select("worker_id, last_seen_at, status, jobs_processed").order("last_seen_at", { ascending: false }).limit(20),
-            supabaseAdmin.from("social_profiles").select("id", { count: "exact", head: true }).eq("is_active", true),
-            supabaseAdmin.from("social_system_state").select("breaker_open, breaker_reason, breaker_reset_at").eq("id", 1).maybeSingle(),
-            supabaseAdmin.from("social_profiles").select("last_success_at").order("last_success_at", { ascending: false, nullsFirst: false }).limit(1).maybeSingle(),
+          const check = async <T,>(
+            label: string,
+            run: () => PromiseLike<{ data: T; error: unknown; count?: number | null }>,
+          ): Promise<HealthCheckResult<T>> => {
+            try {
+              const result = await run();
+              if (result.error) {
+                return {
+                  ok: false as const,
+                  label,
+                  error: formatHealthError(result.error),
+                };
+              }
+
+              return {
+                ok: true as const,
+                label,
+                data: result.data,
+                count: result.count ?? null,
+              };
+            } catch (error) {
+              return {
+                ok: false as const,
+                label,
+                error: formatHealthError(error),
+              };
+            }
+          };
+
+          const [pendingRes, failedRes, runningRes, workersRes, profilesRes, stateRes, lastSuccessRes] = await Promise.all([
+            check("jobs_pending", () => supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "pending")),
+            check("jobs_failed", () => supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "failed")),
+            check("jobs_running", () => supabaseAdmin.from("social_jobs").select("id", { count: "exact", head: true }).eq("status", "running")),
+            check("workers", () => supabaseAdmin.from("social_workers").select("worker_id, last_seen_at, status, jobs_processed").order("last_seen_at", { ascending: false }).limit(20)),
+            check("profiles_active", () => supabaseAdmin.from("social_profiles").select("id", { count: "exact", head: true }).eq("is_active", true)),
+            check("system_state", () => supabaseAdmin.from("social_system_state").select("breaker_open, breaker_reason, breaker_reset_at").eq("id", 1).maybeSingle()),
+            check("last_success", () => supabaseAdmin.from("social_profiles").select("last_success_at").order("last_success_at", { ascending: false, nullsFirst: false }).limit(1).maybeSingle()),
           ]);
 
-          const errors = [workersRes.error, profilesRes.error, stateRes.error, lastSuccessRes.error].filter(Boolean);
-          if (errors.length > 0) throw errors[0];
+          if (!pendingRes.ok || !failedRes.ok || !runningRes.ok || !workersRes.ok || !profilesRes.ok || !stateRes.ok || !lastSuccessRes.ok) {
+            const failures: HealthCheckFailure[] = [pendingRes, failedRes, runningRes, workersRes, profilesRes, stateRes, lastSuccessRes].filter(
+              (item): item is HealthCheckFailure => !item.ok,
+            );
+
+            return new Response(
+              JSON.stringify({
+                status: "degraded",
+                timestamp: nowIso,
+                runtime_env: socialEnvStatus(),
+                failed_checks: failures,
+              }),
+              { status: 503, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
+            );
+          }
 
           const twoMinAgo = Date.now() - 2 * 60 * 1000;
           const workers = workersRes.data ?? [];
@@ -47,7 +134,11 @@ export const Route = createFileRoute("/api/public/social/health")({
               workers_online: online,
               workers_total: workers.length,
               workers,
-              jobs: { pending: pending ?? 0, running: running ?? 0, failed: failed ?? 0 },
+              jobs: {
+                pending: pendingRes.count ?? 0,
+                running: runningRes.count ?? 0,
+                failed: failedRes.count ?? 0,
+              },
               profiles_active: profilesRes.count ?? 0,
               last_collection_at: lastSuccessRes.data?.last_success_at ?? null,
               breaker,
