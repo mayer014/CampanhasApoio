@@ -251,18 +251,28 @@ export const deleteSocialProfile = createServerFn({ method: "POST" })
 export const listSocialAlerts = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
-    const sb = await userClientFromToken(data.access_token);
-    const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
-    const { data: rows, error } = await sb
-      .from("social_alerts")
-      .select("*")
-      .eq("candidate_id", candidateId)
-      .eq("is_dismissed", false)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (error) throw new Error(error.message);
-    return { alerts: rows ?? [] };
+    try {
+      const sb = await userClientFromToken(data.access_token);
+      const callerId = await userIdFromToken(data.access_token);
+      const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+      const { data: rows, error } = await sb
+        .from("social_alerts")
+        .select("*")
+        .eq("candidate_id", candidateId)
+        .eq("is_dismissed", false)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw new Error(error.message);
+      return { ok: true, alerts: rows ?? [] };
+    } catch (error) {
+      const details: any = socialDebugPayload("listSocialAlerts", error, {
+        candidate_id: data.candidate_id ?? null,
+      });
+      logSocialError("listSocialAlerts", error, {
+        candidate_id: data.candidate_id ?? null,
+      });
+      return { ok: false, message: details.error, details, alerts: [] };
+    }
   });
 
 export const getSocialOpsStats = createServerFn({ method: "POST" })
