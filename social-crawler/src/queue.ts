@@ -12,16 +12,32 @@ function sign(rawBody: string): { sig: string; ts: string } {
 async function postSigned(path: string, body: Record<string, unknown>): Promise<Response> {
   const raw = JSON.stringify(body);
   const { sig, ts } = sign(raw);
-  return fetch(`${env.API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Social-Signature": sig,
-      "X-Social-Timestamp": ts,
-      "X-Worker-Id": env.WORKER_ID,
-    },
-    body: raw,
-  });
+  try {
+    return await fetch(`${env.API_BASE_URL}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Social-Signature": sig,
+        "X-Social-Timestamp": ts,
+        "X-Worker-Id": env.WORKER_ID,
+      },
+      body: raw,
+    });
+  } catch (error) {
+    console.error(`[queue] fetch ${path} failed`, {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      cause: error instanceof Error ? error.cause : undefined,
+      workerId: env.WORKER_ID,
+      hasHmacSecret: !!env.SOCIAL_HMAC_SECRET,
+      hmacHeaders: {
+        signaturePresent: !!sig,
+        signatureLength: sig.length,
+        timestamp: ts,
+      },
+    });
+    throw error;
+  }
 }
 
 export type Job = {
@@ -46,16 +62,33 @@ export type ProfileMeta = {
 export async function fetchNextJob(): Promise<{ job: Job; profile: ProfileMeta | null } | null> {
   const raw = "{}";
   const { sig, ts } = sign(raw);
-  const res = await fetch(`${env.API_BASE_URL}/api/public/social/next-job`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Social-Signature": sig,
-      "X-Social-Timestamp": ts,
-      "X-Worker-Id": env.WORKER_ID,
-    },
-    body: raw,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${env.API_BASE_URL}/api/public/social/next-job`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Social-Signature": sig,
+        "X-Social-Timestamp": ts,
+        "X-Worker-Id": env.WORKER_ID,
+      },
+      body: raw,
+    });
+  } catch (error) {
+    console.error("[queue] next-job fetch failed", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      cause: error instanceof Error ? error.cause : undefined,
+      workerId: env.WORKER_ID,
+      apiBaseUrl: env.API_BASE_URL,
+      hmacHeaders: {
+        signaturePresent: !!sig,
+        signatureLength: sig.length,
+        timestamp: ts,
+      },
+    });
+    return null;
+  }
   if (!res.ok) {
     console.error(`[queue] next-job ${res.status}: ${await res.text()}`);
     return null;
