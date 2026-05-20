@@ -476,8 +476,8 @@ function BroadcastWizard({
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Convite comício" />
           </div>
           <div>
-            <Label>Imagem (opcional)</Label>
-            <div className="flex items-center gap-2">
+            <Label>Imagens (opcional — até 5, rotação anti-spam)</Label>
+            <div className="flex flex-wrap items-center gap-2">
               <label className="inline-flex">
                 <input
                   type="file"
@@ -486,26 +486,35 @@ function BroadcastWizard({
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) upload(f);
+                    e.target.value = "";
                   }}
                 />
-                <Button asChild variant="outline" size="sm" disabled={uploading}>
+                <Button asChild variant="outline" size="sm" disabled={uploading || mediaUrls.length >= 5}>
                   <span>
                     {uploading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                       <ImageIcon className="mr-2 h-4 w-4" />
                     )}
-                    {mediaUrl ? "Trocar" : "Enviar imagem"}
+                    {mediaUrls.length > 0 ? `+ Adicionar (${mediaUrls.length}/5)` : "Enviar imagem"}
                   </span>
                 </Button>
               </label>
-              {mediaUrl && (
-                <Button size="sm" variant="ghost" onClick={() => setMediaUrl(null)}>
-                  Remover
-                </Button>
-              )}
+              {mediaUrls.map((u, i) => (
+                <div key={u} className="relative">
+                  <img src={u} alt="" className="h-10 w-10 rounded border object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setMediaUrls((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
+
         </div>
 
         <div>
