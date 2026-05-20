@@ -1,6 +1,7 @@
 // Server functions for Social Intelligence Engine (Fase 1 — CRUD perfis).
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { resolveTargetCandidate, userClientFromToken, userIdFromToken } from "./whatsapp.server";
 import { assertSocialRuntimeEnv, logSocialError, throwSocialDebugError } from "./social.server";
 
@@ -55,12 +56,24 @@ export const createSocialProfile = createServerFn({ method: "POST" })
     };
 
     try {
-      const env = assertSocialRuntimeEnv("createSocialProfile.env", ["SUPABASE_URL"]);
-      const sb = await userClientFromToken(data.access_token);
+      const env = assertSocialRuntimeEnv("createSocialProfile.env", ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
       const callerId = await userIdFromToken(data.access_token);
-      const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+      let candidateId = callerId;
 
-      const { data: row, error } = await sb
+      if (data.candidate_id && data.candidate_id !== callerId) {
+        const { data: adminRole, error: adminRoleErr } = await supabaseAdmin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", callerId)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (adminRoleErr) throw adminRoleErr;
+        if (!adminRole) throw new Error("Forbidden");
+        candidateId = data.candidate_id;
+      }
+
+      const { data: row, error } = await supabaseAdmin
         .from("social_profiles")
         .insert({
           candidate_id: candidateId,
@@ -81,7 +94,7 @@ export const createSocialProfile = createServerFn({ method: "POST" })
       }
 
       try {
-        const { error: insErr } = await sb.from("social_jobs").insert({
+        const { error: insErr } = await supabaseAdmin.from("social_jobs").insert({
           candidate_id: candidateId,
           profile_id: row.id,
           job_type: "crawl_profile",
