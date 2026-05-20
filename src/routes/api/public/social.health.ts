@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { assertSocialRuntimeEnv, socialDebugResponse } from "@/lib/social.server";
+import { assertSocialRuntimeEnv, socialDebugResponse, socialEnvStatus } from "@/lib/social.server";
 
 /**
  * GET /api/public/social/health
@@ -51,6 +51,8 @@ export const Route = createFileRoute("/api/public/social/health")({
               profiles_active: profilesRes.count ?? 0,
               last_collection_at: lastSuccessRes.data?.last_success_at ?? null,
               breaker,
+              runtime_env: socialEnvStatus(),
+              crypto_runtime: "node:crypto",
             }),
             { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
           );
