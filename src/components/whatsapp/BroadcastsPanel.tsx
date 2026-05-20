@@ -419,6 +419,7 @@ function BroadcastWizard({
     if (!message.trim()) return toast.error("Mensagem vazia");
     if (recipients.length === 0) return toast.error("Sem destinatários");
     if (intMax < intMin) return toast.error("Intervalo inválido");
+    if (weekdays.size === 0) return toast.error("Escolha ao menos um dia da semana");
     setBusy(true);
     try {
       const res = await createBroadcast({
@@ -427,11 +428,22 @@ function BroadcastWizard({
           candidate_id: candidateId,
           name: name.trim(),
           message_text: message,
-          media_url: mediaUrl,
+          media_url: mediaUrls[0] || null,
+          media_urls: mediaUrls,
           interval_min_seconds: intMin,
           interval_max_seconds: intMax,
           daily_cap: cap,
+          hour_cap: hourCap,
           respect_quiet_hours: quiet,
+          allowed_weekdays: Array.from(weekdays).sort(),
+          daytime_windows: windows,
+          simulate_typing: simulateTyping,
+          long_pause_every: longEvery,
+          long_pause_seconds_min: longMin,
+          long_pause_seconds_max: longMax,
+          recipient_cooldown_hours: cooldownH,
+          append_optout_footer: footer,
+          shuffle_recipients: shuffle,
           target_type: targetType,
           recipients,
         },
@@ -450,6 +462,7 @@ function BroadcastWizard({
       setBusy(false);
     }
   };
+
 
   return (
     <div>
