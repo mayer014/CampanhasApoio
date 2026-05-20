@@ -42,6 +42,9 @@ export function SocialAlertsPanel({ accessToken }: { accessToken: string | null 
     setLoading(true);
     try {
       const r: any = await list({ data: { access_token: accessToken } });
+      if (r?.ok === false) {
+        throw new Error(r?.message || "Erro ao carregar alertas");
+      }
       setAlerts((r?.alerts ?? []) as Alert[]);
     } catch (e: any) {
       setAlerts([]);
