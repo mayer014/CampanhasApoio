@@ -7,11 +7,29 @@ import type { Database } from './types';
 import { normalizeSupabaseUrl } from './url';
 
 function createSupabaseAdminClient() {
+  const processUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
+  const processViteUrl = normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL);
+  const importMetaViteUrl = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL);
   const SUPABASE_URL =
-    normalizeSupabaseUrl(process.env.SUPABASE_URL) ||
-    normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL) ||
+    processUrl ||
+    processViteUrl ||
+    importMetaViteUrl ||
     "https://pfppmkqsdqawvykkgafe.supabase.co";
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  console.log("[supabase.admin] ENV CHECK", {
+    SUPABASE_URL: !!process.env.SUPABASE_URL,
+    PROCESS_VITE_SUPABASE_URL: !!process.env.VITE_SUPABASE_URL,
+    IMPORT_META_VITE_SUPABASE_URL: !!import.meta.env.VITE_SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: !!SUPABASE_SERVICE_ROLE_KEY,
+    resolvedSupabaseUrlSource: processUrl
+      ? "process.env.SUPABASE_URL"
+      : processViteUrl
+        ? "process.env.VITE_SUPABASE_URL"
+        : importMetaViteUrl
+          ? "import.meta.env.VITE_SUPABASE_URL"
+          : "fallback.constant",
+  });
 
   if (!SUPABASE_SERVICE_ROLE_KEY) {
     const message = `Missing Supabase environment variable: SUPABASE_SERVICE_ROLE_KEY. Defina essa variável no ambiente do servidor (VPS / EasyPanel).`;
