@@ -382,20 +382,31 @@ export type Database = {
       }
       whatsapp_broadcasts: {
         Row: {
+          allowed_weekdays: number[]
+          append_optout_footer: boolean
           candidate_id: string
           created_at: string
           daily_cap: number
+          daytime_windows: Json
           failed_count: number
           finished_at: string | null
+          hour_cap: number
           id: string
           interval_max_seconds: number
           interval_min_seconds: number
+          long_pause_every: number
+          long_pause_seconds_max: number
+          long_pause_seconds_min: number
           media_url: string | null
+          media_urls: string[]
           message_text: string
           name: string
           next_send_at: string | null
+          recipient_cooldown_hours: number
           respect_quiet_hours: boolean
           sent_count: number
+          shuffle_recipients: boolean
+          simulate_typing: boolean
           skipped_count: number
           started_at: string | null
           status: Database["public"]["Enums"]["whatsapp_broadcast_status"]
@@ -404,20 +415,31 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allowed_weekdays?: number[]
+          append_optout_footer?: boolean
           candidate_id: string
           created_at?: string
           daily_cap?: number
+          daytime_windows?: Json
           failed_count?: number
           finished_at?: string | null
+          hour_cap?: number
           id?: string
           interval_max_seconds?: number
           interval_min_seconds?: number
+          long_pause_every?: number
+          long_pause_seconds_max?: number
+          long_pause_seconds_min?: number
           media_url?: string | null
+          media_urls?: string[]
           message_text: string
           name: string
           next_send_at?: string | null
+          recipient_cooldown_hours?: number
           respect_quiet_hours?: boolean
           sent_count?: number
+          shuffle_recipients?: boolean
+          simulate_typing?: boolean
           skipped_count?: number
           started_at?: string | null
           status?: Database["public"]["Enums"]["whatsapp_broadcast_status"]
@@ -426,20 +448,31 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allowed_weekdays?: number[]
+          append_optout_footer?: boolean
           candidate_id?: string
           created_at?: string
           daily_cap?: number
+          daytime_windows?: Json
           failed_count?: number
           finished_at?: string | null
+          hour_cap?: number
           id?: string
           interval_max_seconds?: number
           interval_min_seconds?: number
+          long_pause_every?: number
+          long_pause_seconds_max?: number
+          long_pause_seconds_min?: number
           media_url?: string | null
+          media_urls?: string[]
           message_text?: string
           name?: string
           next_send_at?: string | null
+          recipient_cooldown_hours?: number
           respect_quiet_hours?: boolean
           sent_count?: number
+          shuffle_recipients?: boolean
+          simulate_typing?: boolean
           skipped_count?: number
           started_at?: string | null
           status?: Database["public"]["Enums"]["whatsapp_broadcast_status"]
@@ -493,7 +526,9 @@ export type Database = {
           candidate_id: string
           created_at: string
           id: string
+          is_on_whatsapp: boolean | null
           jid: string
+          last_checked_at: string | null
           last_synced_at: string
           name: string | null
           phone: string | null
@@ -503,7 +538,9 @@ export type Database = {
           candidate_id: string
           created_at?: string
           id?: string
+          is_on_whatsapp?: boolean | null
           jid: string
+          last_checked_at?: string | null
           last_synced_at?: string
           name?: string | null
           phone?: string | null
@@ -513,7 +550,9 @@ export type Database = {
           candidate_id?: string
           created_at?: string
           id?: string
+          is_on_whatsapp?: boolean | null
           jid?: string
+          last_checked_at?: string | null
           last_synced_at?: string
           name?: string | null
           phone?: string | null
@@ -566,6 +605,7 @@ export type Database = {
           candidate_id: string
           created_at: string
           daily_cap: number
+          hour_cap: number
           id: string
           instance_id: string | null
           last_connected_at: string | null
@@ -576,6 +616,9 @@ export type Database = {
           quiet_hours_start: number
           status: Database["public"]["Enums"]["whatsapp_instance_status"]
           updated_at: string
+          warmup_day: number
+          warmup_enabled: boolean
+          warmup_started_at: string | null
           webhook_registered: boolean
         }
         Insert: {
@@ -583,6 +626,7 @@ export type Database = {
           candidate_id: string
           created_at?: string
           daily_cap?: number
+          hour_cap?: number
           id?: string
           instance_id?: string | null
           last_connected_at?: string | null
@@ -593,6 +637,9 @@ export type Database = {
           quiet_hours_start?: number
           status?: Database["public"]["Enums"]["whatsapp_instance_status"]
           updated_at?: string
+          warmup_day?: number
+          warmup_enabled?: boolean
+          warmup_started_at?: string | null
           webhook_registered?: boolean
         }
         Update: {
@@ -600,6 +647,7 @@ export type Database = {
           candidate_id?: string
           created_at?: string
           daily_cap?: number
+          hour_cap?: number
           id?: string
           instance_id?: string | null
           last_connected_at?: string | null
@@ -610,6 +658,9 @@ export type Database = {
           quiet_hours_start?: number
           status?: Database["public"]["Enums"]["whatsapp_instance_status"]
           updated_at?: string
+          warmup_day?: number
+          warmup_enabled?: boolean
+          warmup_started_at?: string | null
           webhook_registered?: boolean
         }
         Relationships: []
@@ -797,6 +848,7 @@ export type Database = {
         Args: { _template_id: string }
         Returns: undefined
       }
+      wa_warmup_cap: { Args: { _day: number }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "candidate"
