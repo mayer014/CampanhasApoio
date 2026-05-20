@@ -152,7 +152,7 @@ export const Route = createFileRoute("/api/public/social/ingest")({
         await supabaseAdmin.rpc("complete_social_job", {
           _job_id: jobId,
           _ok: true,
-          _error: null,
+          _error: "",
         });
 
         return new Response(
