@@ -8,11 +8,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { AlertTriangle, Activity, Database, Users, Clock, ShieldAlert, Zap } from "lucide-react";
 
-function getReadableErrorMessage(error: unknown): string {
+function readableError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
-  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
-    return error.message;
+  if (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string") {
+    return (error as any).message;
   }
   return "Erro ao carregar dados da inteligência social";
 }
@@ -27,7 +27,7 @@ function formatRel(iso?: string | null) {
   return `${Math.round(diff / 86400)}d atrás`;
 }
 
-export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) {
+export function SocialOpsPanel({ ready }: { ready: boolean }) {
   const fetchStats = useServerFn(getSocialOpsStats);
   const forceEnqueue = useServerFn(forceEnqueueSocial);
   const [forcing, setForcing] = useState(false);
@@ -36,35 +36,49 @@ export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!ready) return;
     let cancelled = false;
+    let stopped = false;
     const load = async () => {
       try {
-        const r: any = await fetchStats({ data: { access_token: accessToken } });
-        if (r?.ok === false) {
-          throw new Error(r?.message || "Erro");
-        }
+        const r: any = await fetchStats();
+        if (r?.ok === false) throw new Error(r?.message || "Erro");
         if (!cancelled) {
           setData(r);
           setError(null);
         }
-      } catch (e: any) {
-        if (!cancelled) setError(getReadableErrorMessage(e));
+      } catch (e) {
+        if (!cancelled) {
+          setError(readableError(e));
+          stopped = true; // para o polling em caso de erro persistente
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
     load();
-    const id = setInterval(load, 15_000);
+    const id = setInterval(() => {
+      if (stopped) return;
+      load();
+    }, 20_000);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
-  }, [accessToken, fetchStats]);
+  }, [ready, fetchStats]);
 
-  if (!accessToken) return <p className="text-muted-foreground">Sessão necessária.</p>;
+  if (!ready) return <p className="text-muted-foreground">Carregando sessão…</p>;
   if (loading && !data) return <p className="text-muted-foreground">Carregando estatísticas…</p>;
-  if (error && !data) return <p className="text-destructive text-sm">Erro: {error}</p>;
+  if (error && !data) {
+    return (
+      <Card className="border-destructive/50">
+        <CardContent className="pt-4 space-y-2">
+          <div className="font-semibold text-destructive">Não foi possível carregar a operação</div>
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const s: any = (data as any)?.stats ?? {};
   const jobs = s.jobs ?? {};
@@ -73,22 +87,16 @@ export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) 
   const recent: any[] = s.recent_errors ?? [];
 
   const onForce = async () => {
-    if (!accessToken) return;
     setForcing(true);
     try {
-      const r: any = await forceEnqueue({ data: { access_token: accessToken } });
-      if (r?.ok === false) {
-        throw new Error(r?.message || "Erro ao forçar coleta");
-      }
+      const r: any = await forceEnqueue({ data: {} });
+      if (r?.ok === false) throw new Error(r?.message || "Erro ao forçar coleta");
       toast.success(r?.message || `${r?.enqueued ?? 0} job(s) criado(s)`);
-      // refresh stats
-      const stats: any = await fetchStats({ data: { access_token: accessToken } });
-      if (stats?.ok === false) {
-        throw new Error(stats?.message || "Erro");
-      }
+      const stats: any = await fetchStats();
+      if (stats?.ok === false) throw new Error(stats?.message || "Erro");
       setData(stats);
-    } catch (e: any) {
-      toast.error(getReadableErrorMessage(e));
+    } catch (e) {
+      toast.error(readableError(e));
     } finally {
       setForcing(false);
     }
