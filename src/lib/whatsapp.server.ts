@@ -168,15 +168,31 @@ const SUPABASE_PUBLISHABLE_KEY_FALLBACK =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmcHBta3FzZHFhd3Z5a2tnYWZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjM3MzcsImV4cCI6MjA5MzE5OTczN30.LkEeROQWXN2HkRsEiiI4sjzBQf4OdDVuuCep48wL3Rg";
 
 function resolveSupabasePublicEnv() {
-  const url =
-    normalizeSupabaseUrl(process.env.SUPABASE_URL) ||
-    normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL) ||
-    SUPABASE_URL_FALLBACK;
-  const key =
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    SUPABASE_PUBLISHABLE_KEY_FALLBACK;
-  return { url, key };
+  const processUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
+  const processViteUrl = normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL);
+  const importMetaViteUrl = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL);
+  const url = processUrl || processViteUrl || importMetaViteUrl || SUPABASE_URL_FALLBACK;
+  const urlSource = processUrl
+    ? "process.env.SUPABASE_URL"
+    : processViteUrl
+      ? "process.env.VITE_SUPABASE_URL"
+      : importMetaViteUrl
+        ? "import.meta.env.VITE_SUPABASE_URL"
+        : "fallback.constant";
+
+  const processKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+  const processViteKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const importMetaViteKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const key = processKey || processViteKey || importMetaViteKey || SUPABASE_PUBLISHABLE_KEY_FALLBACK;
+  const keySource = processKey
+    ? "process.env.SUPABASE_PUBLISHABLE_KEY"
+    : processViteKey
+      ? "process.env.VITE_SUPABASE_PUBLISHABLE_KEY"
+      : importMetaViteKey
+        ? "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY"
+        : "fallback.constant";
+
+  return { url, key, urlSource, keySource };
 }
 
 /** Validate Supabase access token -> user id (decode JWT local, sem HTTP). */
@@ -188,7 +204,19 @@ export async function userIdFromToken(token: string): Promise<string> {
 /** Create a Supabase client scoped to the authenticated user token (RLS applies). */
 export async function userClientFromToken(token: string): Promise<SupabaseClient> {
   const { createClient } = await import("@supabase/supabase-js");
-  const { url, key } = resolveSupabasePublicEnv();
+  const { url, key, urlSource, keySource } = resolveSupabasePublicEnv();
+
+  console.log("[social.debug] userClientFromToken ENV CHECK", {
+    SUPABASE_URL: !!process.env.SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY: !!process.env.SUPABASE_PUBLISHABLE_KEY,
+    PROCESS_VITE_SUPABASE_URL: !!process.env.VITE_SUPABASE_URL,
+    PROCESS_VITE_SUPABASE_PUBLISHABLE_KEY: !!process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    IMPORT_META_VITE_SUPABASE_URL: !!import.meta.env.VITE_SUPABASE_URL,
+    IMPORT_META_VITE_SUPABASE_PUBLISHABLE_KEY: !!import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    resolvedUrlSource: urlSource,
+    resolvedKeySource: keySource,
+    hasToken: !!token,
+  });
 
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
