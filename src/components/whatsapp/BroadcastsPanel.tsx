@@ -326,7 +326,7 @@ function BroadcastWizard({
         .upload(path, file);
       if (error) throw error;
       const { data } = supabase.storage.from("whatsapp-media").getPublicUrl(path);
-      setMediaUrl(data.publicUrl);
+      setMediaUrls((prev) => [...prev, data.publicUrl].slice(0, 5));
       toast.success("Imagem carregada");
     } catch (e: any) {
       toast.error(e?.message || "Falha");
@@ -334,6 +334,7 @@ function BroadcastWizard({
       setUploading(false);
     }
   };
+
 
   const recipients = useMemo<Recipient[]>(() => {
     const out: Recipient[] = [];
