@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { resolveTargetCandidate, userClientFromToken, userIdFromToken } from "./whatsapp.server";
+import { assertSocialRuntimeEnv, logSocialError, throwSocialDebugError } from "./social.server";
 
 const TokenInput = z.object({
   access_token: z.string().min(10),
@@ -42,32 +43,70 @@ export const createSocialProfile = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data }) => {
-    const sb = await userClientFromToken(data.access_token);
-    const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
-
     const username = data.username.replace(/^@/, "").toLowerCase();
+    const payload = {
+      username,
+      profile_type: data.profile_type,
+      display_name: data.display_name ?? null,
+      check_interval_minutes:
+        data.check_interval_minutes ??
+        (data.profile_type === "own_profile" ? 180 : 360),
+      requested_candidate_id: data.candidate_id ?? null,
+    };
 
-    const { data: row, error } = await sb
-      .from("social_profiles")
-      .insert({
-        candidate_id: candidateId,
-        username,
-        profile_type: data.profile_type,
-        display_name: data.display_name ?? null,
-        check_interval_minutes:
-          data.check_interval_minutes ??
-          (data.profile_type === "own_profile" ? 180 : 360),
-      })
-      .select()
-      .single();
-    if (error) {
-      if (/duplicate key/i.test(error.message)) {
-        throw new Error("Perfil já cadastrado");
+    try {
+      const env = assertSocialRuntimeEnv("createSocialProfile.env", ["SUPABASE_URL"]);
+      const sb = await userClientFromToken(data.access_token);
+      const callerId = await userIdFromToken(data.access_token);
+      const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+
+      const { data: row, error } = await sb
+        .from("social_profiles")
+        .insert({
+          candidate_id: candidateId,
+          username,
+          profile_type: data.profile_type,
+          display_name: data.display_name ?? null,
+          check_interval_minutes:
+            data.check_interval_minutes ??
+            (data.profile_type === "own_profile" ? 180 : 360),
+        })
+        .select()
+        .single();
+      if (error) {
+        if (/duplicate key/i.test(error.message)) {
+          throw new Error("Perfil já cadastrado");
+        }
+        throw error;
       }
-      throw new Error(error.message);
+
+      try {
+        const { error: insErr } = await sb.from("social_jobs").insert({
+          candidate_id: candidateId,
+          profile_id: row.id,
+          job_type: "crawl_profile",
+          priority: 25,
+          scheduled_at: new Date().toISOString(),
+        });
+        if (insErr) throw insErr;
+      } catch (error) {
+        logSocialError("createSocialProfile.enqueue_social_job", error, {
+          payload,
+          candidate_id: candidateId,
+          username,
+          profile_id: row.id,
+          env,
+        });
+      }
+
+      return { profile: row };
+    } catch (error) {
+      throwSocialDebugError("createSocialProfile", error, {
+        payload,
+        candidate_id: data.candidate_id ?? null,
+        username,
+      });
     }
-    return { profile: row };
   });
 
 export const toggleSocialProfile = createServerFn({ method: "POST" })
@@ -121,59 +160,68 @@ export const listSocialAlerts = createServerFn({ method: "POST" })
 export const getSocialOpsStats = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
-    const sb = await userClientFromToken(data.access_token);
-    const { data: stats, error } = await sb.rpc("social_dashboard_stats");
-    if (error) throw new Error(error.message);
-    return { stats };
+    try {
+      const sb = await userClientFromToken(data.access_token);
+      const { data: stats, error } = await sb.rpc("social_dashboard_stats");
+      if (error) throw error;
+      return { stats };
+    } catch (error) {
+      throwSocialDebugError("getSocialOpsStats.social_dashboard_stats", error);
+    }
   });
 
 export const forceEnqueueSocial = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TokenInput.parse(input))
   .handler(async ({ data }) => {
-    const sb = await userClientFromToken(data.access_token);
-    const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+    try {
+      const sb = await userClientFromToken(data.access_token);
+      const callerId = await userIdFromToken(data.access_token);
+      const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
 
-    // Find active profiles for this candidate
-    const { data: profiles, error: pErr } = await sb
-      .from("social_profiles")
-      .select("id")
-      .eq("candidate_id", candidateId)
-      .eq("is_active", true);
-    if (pErr) throw new Error(pErr.message);
-    if (!profiles || profiles.length === 0) {
-      return { enqueued: 0, message: "Nenhum perfil ativo." };
-    }
-
-    // For each active profile, insert a pending job if there isn't one already pending/running
-    let enqueued = 0;
-    for (const p of profiles) {
-      const { data: existing } = await sb
-        .from("social_jobs")
+      const { data: profiles, error: pErr } = await sb
+        .from("social_profiles")
         .select("id")
-        .eq("profile_id", p.id)
-        .in("status", ["pending", "running"])
-        .limit(1)
-        .maybeSingle();
-      if (existing) continue;
-      const { error: insErr } = await sb.from("social_jobs").insert({
-        candidate_id: candidateId,
-        profile_id: p.id,
-        job_type: "crawl_profile",
-        priority: 50,
-        scheduled_at: new Date().toISOString(),
+        .eq("candidate_id", candidateId)
+        .eq("is_active", true);
+      if (pErr) throw pErr;
+      if (!profiles || profiles.length === 0) {
+        return { enqueued: 0, message: "Nenhum perfil ativo." };
+      }
+
+      let enqueued = 0;
+      for (const p of profiles) {
+        const { data: existing, error: existingErr } = await sb
+          .from("social_jobs")
+          .select("id")
+          .eq("profile_id", p.id)
+          .in("status", ["pending", "running"])
+          .limit(1)
+          .maybeSingle();
+        if (existingErr) throw existingErr;
+        if (existing) continue;
+        const { error: insErr } = await sb.from("social_jobs").insert({
+          candidate_id: candidateId,
+          profile_id: p.id,
+          job_type: "crawl_profile",
+          priority: 50,
+          scheduled_at: new Date().toISOString(),
+        });
+        if (insErr) throw insErr;
+        enqueued++;
+      }
+
+      const { error: resetErr } = await sb
+        .from("social_profiles")
+        .update({ last_checked_at: null })
+        .eq("candidate_id", candidateId)
+        .eq("is_active", true);
+      if (resetErr) throw resetErr;
+
+      return { enqueued, message: `${enqueued} job(s) criado(s).` };
+    } catch (error) {
+      throwSocialDebugError("forceEnqueueSocial", error, {
+        candidate_id: data.candidate_id ?? null,
       });
-      if (insErr) throw new Error(`insert job: ${insErr.message}`);
-      enqueued++;
     }
-
-    // Also reset last_checked_at so the cron picks them up next tick
-    await sb
-      .from("social_profiles")
-      .update({ last_checked_at: null })
-      .eq("candidate_id", candidateId)
-      .eq("is_active", true);
-
-    return { enqueued, message: `${enqueued} job(s) criado(s).` };
   });
 
