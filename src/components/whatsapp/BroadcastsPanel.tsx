@@ -566,6 +566,197 @@ function BroadcastWizard({
           Respeitar horário de silêncio configurado na conexão
         </label>
 
+        {/* Spintax preview */}
+        {message.match(/\{[^{}]*\|[^{}]*\}/) && (
+          <Card className="border-dashed bg-muted/30 p-3">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-xs font-medium">Pré-visualização (variação {spinPreview + 1})</span>
+              <Button size="sm" variant="ghost" onClick={() => setSpinPreview((n) => n + 1)}>
+                Sortear outra
+              </Button>
+            </div>
+            <p className="whitespace-pre-wrap text-sm">{previewSpintax(message, spinPreview)}</p>
+          </Card>
+        )}
+
+        <Accordion type="single" collapsible className="rounded-lg border">
+          <AccordionItem value="adv" className="border-0">
+            <AccordionTrigger className="px-4">
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <Shield className="h-4 w-4" /> Proteção anti-banimento (avançado)
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 px-4 pb-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Limite por hora</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    max={500}
+                    value={hourCap}
+                    onChange={(e) => setHourCap(parseInt(e.target.value) || 60)}
+                  />
+                </div>
+                <div>
+                  <Label>Cooldown por destinatário (h)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={720}
+                    value={cooldownH}
+                    onChange={(e) => setCooldownH(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Dias da semana permitidos</Label>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d, i) => {
+                    const active = weekdays.has(i);
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() =>
+                          setWeekdays((prev) => {
+                            const n = new Set(prev);
+                            if (n.has(i)) n.delete(i);
+                            else n.add(i);
+                            return n;
+                          })
+                        }
+                        className={`rounded px-3 py-1 text-xs ${
+                          active
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <Label>Janelas de envio (horário de Brasília)</Label>
+                <div className="mt-2 space-y-2">
+                  {windows.map((w, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        value={w.start}
+                        onChange={(e) =>
+                          setWindows((prev) =>
+                            prev.map((x, idx) => (idx === i ? { ...x, start: e.target.value } : x))
+                          )
+                        }
+                        className="w-32"
+                      />
+                      <span className="text-xs text-muted-foreground">até</span>
+                      <Input
+                        type="time"
+                        value={w.end}
+                        onChange={(e) =>
+                          setWindows((prev) =>
+                            prev.map((x, idx) => (idx === i ? { ...x, end: e.target.value } : x))
+                          )
+                        }
+                        className="w-32"
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setWindows((prev) => prev.filter((_, idx) => idx !== i))}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {windows.length < 4 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setWindows((prev) => [...prev, { start: "09:00", end: "18:00" }])
+                      }
+                    >
+                      <Plus className="mr-1 h-3 w-3" /> Janela
+                    </Button>
+                  )}
+                  {windows.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Sem janelas = pode enviar a qualquer hora (sujeito ao quiet hours).
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <Label>Pausa longa a cada</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={longEvery}
+                    onChange={(e) => setLongEvery(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div>
+                  <Label>Pausa mín (s)</Label>
+                  <Input
+                    type="number"
+                    min={30}
+                    value={longMin}
+                    onChange={(e) => setLongMin(parseInt(e.target.value) || 300)}
+                  />
+                </div>
+                <div>
+                  <Label>Pausa máx (s)</Label>
+                  <Input
+                    type="number"
+                    min={30}
+                    value={longMax}
+                    onChange={(e) => setLongMax(parseInt(e.target.value) || 900)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={simulateTyping} onCheckedChange={(v) => setSimulateTyping(!!v)} />
+                  Simular "digitando…" antes de enviar
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={footer} onCheckedChange={(v) => setFooter(!!v)} />
+                  Adicionar rodapé "Responda SAIR para não receber mais"
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={shuffle} onCheckedChange={(v) => setShuffle(!!v)} />
+                  Embaralhar ordem dos destinatários
+                </label>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
+        {/* Risk score */}
+        <RiskScore
+          recipientsCount={recipients.length}
+          intMin={intMin}
+          intMax={intMax}
+          hourCap={hourCap}
+          cap={cap}
+          hasSpintax={!!message.match(/\{[^{}]*\|[^{}]*\}/)}
+          hasMedia={mediaUrls.length > 0}
+          mediaRotation={mediaUrls.length > 1}
+          windows={windows}
+          cooldown={cooldownH}
+        />
+
+
         <div>
           <Label>Destinatários</Label>
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mt-2">
