@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/use-auth";
-import { useAccessToken } from "@/hooks/use-access-token";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
@@ -17,14 +16,12 @@ export const Route = createFileRoute("/painel/social")({
 
 function PainelSocial() {
   const { user, loading } = useAuth();
-  const token = useAccessToken();
   const [activeTab, setActiveTab] = useState<"ops" | "profiles" | "alerts">("ops");
   const [diag, setDiag] = useState<any>(null);
   const [diagError, setDiagError] = useState<string | null>(null);
   const diagnose = useServerFn(getSocialDiagnostics);
 
-  // só roda quando sessão está pronta E token foi anexado pelo middleware
-  const ready = !!user && !!token;
+  const ready = !!user;
 
   useEffect(() => {
     if (!ready) return;
