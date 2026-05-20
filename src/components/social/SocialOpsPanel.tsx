@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getSocialOpsStats } from "@/lib/social.functions";
+import { getSocialOpsStats, forceEnqueueSocial } from "@/lib/social.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, Activity, Database, Users, Clock, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
+import { AlertTriangle, Activity, Database, Users, Clock, ShieldAlert, Zap } from "lucide-react";
 
 function formatRel(iso?: string | null) {
   if (!iso) return "—";
@@ -18,6 +20,8 @@ function formatRel(iso?: string | null) {
 
 export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) {
   const fetchStats = useServerFn(getSocialOpsStats);
+  const forceEnqueue = useServerFn(forceEnqueueSocial);
+  const [forcing, setForcing] = useState(false);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +60,30 @@ export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) 
   const workers: any[] = s.workers ?? [];
   const recent: any[] = s.recent_errors ?? [];
 
+  const onForce = async () => {
+    if (!accessToken) return;
+    setForcing(true);
+    try {
+      const r: any = await forceEnqueue({ data: { access_token: accessToken } });
+      toast.success(r?.message || `${r?.enqueued ?? 0} job(s) criado(s)`);
+      // refresh stats
+      const stats = await fetchStats({ data: { access_token: accessToken } });
+      setData(stats);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao forçar coleta");
+    } finally {
+      setForcing(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={onForce} disabled={forcing} size="sm">
+          <Zap className="size-4 mr-2" />
+          {forcing ? "Enfileirando…" : "Forçar coleta agora"}
+        </Button>
+      </div>
       {breaker.breaker_open && (
         <Card className="border-destructive">
           <CardContent className="pt-4 flex items-start gap-3">
