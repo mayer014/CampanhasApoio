@@ -6,6 +6,10 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { normalizeSupabaseUrl } from './url';
 
+function isOpaqueSupabaseApiKey(value: string) {
+  return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
+}
+
 function createSupabaseAdminClient() {
   const processUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
   const processViteUrl = normalizeSupabaseUrl(process.env.VITE_SUPABASE_URL);
@@ -37,13 +41,37 @@ function createSupabaseAdminClient() {
     throw new Error(message);
   }
 
+  const supabaseServerFetch: typeof fetch = async (input, init) => {
+    const headers = new Headers(init?.headers);
+
+    if (!headers.has('apikey')) {
+      headers.set('apikey', SUPABASE_SERVICE_ROLE_KEY);
+    }
+
+    const authorization = headers.get('Authorization');
+    if (
+      authorization === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` &&
+      isOpaqueSupabaseApiKey(SUPABASE_SERVICE_ROLE_KEY)
+    ) {
+      headers.delete('Authorization');
+    }
+
+    return fetch(input, {
+      ...init,
+      headers,
+    });
+  };
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
       storage: undefined,
       persistSession: false,
       autoRefreshToken: false,
-    }
+      detectSessionInUrl: false,
+    },
+    global: {
+      fetch: supabaseServerFetch,
+    },
   });
 }
 
