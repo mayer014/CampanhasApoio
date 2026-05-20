@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { detectOptOutKeyword } from "@/lib/whatsapp.server";
+
 
 /**
  * Webhook receiver for the WhatsHub motor.
