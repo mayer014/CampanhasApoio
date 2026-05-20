@@ -952,6 +952,75 @@ function BroadcastWizard({
   );
 }
 
+function previewSpintax(text: string, seed: number): string {
+  // deterministic-ish per seed
+  let i = 0;
+  let prev = "";
+  let cur = text;
+  let safety = 10;
+  while (cur !== prev && safety-- > 0) {
+    prev = cur;
+    cur = cur.replace(/\{([^{}]+)\}/g, (full, body: string) => {
+      if (!body.includes("|")) return full;
+      const opts = body.split("|");
+      const pick = (seed + i++) % opts.length;
+      return opts[pick] ?? "";
+    });
+  }
+  return cur;
+}
+
+function RiskScore(props: {
+  recipientsCount: number;
+  intMin: number;
+  intMax: number;
+  hourCap: number;
+  cap: number;
+  hasSpintax: boolean;
+  hasMedia: boolean;
+  mediaRotation: boolean;
+  windows: Array<{ start: string; end: string }>;
+  cooldown: number;
+}) {
+  let score = 0;
+  const issues: string[] = [];
+  if (props.intMin < 30) { score += 25; issues.push("Intervalo mínimo < 30s — aumente para 45s+"); }
+  else if (props.intMin < 45) { score += 10; }
+  if (props.hourCap > 80) { score += 15; issues.push("Limite por hora alto (>80)"); }
+  if (props.cap > 300) { score += 15; issues.push("Limite diário alto (>300)"); }
+  if (props.recipientsCount > 300 && !props.hasSpintax) { score += 20; issues.push("Sem variação de mensagem (use {opção1|opção2})"); }
+  if (props.recipientsCount > 500 && !props.mediaRotation && props.hasMedia) { score += 10; issues.push("Adicione 2-3 imagens em rotação"); }
+  if (props.windows.length === 0) { score += 10; issues.push("Sem janelas de horário definidas"); }
+  if (props.cooldown < 24) { score += 10; issues.push("Cooldown por destinatário < 24h"); }
+
+  const level = score >= 50 ? "high" : score >= 25 ? "medium" : "low";
+  const cfg = {
+    low: { label: "Baixo", cls: "bg-green-600 text-white", Icon: ShieldCheck },
+    medium: { label: "Médio", cls: "bg-amber-500 text-white", Icon: Shield },
+    high: { label: "Alto", cls: "bg-destructive text-destructive-foreground", Icon: ShieldAlert },
+  }[level];
+  const Icon = cfg.Icon;
+
+  return (
+    <Card className="p-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Icon className="h-4 w-4" /> Risco de banimento
+        </div>
+        <Badge className={cfg.cls}>{cfg.label}</Badge>
+      </div>
+      {issues.length > 0 && (
+        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-muted-foreground">
+          {issues.map((i, idx) => (
+            <li key={idx}>{i}</li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+
 function normalize(digits: string): string {
   let d = digits;
   if (d.startsWith("0")) d = d.slice(1);
