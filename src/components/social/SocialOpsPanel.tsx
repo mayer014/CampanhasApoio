@@ -60,8 +60,30 @@ export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) 
   const workers: any[] = s.workers ?? [];
   const recent: any[] = s.recent_errors ?? [];
 
+  const onForce = async () => {
+    if (!accessToken) return;
+    setForcing(true);
+    try {
+      const r: any = await forceEnqueue({ data: { access_token: accessToken } });
+      toast.success(r?.message || `${r?.enqueued ?? 0} job(s) criado(s)`);
+      // refresh stats
+      const stats = await fetchStats({ data: { access_token: accessToken } });
+      setData(stats);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao forçar coleta");
+    } finally {
+      setForcing(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={onForce} disabled={forcing} size="sm">
+          <Zap className="size-4 mr-2" />
+          {forcing ? "Enfileirando…" : "Forçar coleta agora"}
+        </Button>
+      </div>
       {breaker.breaker_open && (
         <Card className="border-destructive">
           <CardContent className="pt-4 flex items-start gap-3">
