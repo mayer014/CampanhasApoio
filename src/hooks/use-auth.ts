@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "candidate" | null;
+export type AppRole = "admin" | "candidate" | "user" | null;
 
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -37,19 +37,33 @@ export function useAuth() {
     });
 
     async function fetchRole(uid: string) {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", uid)
-        .order("role", { ascending: true });
-      const r = data?.find((x) => x.role === "admin")
-        ? "admin"
-        : data?.find((x) => x.role === "candidate")
-        ? "candidate"
-        : null;
-      if (active) {
-        setRole(r as AppRole);
-        setLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", uid)
+          .order("role", { ascending: true });
+
+        if (error) throw error;
+
+        const roles = (data?.map((x) => x.role) ?? []) as Array<"admin" | "candidate" | "user">;
+        const r = roles.includes("admin")
+          ? "admin"
+          : roles.includes("candidate")
+            ? "candidate"
+            : roles.includes("user")
+              ? "user"
+              : null;
+
+        if (active) {
+          setRole(r as AppRole);
+          setLoading(false);
+        }
+      } catch {
+        if (active) {
+          setRole(null);
+          setLoading(false);
+        }
       }
     }
 

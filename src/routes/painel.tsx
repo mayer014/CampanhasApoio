@@ -14,6 +14,7 @@ function PainelLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isCandidateRole = role === "candidate" || role === "user";
 
   useEffect(() => {
     if (loading) return;
@@ -26,7 +27,7 @@ function PainelLayout() {
     setMobileOpen(false);
   }, [pathname]);
 
-  if (loading || !user || role !== "candidate") {
+  if (loading || !user || !isCandidateRole) {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Carregando…</div>;
   }
 
