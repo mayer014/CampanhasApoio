@@ -45,9 +45,9 @@ function PainelSocial() {
   if (loading) return <div className="text-muted-foreground">Carregando…</div>;
   if (!user) return <div className="text-muted-foreground">Sessão necessária.</div>;
 
-  // banner de diagnóstico só aparece se algo essencial estiver quebrado
-  const envBroken = diag && (!diag.env?.hasResolvedSupabaseUrl || diag.checks?.profiles_table?.ok === false);
+  // Banner só aparece quando há falha real (não usar env como gatilho — gerava falso positivo).
   const rpcBroken = diag && diag.checks?.dashboard_rpc?.ok === false;
+  const profilesBroken = diag && diag.checks?.profiles_table?.ok === false;
 
   return (
     <div className="space-y-4">
@@ -58,16 +58,16 @@ function PainelSocial() {
         </p>
       </div>
 
-      {(diagError || envBroken || rpcBroken) && (
+      {(rpcBroken || profilesBroken) && (
         <Card className="border-destructive/50">
           <CardContent className="pt-4 flex items-start gap-3">
             <AlertTriangle className="text-destructive shrink-0 mt-0.5 h-5 w-5" />
             <div className="text-sm space-y-1">
               <div className="font-semibold text-destructive">Diagnóstico do módulo</div>
-              {diagError && <div className="text-muted-foreground">Falha geral: {diagError}</div>}
-              {envBroken && (
+              {profilesBroken && (
                 <div className="text-muted-foreground">
-                  Configuração do servidor incompleta. Verifique SUPABASE_URL e permissões da tabela <code>social_profiles</code>.
+                  Falha ao acessar <code>social_profiles</code>:{" "}
+                  {diag?.checks?.profiles_table?.message || "sem detalhes"}
                 </div>
               )}
               {rpcBroken && (
