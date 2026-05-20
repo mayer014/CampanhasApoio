@@ -256,13 +256,30 @@ function BroadcastWizard({
 }) {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("Olá {nome}! ");
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [intMin, setIntMin] = useState(30);
-  const [intMax, setIntMax] = useState(90);
+  const [intMin, setIntMin] = useState(45);
+  const [intMax, setIntMax] = useState(120);
   const [cap, setCap] = useState(200);
+  const [hourCap, setHourCap] = useState(60);
   const [quiet, setQuiet] = useState(true);
   const [busy, setBusy] = useState(false);
+
+  // Advanced anti-ban
+  const [weekdays, setWeekdays] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
+  const [windows, setWindows] = useState<Array<{ start: string; end: string }>>([
+    { start: "09:00", end: "12:00" },
+    { start: "14:00", end: "18:00" },
+  ]);
+  const [simulateTyping, setSimulateTyping] = useState(true);
+  const [longEvery, setLongEvery] = useState(30);
+  const [longMin, setLongMin] = useState(300);
+  const [longMax, setLongMax] = useState(900);
+  const [cooldownH, setCooldownH] = useState(72);
+  const [footer, setFooter] = useState(true);
+  const [shuffle, setShuffle] = useState(true);
+  const [spinPreview, setSpinPreview] = useState(0);
+
 
   // Sources
   const [tab, setTab] = useState<"leads" | "contacts" | "groups" | "manual">("leads");
