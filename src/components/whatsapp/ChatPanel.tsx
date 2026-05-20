@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
   Send,
@@ -345,9 +344,9 @@ export function ChatPanel({
 
   return (
     <Card className="overflow-hidden">
-      <div className="grid h-[70vh] grid-cols-1 md:grid-cols-[320px_1fr]">
+      <div className="grid h-[70vh] min-h-[36rem] grid-cols-1 md:grid-cols-[320px_1fr]">
         {/* Sidebar */}
-        <div className="flex flex-col border-r bg-muted/20">
+        <div className="flex min-h-0 flex-col border-r bg-muted/20">
           <div className="space-y-2 border-b p-3">
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -384,7 +383,7 @@ export function ChatPanel({
               ))}
             </div>
           </div>
-          <ScrollArea className="flex-1">
+          <div className="chat-scrollbar min-h-0 flex-1 overflow-y-auto">
             {filteredChats.length === 0 ? (
               <div className="p-6 text-center text-sm text-muted-foreground">
                 Nenhuma conversa. Clique em sincronizar.
@@ -432,11 +431,11 @@ export function ChatPanel({
                 </button>
               ))
             )}
-          </ScrollArea>
+          </div>
         </div>
 
         {/* Chat area */}
-        <div className="flex min-h-0 flex-col">
+        <div className="flex min-h-0 flex-col overflow-hidden">
           {!selected ? (
             <div className="flex flex-1 items-center justify-center text-muted-foreground">
               Selecione uma conversa
@@ -475,80 +474,82 @@ export function ChatPanel({
               <div
                 ref={scrollRef}
                 onScroll={onContainerScroll}
-                className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-muted/10 p-4"
+                className="chat-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain bg-muted/10 p-4"
               >
-                {loadingOlder && (
-                  <div className="text-center text-xs text-muted-foreground py-1">
-                    <Loader2 className="mx-auto h-3 w-3 animate-spin" />
-                  </div>
-                )}
-                {!hasMoreOlder && messages.length > 0 && (
-                  <div className="text-center text-[10px] text-muted-foreground py-1 opacity-60">
-                    Início da conversa
-                  </div>
-                )}
-                {loadingMsgs && messages.length === 0 && (
-                  <div className="text-center text-sm text-muted-foreground">
-                    <Loader2 className="mx-auto h-4 w-4 animate-spin" />
-                  </div>
-                )}
-                {messages.map((m) => (
-                  <div
-                    key={m.message_id}
-                    className={`flex ${m.from_me ? "justify-end" : "justify-start"}`}
-                  >
+                <div className="space-y-2">
+                  {loadingOlder && (
+                    <div className="py-1 text-center text-xs text-muted-foreground">
+                      <Loader2 className="mx-auto h-3 w-3 animate-spin" />
+                    </div>
+                  )}
+                  {!hasMoreOlder && messages.length > 0 && (
+                    <div className="py-1 text-center text-[10px] text-muted-foreground opacity-60">
+                      Início da conversa
+                    </div>
+                  )}
+                  {loadingMsgs && messages.length === 0 && (
+                    <div className="text-center text-sm text-muted-foreground">
+                      <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                    </div>
+                  )}
+                  {messages.map((m) => (
                     <div
-                      className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                        m.from_me
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card border"
-                      }`}
+                      key={m.message_id}
+                      className={`flex ${m.from_me ? "justify-end" : "justify-start"}`}
                     >
-                      {selected.is_group && !m.from_me && m.push_name && (
-                        <div className="mb-1 text-xs font-semibold opacity-80">
-                          {m.push_name}
+                      <div
+                        className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
+                          m.from_me
+                            ? "bg-primary text-primary-foreground"
+                            : "border bg-card"
+                        }`}
+                      >
+                        {selected.is_group && !m.from_me && m.push_name && (
+                          <div className="mb-1 text-xs font-semibold opacity-80">
+                            {m.push_name}
+                          </div>
+                        )}
+                        {m.media_url && /image/.test(m.message_type) && (
+                          <img
+                            src={m.media_url}
+                            alt=""
+                            className="mb-1 max-h-64 rounded"
+                          />
+                        )}
+                        {m.media_url && /audio/.test(m.message_type) && (
+                          <audio controls src={m.media_url} className="mb-1 max-w-full" />
+                        )}
+                        {m.media_url && /video/.test(m.message_type) && (
+                          <video
+                            controls
+                            src={m.media_url}
+                            className="mb-1 max-h-64 w-full rounded"
+                          />
+                        )}
+                        {m.media_url && /document/.test(m.message_type) && (
+                          <a
+                            href={m.media_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mb-1 block underline"
+                          >
+                            📎 Documento
+                          </a>
+                        )}
+                        {m.text && <div className="whitespace-pre-wrap">{m.text}</div>}
+                        <div className="mt-1 text-right text-[10px] opacity-60">
+                          {new Date(m.ts).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </div>
-                      )}
-                      {m.media_url && /image/.test(m.message_type) && (
-                        <img
-                          src={m.media_url}
-                          alt=""
-                          className="mb-1 max-h-64 rounded"
-                        />
-                      )}
-                      {m.media_url && /audio/.test(m.message_type) && (
-                        <audio controls src={m.media_url} className="mb-1 max-w-full" />
-                      )}
-                      {m.media_url && /video/.test(m.message_type) && (
-                        <video
-                          controls
-                          src={m.media_url}
-                          className="mb-1 max-h-64 w-full rounded"
-                        />
-                      )}
-                      {m.media_url && /document/.test(m.message_type) && (
-                        <a
-                          href={m.media_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mb-1 block underline"
-                        >
-                          📎 Documento
-                        </a>
-                      )}
-                      {m.text && <div className="whitespace-pre-wrap">{m.text}</div>}
-                      <div className="mt-1 text-right text-[10px] opacity-60">
-                        {new Date(m.ts).toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
-              <div className="border-t p-3">
+              <div className="shrink-0 border-t bg-card p-3">
                 {mediaUrl && (
                   <div className="mb-2 flex items-center gap-2 rounded border bg-muted/40 p-2 text-sm">
                     <ImageIcon className="h-4 w-4" />
@@ -558,7 +559,7 @@ export function ChatPanel({
                     </Button>
                   </div>
                 )}
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <label className="inline-flex">
                     <input
                       type="file"
@@ -580,6 +581,7 @@ export function ChatPanel({
                     </Button>
                   </label>
                   <Input
+                    className="min-w-0 flex-1"
                     placeholder="Mensagem"
                     value={text}
                     onChange={(e) => setText(e.target.value)}
