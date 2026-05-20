@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/public/social/heartbeat")({
           _worker_id: workerId,
           _status: typeof body.status === "string" ? body.status : "online",
           _jobs_processed: Number.isFinite(body.jobs_processed) ? body.jobs_processed : 0,
-          _last_error: body.last_error ? String(body.last_error).slice(0, 500) : null,
+          _last_error: body.last_error ? String(body.last_error).slice(0, 500) : "",
           _meta: body.meta && typeof body.meta === "object" ? body.meta : {},
         });
         if (error) {
