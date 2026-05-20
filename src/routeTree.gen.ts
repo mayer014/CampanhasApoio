@@ -29,6 +29,8 @@ import { Route as PainelTemplatesTplIdRouteImport } from './routes/painel.templa
 import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
 import { Route as ApiPublicWhatsappBroadcastTickRouteImport } from './routes/api/public/whatsapp.broadcast-tick'
+import { Route as ApiPublicSocialNextJobRouteImport } from './routes/api/public/social.next-job'
+import { Route as ApiPublicSocialIngestRouteImport } from './routes/api/public/social.ingest'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
 const PainelRoute = PainelRouteImport.update({
@@ -133,6 +135,16 @@ const ApiPublicWhatsappBroadcastTickRoute =
     path: '/api/public/whatsapp/broadcast-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSocialNextJobRoute = ApiPublicSocialNextJobRouteImport.update({
+  id: '/api/public/social/next-job',
+  path: '/api/public/social/next-job',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSocialIngestRoute = ApiPublicSocialIngestRouteImport.update({
+  id: '/api/public/social/ingest',
+  path: '/api/public/social/ingest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCandidatosIdTemplateTplIdRoute =
   AdminCandidatosIdTemplateTplIdRouteImport.update({
     id: '/candidatos/$id/template/$tplId',
@@ -158,6 +170,8 @@ export interface FileRoutesByFullPath {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/social/ingest': typeof ApiPublicSocialIngestRoute
+  '/api/public/social/next-job': typeof ApiPublicSocialNextJobRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
@@ -179,6 +193,8 @@ export interface FileRoutesByTo {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
   '/painel/templates': typeof PainelTemplatesIndexRoute
+  '/api/public/social/ingest': typeof ApiPublicSocialIngestRoute
+  '/api/public/social/next-job': typeof ApiPublicSocialNextJobRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id': typeof AdminCandidatosIdIndexRoute
@@ -203,6 +219,8 @@ export interface FileRoutesById {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/social/ingest': typeof ApiPublicSocialIngestRoute
+  '/api/public/social/next-job': typeof ApiPublicSocialNextJobRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
@@ -228,6 +246,8 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/social/ingest'
+    | '/api/public/social/next-job'
     | '/api/public/whatsapp/broadcast-tick'
     | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id/'
@@ -249,6 +269,8 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos'
     | '/painel/templates'
+    | '/api/public/social/ingest'
+    | '/api/public/social/next-job'
     | '/api/public/whatsapp/broadcast-tick'
     | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id'
@@ -272,6 +294,8 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/social/ingest'
+    | '/api/public/social/next-job'
     | '/api/public/whatsapp/broadcast-tick'
     | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id/'
@@ -286,6 +310,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PainelRoute: typeof PainelRouteWithChildren
   PSlugRoute: typeof PSlugRoute
+  ApiPublicSocialIngestRoute: typeof ApiPublicSocialIngestRoute
+  ApiPublicSocialNextJobRoute: typeof ApiPublicSocialNextJobRoute
   ApiPublicWhatsappBroadcastTickRoute: typeof ApiPublicWhatsappBroadcastTickRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -432,6 +458,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappBroadcastTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/social/next-job': {
+      id: '/api/public/social/next-job'
+      path: '/api/public/social/next-job'
+      fullPath: '/api/public/social/next-job'
+      preLoaderRoute: typeof ApiPublicSocialNextJobRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/social/ingest': {
+      id: '/api/public/social/ingest'
+      path: '/api/public/social/ingest'
+      fullPath: '/api/public/social/ingest'
+      preLoaderRoute: typeof ApiPublicSocialIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/candidatos/$id/template/$tplId': {
       id: '/admin/candidatos/$id/template/$tplId'
       path: '/candidatos/$id/template/$tplId'
@@ -491,9 +531,20 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PainelRoute: PainelRouteWithChildren,
   PSlugRoute: PSlugRoute,
+  ApiPublicSocialIngestRoute: ApiPublicSocialIngestRoute,
+  ApiPublicSocialNextJobRoute: ApiPublicSocialNextJobRoute,
   ApiPublicWhatsappBroadcastTickRoute: ApiPublicWhatsappBroadcastTickRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
