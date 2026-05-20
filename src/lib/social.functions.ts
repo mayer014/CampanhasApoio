@@ -127,3 +127,52 @@ export const getSocialOpsStats = createServerFn({ method: "POST" })
     return { stats };
   });
 
+export const forceEnqueueSocial = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => TokenInput.parse(input))
+  .handler(async ({ data }) => {
+    const sb = await userClientFromToken(data.access_token);
+    const callerId = await userIdFromToken(data.access_token);
+    const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
+
+    // Find active profiles for this candidate
+    const { data: profiles, error: pErr } = await sb
+      .from("social_profiles")
+      .select("id")
+      .eq("candidate_id", candidateId)
+      .eq("is_active", true);
+    if (pErr) throw new Error(pErr.message);
+    if (!profiles || profiles.length === 0) {
+      return { enqueued: 0, message: "Nenhum perfil ativo." };
+    }
+
+    // For each active profile, insert a pending job if there isn't one already pending/running
+    let enqueued = 0;
+    for (const p of profiles) {
+      const { data: existing } = await sb
+        .from("social_jobs")
+        .select("id")
+        .eq("profile_id", p.id)
+        .in("status", ["pending", "running"])
+        .limit(1)
+        .maybeSingle();
+      if (existing) continue;
+      const { error: insErr } = await sb.from("social_jobs").insert({
+        candidate_id: candidateId,
+        profile_id: p.id,
+        job_type: "profile_crawl",
+        priority: 50,
+        scheduled_at: new Date().toISOString(),
+      });
+      if (!insErr) enqueued++;
+    }
+
+    // Also reset last_checked_at so the cron picks them up next tick
+    await sb
+      .from("social_profiles")
+      .update({ last_checked_at: null })
+      .eq("candidate_id", candidateId)
+      .eq("is_active", true);
+
+    return { enqueued, message: `${enqueued} job(s) criado(s).` };
+  });
+
