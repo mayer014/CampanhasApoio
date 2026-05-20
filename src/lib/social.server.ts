@@ -11,6 +11,37 @@ function isDevRuntime() {
   return process.env.NODE_ENV !== "production";
 }
 
+function safeStringify(value: unknown): string {
+  const seen = new WeakSet<object>();
+
+  try {
+    return JSON.stringify(value, (_key, currentValue) => {
+      if (currentValue instanceof Error) {
+        return {
+          name: currentValue.name,
+          message: currentValue.message,
+          stack: currentValue.stack,
+        };
+      }
+
+      if (typeof currentValue === "bigint") {
+        return String(currentValue);
+      }
+
+      if (typeof currentValue === "object" && currentValue !== null) {
+        if (seen.has(currentValue)) {
+          return "[Circular]";
+        }
+        seen.add(currentValue);
+      }
+
+      return currentValue;
+    });
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+}
+
 function simplifyError(error: unknown) {
   if (error instanceof Error) {
     return {
@@ -27,9 +58,30 @@ function simplifyError(error: unknown) {
           : error.cause,
     };
   }
+
+  if (error && typeof error === "object") {
+    const plain = error as Record<string, unknown>;
+    return {
+      name:
+        typeof plain.name === "string"
+          ? plain.name
+          : typeof plain.code === "string"
+            ? plain.code
+            : "object",
+      message:
+        typeof plain.message === "string"
+          ? plain.message
+          : typeof plain.error === "string"
+            ? plain.error
+            : safeStringify(error),
+      stack: typeof plain.stack === "string" ? plain.stack : undefined,
+      cause: undefined,
+    };
+  }
+
   return {
     name: typeof error,
-    message: typeof error === "string" ? error : JSON.stringify(error),
+    message: typeof error === "string" ? error : safeStringify(error),
     stack: undefined,
     cause: undefined,
   };
@@ -37,11 +89,16 @@ function simplifyError(error: unknown) {
 
 function sanitizeExtras(extra?: SocialDebugExtra): SocialDebugExtra | undefined {
   if (!extra) return undefined;
-  return JSON.parse(JSON.stringify(extra, (_key, value) => {
-    if (value instanceof Error) return simplifyError(value);
-    if (typeof value === "bigint") return String(value);
-    return value;
-  })) as SocialDebugExtra;
+
+  try {
+    return JSON.parse(
+      safeStringify(extra),
+    ) as SocialDebugExtra;
+  } catch {
+    return {
+      serialization_error: "Failed to sanitize debug extras",
+    } as SocialDebugExtra;
+  }
 }
 
 function getResolvedSupabaseUrl() {

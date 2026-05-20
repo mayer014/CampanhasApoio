@@ -22,6 +22,15 @@ import {
 import { toast } from "sonner";
 import { Trash2, RefreshCw, Instagram, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 
+function getReadableErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return "Erro na inteligência social";
+}
+
 type Profile = {
   id: string;
   username: string;
@@ -82,7 +91,7 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
       const r = await list({ data: { access_token: accessToken } });
       setProfiles((r.profiles ?? []) as Profile[]);
     } catch (e: any) {
-      toast.error(e?.message || "Erro ao listar perfis");
+      toast.error(getReadableErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -113,7 +122,7 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
       setUsername("");
       await refresh();
     } catch (e: any) {
-      toast.error(e?.message || "Erro ao adicionar");
+      toast.error(getReadableErrorMessage(e));
     } finally {
       setSubmitting(false);
     }
@@ -125,7 +134,7 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
       await toggle({ data: { access_token: accessToken, profile_id: p.id, is_active: val } });
       setProfiles((prev) => prev.map((x) => (x.id === p.id ? { ...x, is_active: val } : x)));
     } catch (e: any) {
-      toast.error(e?.message || "Erro");
+      toast.error(getReadableErrorMessage(e));
     }
   };
 
@@ -137,7 +146,7 @@ export function SocialProfilesPanel({ accessToken }: { accessToken: string | nul
       setProfiles((prev) => prev.filter((x) => x.id !== p.id));
       toast.success("Removido");
     } catch (e: any) {
-      toast.error(e?.message || "Erro");
+      toast.error(getReadableErrorMessage(e));
     }
   };
 

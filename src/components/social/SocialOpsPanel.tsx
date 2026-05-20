@@ -8,6 +8,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { AlertTriangle, Activity, Database, Users, Clock, ShieldAlert, Zap } from "lucide-react";
 
+function getReadableErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return "Erro ao carregar dados da inteligência social";
+}
+
 function formatRel(iso?: string | null) {
   if (!iso) return "—";
   const d = new Date(iso).getTime();
@@ -40,7 +49,7 @@ export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) 
           setError(null);
         }
       } catch (e: any) {
-        if (!cancelled) setError(e?.message || "Erro");
+        if (!cancelled) setError(getReadableErrorMessage(e));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -79,7 +88,7 @@ export function SocialOpsPanel({ accessToken }: { accessToken: string | null }) 
       }
       setData(stats);
     } catch (e: any) {
-      toast.error(e?.message || "Erro ao forçar coleta");
+      toast.error(getReadableErrorMessage(e));
     } finally {
       setForcing(false);
     }
