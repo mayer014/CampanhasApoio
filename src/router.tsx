@@ -4,6 +4,9 @@ import { routeTree } from "./routeTree.gen";
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
+  // Always log so we can debug in preview/production
+  // eslint-disable-next-line no-console
+  console.error("[router error]", error);
 
   // Auto-recover when the tab becomes visible again or regains focus.
   // Fixes the "Something went wrong" screen that appears after the tab
@@ -51,7 +54,7 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
         <p className="mt-2 text-sm text-muted-foreground">
           An unexpected error occurred. Please try again.
         </p>
-        {import.meta.env.DEV && error.message && (
+        {error?.message && (
           <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">
             {error.message}
           </pre>
