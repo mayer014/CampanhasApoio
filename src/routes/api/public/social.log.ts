@@ -31,25 +31,32 @@ export const Route = createFileRoute("/api/public/social/log")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const raw = await request.text();
-        const v = verifySocialHmac(raw, request.headers.get("x-social-signature"), request.headers.get("x-social-timestamp"));
-        if (!v.ok) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
-        const workerId = request.headers.get("x-worker-id") || "unknown";
+        try {
+          const raw = await request.text();
+          const v = verifySocialHmac(raw, request.headers.get("x-social-signature"), request.headers.get("x-social-timestamp"));
+          if (!v.ok) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+          const workerId = request.headers.get("x-worker-id") || "unknown";
 
-        let body;
-        try { body = Body.parse(JSON.parse(raw)); }
-        catch (e) { return new Response(JSON.stringify({ error: "bad_request", detail: (e as Error).message }), { status: 400, headers: { "content-type": "application/json" } }); }
+          let body;
+          try { body = Body.parse(JSON.parse(raw)); }
+          catch (e) { return new Response(JSON.stringify({ error: "bad_request", detail: (e as Error).message }), { status: 400, headers: { "content-type": "application/json" } }); }
 
-        await supabaseAdmin.from("social_worker_logs").insert({
-          worker_id: workerId,
-          level: body.level,
-          kind: mapKind(body.kind),
-          message: body.message,
-          profile_id: body.profile_id ?? null,
-          job_id: body.job_id ?? null,
-          context: (body.context ?? {}) as never,
-        });
-        return Response.json({ ok: true });
+          const ins = await supabaseAdmin.from("social_worker_logs").insert({
+            worker_id: workerId,
+            level: body.level,
+            kind: mapKind(body.kind),
+            message: body.message,
+            profile_id: body.profile_id ?? null,
+            job_id: body.job_id ?? null,
+            context: (body.context ?? {}) as never,
+          });
+          if (ins.error) console.error("[log] insert error", ins.error);
+          return Response.json({ ok: true });
+        } catch (e) {
+          const err = e as Error;
+          console.error("[log] handler crash", err);
+          return new Response(JSON.stringify({ error: "handler_crash", message: err.message, stack: err.stack?.slice(0, 1000) }), { status: 500, headers: { "content-type": "application/json" } });
+        }
       },
     },
   },
