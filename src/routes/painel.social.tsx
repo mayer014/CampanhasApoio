@@ -206,9 +206,20 @@ function ProfilesTab() {
                     <Switch checked={p.is_active} onCheckedChange={(v) => updM.mutate({ id: p.id, is_active: v })} />
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => { if (confirm(`Excluir @${p.username}?`)) delM.mutate(p.id); }}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Coletar agora"
+                        disabled={runNowM.isPending}
+                        onClick={() => runNowM.mutate(p.id)}
+                      >
+                        <Play className="h-4 w-4 text-primary" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => { if (confirm(`Excluir @${p.username}?`)) delM.mutate(p.id); }}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
