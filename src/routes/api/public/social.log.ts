@@ -33,7 +33,8 @@ export const Route = createFileRoute("/api/public/social/log")({
           level: parsed.data.level,
           kind: parsed.data.kind,
           message: parsed.data.message,
-          context: parsed.data.context ?? {},
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          context: (parsed.data.context ?? {}) as any,
         });
         if (error) return badRequest(error.message);
         return ok({ success: true });

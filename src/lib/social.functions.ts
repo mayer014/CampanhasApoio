@@ -58,7 +58,7 @@ export const updateSocialProfile = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const patch: Record<string, unknown> = {};
+    const patch: { is_active?: boolean; check_interval_minutes?: number } = {};
     if (data.is_active !== undefined) patch.is_active = data.is_active;
     if (data.check_interval_minutes !== undefined) patch.check_interval_minutes = data.check_interval_minutes;
     const { error } = await supabase.from("social_profiles").update(patch).eq("id", data.id);

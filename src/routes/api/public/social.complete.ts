@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/public/social/complete")({
         const { error } = await supabaseAdmin.rpc("complete_social_job", {
           _job_id: parsed.data.job_id,
           _ok: parsed.data.ok,
-          _error: parsed.data.error ?? null,
+          _error: (parsed.data.error ?? "") as string,
         });
         if (error) return badRequest(error.message);
         return ok({ success: true });

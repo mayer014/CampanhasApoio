@@ -29,6 +29,13 @@ import { Route as PainelTemplatesTplIdRouteImport } from './routes/painel.templa
 import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
 import { Route as ApiPublicWhatsappBroadcastTickRouteImport } from './routes/api/public/whatsapp.broadcast-tick'
+import { Route as ApiPublicSocialNextJobRouteImport } from './routes/api/public/social.next-job'
+import { Route as ApiPublicSocialLogRouteImport } from './routes/api/public/social.log'
+import { Route as ApiPublicSocialIngestRouteImport } from './routes/api/public/social.ingest'
+import { Route as ApiPublicSocialHeartbeatRouteImport } from './routes/api/public/social.heartbeat'
+import { Route as ApiPublicSocialHealthRouteImport } from './routes/api/public/social.health'
+import { Route as ApiPublicSocialCronRouteImport } from './routes/api/public/social.cron'
+import { Route as ApiPublicSocialCompleteRouteImport } from './routes/api/public/social.complete'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
 const PainelRoute = PainelRouteImport.update({
@@ -133,6 +140,42 @@ const ApiPublicWhatsappBroadcastTickRoute =
     path: '/api/public/whatsapp/broadcast-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSocialNextJobRoute = ApiPublicSocialNextJobRouteImport.update({
+  id: '/api/public/social/next-job',
+  path: '/api/public/social/next-job',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSocialLogRoute = ApiPublicSocialLogRouteImport.update({
+  id: '/api/public/social/log',
+  path: '/api/public/social/log',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSocialIngestRoute = ApiPublicSocialIngestRouteImport.update({
+  id: '/api/public/social/ingest',
+  path: '/api/public/social/ingest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSocialHeartbeatRoute =
+  ApiPublicSocialHeartbeatRouteImport.update({
+    id: '/api/public/social/heartbeat',
+    path: '/api/public/social/heartbeat',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSocialHealthRoute = ApiPublicSocialHealthRouteImport.update({
+  id: '/api/public/social/health',
+  path: '/api/public/social/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSocialCronRoute = ApiPublicSocialCronRouteImport.update({
+  id: '/api/public/social/cron',
+  path: '/api/public/social/cron',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSocialCompleteRoute = ApiPublicSocialCompleteRouteImport.update({
+  id: '/api/public/social/complete',
+  path: '/api/public/social/complete',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCandidatosIdTemplateTplIdRoute =
   AdminCandidatosIdTemplateTplIdRouteImport.update({
     id: '/candidatos/$id/template/$tplId',
@@ -158,6 +201,13 @@ export interface FileRoutesByFullPath {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/social/complete': typeof ApiPublicSocialCompleteRoute
+  '/api/public/social/cron': typeof ApiPublicSocialCronRoute
+  '/api/public/social/health': typeof ApiPublicSocialHealthRoute
+  '/api/public/social/heartbeat': typeof ApiPublicSocialHeartbeatRoute
+  '/api/public/social/ingest': typeof ApiPublicSocialIngestRoute
+  '/api/public/social/log': typeof ApiPublicSocialLogRoute
+  '/api/public/social/next-job': typeof ApiPublicSocialNextJobRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
@@ -179,6 +229,13 @@ export interface FileRoutesByTo {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
   '/painel/templates': typeof PainelTemplatesIndexRoute
+  '/api/public/social/complete': typeof ApiPublicSocialCompleteRoute
+  '/api/public/social/cron': typeof ApiPublicSocialCronRoute
+  '/api/public/social/health': typeof ApiPublicSocialHealthRoute
+  '/api/public/social/heartbeat': typeof ApiPublicSocialHeartbeatRoute
+  '/api/public/social/ingest': typeof ApiPublicSocialIngestRoute
+  '/api/public/social/log': typeof ApiPublicSocialLogRoute
+  '/api/public/social/next-job': typeof ApiPublicSocialNextJobRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id': typeof AdminCandidatosIdIndexRoute
@@ -203,6 +260,13 @@ export interface FileRoutesById {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/social/complete': typeof ApiPublicSocialCompleteRoute
+  '/api/public/social/cron': typeof ApiPublicSocialCronRoute
+  '/api/public/social/health': typeof ApiPublicSocialHealthRoute
+  '/api/public/social/heartbeat': typeof ApiPublicSocialHeartbeatRoute
+  '/api/public/social/ingest': typeof ApiPublicSocialIngestRoute
+  '/api/public/social/log': typeof ApiPublicSocialLogRoute
+  '/api/public/social/next-job': typeof ApiPublicSocialNextJobRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
@@ -228,6 +292,13 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/social/complete'
+    | '/api/public/social/cron'
+    | '/api/public/social/health'
+    | '/api/public/social/heartbeat'
+    | '/api/public/social/ingest'
+    | '/api/public/social/log'
+    | '/api/public/social/next-job'
     | '/api/public/whatsapp/broadcast-tick'
     | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id/'
@@ -249,6 +320,13 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos'
     | '/painel/templates'
+    | '/api/public/social/complete'
+    | '/api/public/social/cron'
+    | '/api/public/social/health'
+    | '/api/public/social/heartbeat'
+    | '/api/public/social/ingest'
+    | '/api/public/social/log'
+    | '/api/public/social/next-job'
     | '/api/public/whatsapp/broadcast-tick'
     | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id'
@@ -272,6 +350,13 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/social/complete'
+    | '/api/public/social/cron'
+    | '/api/public/social/health'
+    | '/api/public/social/heartbeat'
+    | '/api/public/social/ingest'
+    | '/api/public/social/log'
+    | '/api/public/social/next-job'
     | '/api/public/whatsapp/broadcast-tick'
     | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id/'
@@ -286,6 +371,13 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PainelRoute: typeof PainelRouteWithChildren
   PSlugRoute: typeof PSlugRoute
+  ApiPublicSocialCompleteRoute: typeof ApiPublicSocialCompleteRoute
+  ApiPublicSocialCronRoute: typeof ApiPublicSocialCronRoute
+  ApiPublicSocialHealthRoute: typeof ApiPublicSocialHealthRoute
+  ApiPublicSocialHeartbeatRoute: typeof ApiPublicSocialHeartbeatRoute
+  ApiPublicSocialIngestRoute: typeof ApiPublicSocialIngestRoute
+  ApiPublicSocialLogRoute: typeof ApiPublicSocialLogRoute
+  ApiPublicSocialNextJobRoute: typeof ApiPublicSocialNextJobRoute
   ApiPublicWhatsappBroadcastTickRoute: typeof ApiPublicWhatsappBroadcastTickRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -432,6 +524,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappBroadcastTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/social/next-job': {
+      id: '/api/public/social/next-job'
+      path: '/api/public/social/next-job'
+      fullPath: '/api/public/social/next-job'
+      preLoaderRoute: typeof ApiPublicSocialNextJobRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/social/log': {
+      id: '/api/public/social/log'
+      path: '/api/public/social/log'
+      fullPath: '/api/public/social/log'
+      preLoaderRoute: typeof ApiPublicSocialLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/social/ingest': {
+      id: '/api/public/social/ingest'
+      path: '/api/public/social/ingest'
+      fullPath: '/api/public/social/ingest'
+      preLoaderRoute: typeof ApiPublicSocialIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/social/heartbeat': {
+      id: '/api/public/social/heartbeat'
+      path: '/api/public/social/heartbeat'
+      fullPath: '/api/public/social/heartbeat'
+      preLoaderRoute: typeof ApiPublicSocialHeartbeatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/social/health': {
+      id: '/api/public/social/health'
+      path: '/api/public/social/health'
+      fullPath: '/api/public/social/health'
+      preLoaderRoute: typeof ApiPublicSocialHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/social/cron': {
+      id: '/api/public/social/cron'
+      path: '/api/public/social/cron'
+      fullPath: '/api/public/social/cron'
+      preLoaderRoute: typeof ApiPublicSocialCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/social/complete': {
+      id: '/api/public/social/complete'
+      path: '/api/public/social/complete'
+      fullPath: '/api/public/social/complete'
+      preLoaderRoute: typeof ApiPublicSocialCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/candidatos/$id/template/$tplId': {
       id: '/admin/candidatos/$id/template/$tplId'
       path: '/candidatos/$id/template/$tplId'
@@ -491,6 +632,13 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PainelRoute: PainelRouteWithChildren,
   PSlugRoute: PSlugRoute,
+  ApiPublicSocialCompleteRoute: ApiPublicSocialCompleteRoute,
+  ApiPublicSocialCronRoute: ApiPublicSocialCronRoute,
+  ApiPublicSocialHealthRoute: ApiPublicSocialHealthRoute,
+  ApiPublicSocialHeartbeatRoute: ApiPublicSocialHeartbeatRoute,
+  ApiPublicSocialIngestRoute: ApiPublicSocialIngestRoute,
+  ApiPublicSocialLogRoute: ApiPublicSocialLogRoute,
+  ApiPublicSocialNextJobRoute: ApiPublicSocialNextJobRoute,
   ApiPublicWhatsappBroadcastTickRoute: ApiPublicWhatsappBroadcastTickRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }

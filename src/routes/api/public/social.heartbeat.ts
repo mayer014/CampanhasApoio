@@ -28,8 +28,9 @@ export const Route = createFileRoute("/api/public/social/heartbeat")({
           _worker_id: parsed.data.worker_id,
           _status: parsed.data.status ?? "online",
           _jobs_processed: parsed.data.jobs_processed ?? 0,
-          _last_error: parsed.data.last_error ?? null,
-          _meta: parsed.data.meta ?? {},
+          _last_error: (parsed.data.last_error ?? "") as string,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          _meta: (parsed.data.meta ?? {}) as any,
         });
         if (error) return badRequest(error.message);
         return ok({ success: true });
