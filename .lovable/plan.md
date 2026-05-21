@@ -1,184 +1,123 @@
 
-# Fase 1 — Social Intelligence Engine
+# Unificar tudo num monorepo só
 
-Escopo estrito: somente coleta incremental de posts do Instagram público + alertas heurísticos. **Sem IA, sem comentários, sem embeddings.**
+## Diagnóstico (importante)
 
-Boa parte da infra já existe no banco (tabelas `social_profiles`, `social_posts`, `social_jobs`, `social_workers`, `social_worker_logs`, `social_system_state` + funções `claim_next_social_job`, `complete_social_job`, `enqueue_due_social_profiles`, `social_dashboard_stats`) e o diretório `social-crawler/` já está esboçado. Foram deletados na conversa anterior: a UI `/painel/social`, os endpoints `/api/public/social/*` e o helper HMAC. Esta fase reconstrói o que falta de forma definitiva e adiciona apenas o que está faltando no schema.
+Olhando o Supabase deste projeto Lovable, ele JÁ tem as tabelas do site fotodeapoio (`templates`, `candidate_profiles`, `voter_leads`, `whatsapp_*`) **e** as tabelas do social-crawler (`social_jobs`, `social_profiles`, `social_workers`, etc).
 
----
+Conclusão: **só existe 1 Supabase real** (`pfppmkqsdqawvykkgafe`). O que você chama de "Supabase do site" e o que o Lovable usa são o mesmo. Isso simplifica muito.
 
-## 1) Migração SQL (delta, não destrutiva)
+Então a confusão atual é só:
+- **2 repos no GitHub** (site e worker) → vira **1 repo**
+- **Worker depende do app publicado no Lovable** (chama `/api/public/social/*`) → passa a falar **direto com o Supabase**, eliminando o problema do `SUPABASE_SERVICE_ROLE_KEY` na VPS e parando de depender do `genesis-migration-hub.lovable.app`
 
-Tudo via `supabase--migration`. O que muda em relação ao schema atual:
-
-**a) Enum novo `social_profile_type`** com valores `own_profile | competitor | portal | influencer`.
-
-**b) Coluna `profile_type` em `social_profiles`**
-- `profile_type social_profile_type NOT NULL DEFAULT 'competitor'`
-- Backfill: `UPDATE social_profiles SET profile_type = CASE WHEN is_own THEN 'own_profile' ELSE 'competitor' END`
-- Mantém `is_own` por compatibilidade (deprecado, sincronizado por trigger simples).
-- Unique `(candidate_id, platform, lower(username))` para evitar duplicatas.
-
-**c) Tabela nova `social_post_snapshots`** (histórico de métricas por post)
-- `id bigserial PK`, `post_id uuid FK → social_posts(id) ON DELETE CASCADE`
-- `candidate_id uuid NOT NULL` (multi-tenant + RLS)
-- `captured_at timestamptz NOT NULL DEFAULT now()`
-- `likes int`, `comments int`, `views int`
-- Index `(post_id, captured_at DESC)` e `(candidate_id, captured_at DESC)`
-- RLS: admin tudo; owner SELECT por `candidate_id = auth.uid()`.
-
-**d) Tabela nova `social_alerts`** (Fase 1 sem IA — somente heurística)
-- `id uuid PK`, `candidate_id uuid NOT NULL`, `profile_id uuid`, `post_id uuid`
-- `alert_type text` restrito a `viral_post | competitor_growth`
-- `severity text` (`info|warn|critical`)
-- `title text`, `message text`, `data jsonb`
-- `created_at`, `acknowledged_at`, `acknowledged_by`
-- RLS: admin tudo; owner SELECT/UPDATE por `candidate_id`.
-
-**e) Função `record_social_snapshot(_post_id uuid)`** SECURITY DEFINER: insere snapshot e gera alertas `viral_post`/`competitor_growth` aplicando heurística pura:
-- `viral_post`: likes do post crescem ≥ 3× a média móvel dos últimos 7 snapshots em < 6h.
-- `competitor_growth`: perfil `competitor` ganha ≥ 10% de followers em 7 dias.
-- Usa janela `WHERE` sobre os próprios snapshots, sem AI.
-
-**f) Ajuste em `complete_social_job` / `ingest`**: chamar `record_social_snapshot` após cada upsert de post bem-sucedido.
-
-Sem mexer em `auth`, `storage`, etc. Tudo `public.*`.
-
----
-
-## 2) Endpoints `/api/public/social/*` (reconstrução)
-
-Todos com HMAC-SHA256 (`x-social-signature: sha256=<hex>`) usando `SOCIAL_HMAC_SECRET` já existente. Reaproveitar helper `src/lib/social-hmac.server.ts`.
-
-| Rota | Método | Função |
-|---|---|---|
-| `social.next-job` | POST | `claim_next_social_job` (já usa `FOR UPDATE SKIP LOCKED`) |
-| `social.ingest` | POST | upsert de `social_profiles` (display_name/bio/followers/avatar) + upsert idempotente de `social_posts` por `(profile_id, external_id)` + `record_social_snapshot` |
-| `social.complete` | POST | `complete_social_job` (status transitions + retry exponencial já existente) |
-| `social.heartbeat` | POST | `social_worker_heartbeat` |
-| `social.log` | POST | insere `social_worker_logs` |
-| `social.cron` | POST | autenticado por `apikey` → `enqueue_due_social_profiles` |
-| `social.health` | GET | probes select + rpc |
-
-Validação Zod estrita em todo body. Erros retornam 400/401 com JSON. Sem PII em respostas.
-
----
-
-## 3) UI `/painel/social` (reconstrução)
-
-Rota `src/routes/painel.social.tsx` no padrão visual do `painel.whatsapp.tsx`. **Reinclui o item de navegação `Inteligência Social` em `src/routes/painel.tsx`** (foi removido na conversa anterior).
-
-Single page com tabs:
-
-**Tab "Perfis Monitorados"**
-- Tabela: avatar, `@username`, plataforma, `profile_type` (badge colorida), `is_active` (Switch), `last_checked_at` (relativo), `consecutive_errors`, último erro truncado.
-- Botão "Adicionar perfil" abre Dialog: `username` (regex), `profile_type` (Select com own_profile/competitor/portal/influencer), `check_interval_minutes` (default 360).
-- Ações por linha: ativar/desativar, ajustar intervalo, excluir.
-
-**Tab "Posts coletados"**
-- Grid de cards com thumbnail, legenda truncada, likes/comments/views, data e link externo. Filtro por perfil.
-
-**Tab "Operação"**
-- Cards: workers online, jobs por status (pending/running/done/failed), posts hoje, estado do circuit breaker.
-- Lista de erros recentes de `social_worker_logs` (nível warn+).
-
-Server fns em `src/lib/social.functions.ts` (todas com `requireSupabaseAuth`):
-`listSocialProfiles`, `addSocialProfile`, `updateSocialProfile`, `deleteSocialProfile`, `listSocialPosts`, `getSocialDashboard`. Adicionar `profile_type` no schema Zod do `addSocialProfile`.
-
-Data fetching via `useQuery` + `useServerFn` (não em loader, para evitar 401 em prerender).
-
----
-
-## 4) Crawler `social-crawler/` (finalização do esboço existente)
-
-O esqueleto já existe. Garantir Fase 1:
-
-- `browser.ts`: singleton Playwright `chromium` headless, `userAgent` rotacionado, `viewport` 390x844 (mobile-like).
-- `antiBlock.ts`: `jitter(min,max)`, backoff exponencial, randomização de scroll, pausa longa a cada N requisições.
-- `queue.ts`: chama `next-job` / `ingest` / `complete` / `heartbeat` / `log` com HMAC; `classifyError(msg)` → `login_wall|rate_limit|captcha|network|parse|other`.
-- `crawler.ts` (Fase 1): visita `https://www.instagram.com/{username}/`, extrai do JSON embutido / DOM:
-  - perfil: `display_name`, `avatar_url`, `bio`, `followers_count`
-  - até N posts recentes (12): `shortcode` (= `external_id`), `caption`, `hashtags` (parse da legenda), `posted_at`, `likes`, `comments`, `views` (reels), `thumbnail_url`, `media_urls`, `post_type` (feed/reel/carousel inferido)
-  - **incremental**: para ao encontrar `external_id` já presente em `social_posts` (a UI já dá o sinal via resposta de `/ingest` retornando `inserted=0 && updated=1`; o crawler para localmente quando bate 2 shortcodes consecutivos já vistos no batch).
-- `index.ts`: loop com `tick`, heartbeat 30s, respeito ao circuit breaker, backoff em `idle`.
-- `Dockerfile`: `mcr.microsoft.com/playwright:v1.47.0-jammy`, `bun install`, `bun run start`.
-- README: variáveis `API_BASE_URL`, `SOCIAL_HMAC_SECRET`, `WORKER_ID`, `POLL_INTERVAL_MS`, `IDLE_BACKOFF_MS`.
-
-**Sem comentários, sem login, sem detalhes de post.** Apenas a página do perfil.
-
----
-
-## 5) Alertas heurísticos (sem IA)
-
-Disparados dentro de `record_social_snapshot` (SQL puro):
-
-- `viral_post` — quando o post mais recente de um `own_profile` ou `competitor` cresce ≥ 3× a média dos snapshots anteriores em < 6h, severity `warn`.
-- `competitor_growth` — perfil `competitor` com `followers_count` crescendo ≥ 10% em janela de 7 dias, severity `info`.
-
-Mostrados num card simples na tab "Operação" (não há tela de alertas dedicada nesta fase).
-
----
-
-## 6) Operação / cron
-
-Após approval da migração, o usuário roda no SQL Editor (uma vez):
-
-```sql
-select cron.schedule(
-  'social-enqueue', '*/5 * * * *',
-  $$ select net.http_post(
-       url:='https://<host>/api/public/social/cron',
-       headers:='{"apikey":"<ANON_KEY>"}'::jsonb,
-       body:='{}'::jsonb) $$);
-```
-
-O worker roda em VPS/EasyPanel apontando para `https://<host>/api/public/social/*` com `SOCIAL_HMAC_SECRET`.
-
----
-
-## 7) Fora de escopo (explícito)
-
-Comentários, sentimentos, embeddings, clustering, Gemini/OpenAI, dashboard avançado, comparativos, narrativa, mapa territorial. Tudo isso fica para fases seguintes — o schema já foi desenhado para acomodar sem migração disruptiva.
-
----
-
-## Detalhes técnicos
-
-- **Server fns**: `createServerFn` + `requireSupabaseAuth`; chamadas com `useServerFn` em queries (nunca em loader de rota pública).
-- **Endpoints públicos**: `createFileRoute('/api/public/social/...')` com Zod + HMAC `timingSafeEqual`.
-- **RLS**: já existente para tabelas atuais; replicar para `social_post_snapshots` e `social_alerts` (admin all + owner select por `candidate_id`).
-- **Idempotência da ingestão**: chave única `(profile_id, external_id)` em `social_posts` (adicionar se não existir).
-- **Backoff**: já implementado em `complete_social_job` (exponencial até 240min). Circuit breaker via `social_system_state` continua válido.
-- **Sem segredos no banco**: `SOCIAL_HMAC_SECRET` permanece em env.
+## Arquitetura final
 
 ```text
-fluxo de uma rodada
-┌────────────┐   cron     ┌──────────────────────────┐
-│ pg_cron *5 │ ─────────▶ │ enqueue_due_social_jobs  │
-└────────────┘            └──────────────────────────┘
-                                       │
-                          ┌────────────┴───────────┐
-                          ▼                        ▼
-                  ┌──────────────┐         ┌──────────────┐
-                  │ next-job RPC │◀──HMAC──│ worker (VPS) │
-                  └──────────────┘         │  Playwright  │
-                          │                └──────────────┘
-                          ▼                        │
-                  ┌──────────────┐         ingest  │
-                  │ social_jobs  │◀────────────────┘
-                  │  running →   │
-                  │   done       │  → record_social_snapshot
-                  └──────────────┘         → alerts (heurística)
+GitHub: radioradar-site (monorepo)
+├── apps/site/        ← código que o Lovable edita (TanStack atual)
+│   ├── package.json
+│   ├── src/
+│   └── Dockerfile
+├── apps/worker/      ← social-crawler (Node puro)
+│   ├── package.json
+│   ├── index.js
+│   └── Dockerfile
+├── package.json      ← raiz mínima (workspaces opcionais)
+└── README.md
+
+VPS (EasyPanel):
+├── radioradar-site / fotodeapoio   → build apps/site,   domínio fotodeapoio.easychain.com.br
+└── radioradar-site / social-crawler → build apps/worker, sem domínio
+
+Supabase: pfppmkqsdqawvykkgafe (único, já existente)
+
+Lovable: só edita arquivos dentro de apps/site/ e faz push automático no GitHub.
+         O publish do Lovable fica DESLIGADO (URL genesis-migration-hub deixa de existir).
 ```
 
----
+## Como o worker passa a funcionar
 
-## Entregáveis nesta fase
+Hoje:
+```
+Worker (VPS) → HTTP → /api/public/social/* (Lovable publicado) → Supabase
+                       ↑ depende do Lovable estar de pé e ter SERVICE_ROLE_KEY
+```
 
-1. Migração SQL: enum `social_profile_type`, coluna `profile_type`, tabelas `social_post_snapshots` e `social_alerts`, função `record_social_snapshot`, unique constraints.
-2. `src/lib/social-hmac.server.ts` + `src/lib/social.functions.ts`.
-3. 7 rotas `src/routes/api/public/social.*.ts`.
-4. `src/routes/painel.social.tsx` + reinclusão do item no menu de `src/routes/painel.tsx`.
-5. `social-crawler/` finalizado (crawler de perfil, sem comentários) + README de deploy.
+Depois:
+```
+Worker (VPS) → @supabase/supabase-js (service_role) → Supabase
+```
 
-Aprove para eu iniciar pela migração (passo 1) e seguir em sequência.
+Vantagens:
+- Worker não depende mais do Lovable estar publicado
+- Não precisa de `SOCIAL_HMAC_SECRET`, nem de `/api/public/social/*`
+- Service role key fica **só na VPS**, nunca no Lovable
+- As 3 RPCs já existem no banco: `claim_next_social_job`, `complete_social_job`, `social_worker_heartbeat`
+
+## Passos
+
+### 1. Decisão sobre o repo
+- Você adota o repo do **site** (`radioradar-site` provavelmente) como monorepo.
+- Move o código atual do site pra `apps/site/` (1 commit).
+- Cria pasta `apps/worker/` e cola o conteúdo do repo do social-crawler lá.
+- Arquiva o repo antigo do social-crawler no GitHub.
+
+### 2. Lovable passa a editar `apps/site/`
+- Você reconecta este projeto Lovable ao repo unificado, apontando a raiz do projeto pra `apps/site/`.
+- A partir daí, tudo que eu mudar aqui vai pra `apps/site/` no GitHub e o EasyPanel rebuilda o container do site.
+
+### 3. EasyPanel: ajustar 2 serviços pro mesmo repo
+- Serviço **fotodeapoio**: muda o build context pra `apps/site` (mantém domínio).
+- Serviço **social-crawler**: muda o build context pra `apps/worker`.
+- Push no repo dispara rebuild dos 2.
+
+### 4. Reescrever o worker pra falar direto com Supabase
+Substituo o `index.js` do worker por algo assim (resumido):
+```js
+import { createClient } from '@supabase/supabase-js'
+const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+setInterval(async () => {
+  await sb.rpc('social_worker_heartbeat', { _worker_id: WORKER_ID, _status:'online', ... })
+}, 30_000)
+
+while (true) {
+  const { data: jobs } = await sb.rpc('claim_next_social_job', { _worker_id: WORKER_ID })
+  if (!jobs?.length) { await sleep(5000); continue }
+  try { await processJob(jobs[0]); await sb.rpc('complete_social_job', { _job_id: jobs[0].id, _ok: true, _error: null }) }
+  catch (e) { await sb.rpc('complete_social_job', { _job_id: jobs[0].id, _ok: false, _error: String(e) }) }
+}
+```
+
+Envs do container worker (EasyPanel):
+- `SUPABASE_URL=https://pfppmkqsdqawvykkgafe.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY=<copiar do dashboard Supabase>`
+- `WORKER_ID=worker-1`
+
+### 5. Limpeza no site (apps/site)
+- Removo as rotas `src/routes/api/public/social.*.ts` (deixam de ser usadas).
+- Removo o secret `SOCIAL_HMAC_SECRET` se não for usado em outro lugar.
+- Removo o `SUPABASE_SERVICE_ROLE_KEY` das envs do site no EasyPanel (site não precisa — usa o middleware autenticado por usuário).
+- Botão **"Coletar agora"** no painel continua funcionando: ele só insere na tabela `social_jobs` via Supabase com a sessão do usuário; o worker pega na próxima volta do loop.
+
+### 6. Desligar publish do Lovable
+- Não usar mais `genesis-migration-hub.lovable.app`. Produção = `fotodeapoio.easychain.com.br`.
+- Eu paro de te empurrar publish.
+
+## O que muda no seu dia-a-dia
+
+| Antes | Depois |
+|---|---|
+| 2 repos, 2 lugares pra mudar | 1 repo, 1 lugar |
+| Lovable publica num domínio paralelo | Lovable só commita; quem serve é a VPS |
+| Worker depende de URL do Lovable + SERVICE_ROLE no Lovable | Worker fala direto com Supabase |
+| 3 conjuntos de envs pra sincronizar | 1 (site) + 1 (worker), simples |
+
+## O que eu preciso de você antes de implementar
+
+1. Confirmar o nome do repo do site no GitHub (vai virar o monorepo) — me passa o link.
+2. Confirmar o nome/link do repo atual do social-crawler — pra eu saber o que migrar pra `apps/worker/`.
+3. Idealmente colar o `index.js` e `package.json` atuais do worker (ou me dar acesso ao repo) — assim eu já te entrego o `apps/worker/` pronto, sem você ter que copiar nada manualmente.
+
+Depois disso eu executo os passos 4 e 5 (código do worker novo + limpeza do site) num único commit, e você só ajusta o EasyPanel uma vez.

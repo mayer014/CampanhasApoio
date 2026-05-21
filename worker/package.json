@@ -1,0 +1,16 @@
+{
+  "name": "social-crawler-worker",
+  "version": "2.0.0",
+  "description": "Worker do social-crawler. Fala direto com Supabase (sem HTTP intermediário).",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
