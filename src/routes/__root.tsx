@@ -35,10 +35,14 @@ export const Route = createRootRoute({
       { title: "Foto de Campanha — Engaje seus eleitores no WhatsApp" },
       { name: "description", content: "Plataforma para candidatos criarem fotos de perfil personalizadas. Seus apoiadores trocam a foto do WhatsApp em segundos." },
       { name: "author", content: "Foto de Campanha" },
-      { property: "og:title", content: "Foto de Campanha" },
-      { property: "og:description", content: "Templates de foto de perfil para campanhas eleitorais." },
+      { property: "og:title", content: "Foto de Campanha — Engaje seus eleitores no WhatsApp" },
+      { property: "og:description", content: "Plataforma para candidatos criarem fotos de perfil personalizadas. Seus apoiadores trocam a foto do WhatsApp em segundos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Foto de Campanha — Engaje seus eleitores no WhatsApp" },
+      { name: "twitter:description", content: "Plataforma para candidatos criarem fotos de perfil personalizadas. Seus apoiadores trocam a foto do WhatsApp em segundos." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f928377d-b6cd-40b3-8370-7e33af8b0fd9/id-preview-e6fcf61e--7a279b36-7b6b-4e1c-bf0e-253f1a812c48.lovable.app-1779325693098.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f928377d-b6cd-40b3-8370-7e33af8b0fd9/id-preview-e6fcf61e--7a279b36-7b6b-4e1c-bf0e-253f1a812c48.lovable.app-1779325693098.png" },
     ],
     links: [
       {
