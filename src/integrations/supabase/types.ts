@@ -137,6 +137,51 @@ export type Database = {
           },
         ]
       }
+      social_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          candidate_id: string
+          created_at: string
+          data: Json
+          id: string
+          message: string | null
+          post_id: string | null
+          profile_id: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          candidate_id: string
+          created_at?: string
+          data?: Json
+          id?: string
+          message?: string | null
+          post_id?: string | null
+          profile_id?: string | null
+          severity?: string
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          candidate_id?: string
+          created_at?: string
+          data?: Json
+          id?: string
+          message?: string | null
+          post_id?: string | null
+          profile_id?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
       social_jobs: {
         Row: {
           attempts: number
@@ -195,6 +240,44 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_post_snapshots: {
+        Row: {
+          candidate_id: string
+          captured_at: string
+          comments: number | null
+          id: number
+          likes: number | null
+          post_id: string
+          views: number | null
+        }
+        Insert: {
+          candidate_id: string
+          captured_at?: string
+          comments?: number | null
+          id?: number
+          likes?: number | null
+          post_id: string
+          views?: number | null
+        }
+        Update: {
+          candidate_id?: string
+          captured_at?: string
+          comments?: number | null
+          id?: number
+          likes?: number | null
+          post_id?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_post_snapshots_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -281,6 +364,7 @@ export type Database = {
           last_error: string | null
           last_success_at: string | null
           platform: Database["public"]["Enums"]["social_platform"]
+          profile_type: Database["public"]["Enums"]["social_profile_type"]
           updated_at: string
           username: string
         }
@@ -300,6 +384,7 @@ export type Database = {
           last_error?: string | null
           last_success_at?: string | null
           platform?: Database["public"]["Enums"]["social_platform"]
+          profile_type?: Database["public"]["Enums"]["social_profile_type"]
           updated_at?: string
           username: string
         }
@@ -319,6 +404,7 @@ export type Database = {
           last_error?: string | null
           last_success_at?: string | null
           platform?: Database["public"]["Enums"]["social_platform"]
+          profile_type?: Database["public"]["Enums"]["social_profile_type"]
           updated_at?: string
           username?: string
         }
@@ -1135,6 +1221,7 @@ export type Database = {
         Args: { _template_id: string }
         Returns: undefined
       }
+      record_social_snapshot: { Args: { _post_id: string }; Returns: undefined }
       set_active_template: {
         Args: { _template_id: string }
         Returns: undefined
@@ -1176,6 +1263,11 @@ export type Database = {
         | "facebook"
         | "youtube"
         | "twitter"
+      social_profile_type:
+        | "own_profile"
+        | "competitor"
+        | "portal"
+        | "influencer"
       whatsapp_broadcast_status:
         | "draft"
         | "running"
@@ -1336,6 +1428,12 @@ export const Constants = {
         "facebook",
         "youtube",
         "twitter",
+      ],
+      social_profile_type: [
+        "own_profile",
+        "competitor",
+        "portal",
+        "influencer",
       ],
       whatsapp_broadcast_status: [
         "draft",
