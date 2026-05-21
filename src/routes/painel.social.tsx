@@ -100,7 +100,8 @@ function ProfilesTab() {
     onError: (e: Error) => toast.error(e.message),
   });
   const updM = useMutation({
-    mutationFn: (vars: Parameters<typeof upd>[0]["data"]) => upd({ data: vars }),
+    mutationFn: (vars: { id: string; is_active?: boolean; profile_type?: ProfileType; check_interval_minutes?: number }) =>
+      upd({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["social", "profiles"] }),
   });
   const delM = useMutation({

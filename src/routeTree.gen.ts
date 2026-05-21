@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PainelIndexRouteImport } from './routes/painel.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PainelWhatsappRouteImport } from './routes/painel.whatsapp'
+import { Route as PainelSocialRouteImport } from './routes/painel.social'
 import { Route as PainelLinkRouteImport } from './routes/painel.link'
 import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
@@ -80,6 +81,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const PainelWhatsappRoute = PainelWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
+  getParentRoute: () => PainelRoute,
+} as any)
+const PainelSocialRoute = PainelSocialRouteImport.update({
+  id: '/social',
+  path: '/social',
   getParentRoute: () => PainelRoute,
 } as any)
 const PainelLinkRoute = PainelLinkRouteImport.update({
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
+  '/painel/social': typeof PainelSocialRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
+  '/painel/social': typeof PainelSocialRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin': typeof AdminIndexRoute
   '/painel': typeof PainelIndexRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
+  '/painel/social': typeof PainelSocialRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
@@ -277,6 +286,7 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/painel/leads'
     | '/painel/link'
+    | '/painel/social'
     | '/painel/whatsapp'
     | '/admin/'
     | '/painel/'
@@ -304,6 +314,7 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/painel/leads'
     | '/painel/link'
+    | '/painel/social'
     | '/painel/whatsapp'
     | '/admin'
     | '/painel'
@@ -333,6 +344,7 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/painel/leads'
     | '/painel/link'
+    | '/painel/social'
     | '/painel/whatsapp'
     | '/admin/'
     | '/painel/'
@@ -432,6 +444,13 @@ declare module '@tanstack/react-router' {
       path: '/whatsapp'
       fullPath: '/painel/whatsapp'
       preLoaderRoute: typeof PainelWhatsappRouteImport
+      parentRoute: typeof PainelRoute
+    }
+    '/painel/social': {
+      id: '/painel/social'
+      path: '/social'
+      fullPath: '/painel/social'
+      preLoaderRoute: typeof PainelSocialRouteImport
       parentRoute: typeof PainelRoute
     }
     '/painel/link': {
@@ -586,6 +605,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 interface PainelRouteChildren {
   PainelLeadsRoute: typeof PainelLeadsRoute
   PainelLinkRoute: typeof PainelLinkRoute
+  PainelSocialRoute: typeof PainelSocialRoute
   PainelWhatsappRoute: typeof PainelWhatsappRoute
   PainelIndexRoute: typeof PainelIndexRoute
   PainelTemplatesTplIdRoute: typeof PainelTemplatesTplIdRoute
@@ -595,6 +615,7 @@ interface PainelRouteChildren {
 const PainelRouteChildren: PainelRouteChildren = {
   PainelLeadsRoute: PainelLeadsRoute,
   PainelLinkRoute: PainelLinkRoute,
+  PainelSocialRoute: PainelSocialRoute,
   PainelWhatsappRoute: PainelWhatsappRoute,
   PainelIndexRoute: PainelIndexRoute,
   PainelTemplatesTplIdRoute: PainelTemplatesTplIdRoute,
