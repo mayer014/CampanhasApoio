@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   addSocialProfile,
   deleteSocialProfile,
+  enqueueSocialProfileNow,
   getSocialDashboard,
   listSocialPosts,
   listSocialProfiles,
@@ -21,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { AlertCircle, ExternalLink, Heart, MessageSquare, Plus, Radar, Trash2, Eye } from "lucide-react";
+import { AlertCircle, ExternalLink, Heart, MessageSquare, Plus, Radar, Trash2, Eye, Play } from "lucide-react";
 
 export const Route = createFileRoute("/painel/social")({
   component: SocialPage,
@@ -86,6 +87,7 @@ function ProfilesTab() {
   const add = useServerFn(addSocialProfile);
   const upd = useServerFn(updateSocialProfile);
   const del = useServerFn(deleteSocialProfile);
+  const enqueueNow = useServerFn(enqueueSocialProfileNow);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -107,6 +109,11 @@ function ProfilesTab() {
   const delM = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
     onSuccess: () => { toast.success("Perfil removido"); qc.invalidateQueries({ queryKey: ["social", "profiles"] }); },
+  });
+  const runNowM = useMutation({
+    mutationFn: (id: string) => enqueueNow({ data: { profile_id: id } }),
+    onSuccess: (r) => toast.success(r.reused ? "Já existe um job pendente para este perfil" : "Job enfileirado — aguarde o worker processar"),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const [open, setOpen] = useState(false);
@@ -199,9 +206,20 @@ function ProfilesTab() {
                     <Switch checked={p.is_active} onCheckedChange={(v) => updM.mutate({ id: p.id, is_active: v })} />
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => { if (confirm(`Excluir @${p.username}?`)) delM.mutate(p.id); }}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Coletar agora"
+                        disabled={runNowM.isPending}
+                        onClick={() => runNowM.mutate(p.id)}
+                      >
+                        <Play className="h-4 w-4 text-primary" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => { if (confirm(`Excluir @${p.username}?`)) delM.mutate(p.id); }}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
