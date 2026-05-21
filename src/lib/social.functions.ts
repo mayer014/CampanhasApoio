@@ -120,3 +120,51 @@ export const getSocialDashboard = createServerFn({ method: "POST" })
 
     return { stats: data, alerts: alerts ?? [] };
   });
+
+export const enqueueSocialProfileNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ profile_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Ensure the profile belongs to the caller
+    const { data: profile, error: pErr } = await supabase
+      .from("social_profiles")
+      .select("id, candidate_id, is_active")
+      .eq("id", data.profile_id)
+      .single();
+    if (pErr || !profile) throw new Error("Perfil não encontrado");
+    if (profile.candidate_id !== userId) throw new Error("Sem permissão");
+    if (!profile.is_active) throw new Error("Perfil está inativo");
+
+    // Avoid duplicates: don't enqueue if there's already a pending/running job
+    const { data: existing } = await supabase
+      .from("social_jobs")
+      .select("id, status")
+      .eq("profile_id", data.profile_id)
+      .in("status", ["pending", "running"])
+      .limit(1);
+    if (existing && existing.length > 0) {
+      return { ok: true, job_id: existing[0].id, reused: true };
+    }
+
+    const { data: job, error: jErr } = await supabase
+      .from("social_jobs")
+      .insert({
+        candidate_id: userId,
+        profile_id: data.profile_id,
+        job_type: "crawl_profile",
+        status: "pending",
+        priority: 10, // higher than default 100 (lower number = sooner)
+        scheduled_at: new Date().toISOString(),
+        payload: { manual: true },
+      })
+      .select("id")
+      .single();
+    if (jErr) throw new Error(jErr.message);
+
+    return { ok: true, job_id: job.id, reused: false };
+  });
+
