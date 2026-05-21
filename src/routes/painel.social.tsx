@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { AlertCircle, ExternalLink, Heart, MessageSquare, Plus, Radar, Trash2, Eye } from "lucide-react";
+import { AlertCircle, ExternalLink, Heart, MessageSquare, Plus, Radar, Trash2, Eye, Play } from "lucide-react";
 
 export const Route = createFileRoute("/painel/social")({
   component: SocialPage,
