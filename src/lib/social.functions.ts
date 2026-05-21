@@ -141,7 +141,7 @@ export const enqueueSocialProfileNow = createServerFn({ method: "POST" })
     if (!profile.is_active) throw new Error("Perfil está inativo");
 
     // Avoid duplicates: don't enqueue if there's already a pending/running job
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from("social_jobs")
       .select("id, status")
       .eq("profile_id", data.profile_id)
@@ -151,7 +151,7 @@ export const enqueueSocialProfileNow = createServerFn({ method: "POST" })
       return { ok: true, job_id: existing[0].id, reused: true };
     }
 
-    const { data: job, error: jErr } = await supabase
+    const { data: job, error: jErr } = await supabaseAdmin
       .from("social_jobs")
       .insert({
         candidate_id: userId,
