@@ -87,6 +87,7 @@ function ProfilesTab() {
   const add = useServerFn(addSocialProfile);
   const upd = useServerFn(updateSocialProfile);
   const del = useServerFn(deleteSocialProfile);
+  const enqueueNow = useServerFn(enqueueSocialProfileNow);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -108,6 +109,11 @@ function ProfilesTab() {
   const delM = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
     onSuccess: () => { toast.success("Perfil removido"); qc.invalidateQueries({ queryKey: ["social", "profiles"] }); },
+  });
+  const runNowM = useMutation({
+    mutationFn: (id: string) => enqueueNow({ data: { profile_id: id } }),
+    onSuccess: (r) => toast.success(r.reused ? "Já existe um job pendente para este perfil" : "Job enfileirado — aguarde o worker processar"),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const [open, setOpen] = useState(false);
