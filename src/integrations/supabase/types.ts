@@ -137,6 +137,286 @@ export type Database = {
           },
         ]
       }
+      social_jobs: {
+        Row: {
+          attempts: number
+          candidate_id: string
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          job_type: Database["public"]["Enums"]["social_job_type"]
+          max_attempts: number
+          payload: Json
+          priority: number
+          profile_id: string | null
+          scheduled_at: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["social_job_status"]
+          worker_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          candidate_id: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          job_type: Database["public"]["Enums"]["social_job_type"]
+          max_attempts?: number
+          payload?: Json
+          priority?: number
+          profile_id?: string | null
+          scheduled_at?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["social_job_status"]
+          worker_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          candidate_id?: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          job_type?: Database["public"]["Enums"]["social_job_type"]
+          max_attempts?: number
+          payload?: Json
+          priority?: number
+          profile_id?: string | null
+          scheduled_at?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["social_job_status"]
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_posts: {
+        Row: {
+          candidate_id: string
+          caption: string | null
+          comments: number | null
+          external_id: string
+          first_seen_at: string
+          hashtags: string[]
+          id: string
+          last_seen_at: string
+          likes: number | null
+          media_urls: string[]
+          platform: Database["public"]["Enums"]["social_platform"]
+          post_url: string | null
+          posted_at: string | null
+          profile_id: string
+          thumbnail_url: string | null
+          views: number | null
+        }
+        Insert: {
+          candidate_id: string
+          caption?: string | null
+          comments?: number | null
+          external_id: string
+          first_seen_at?: string
+          hashtags?: string[]
+          id?: string
+          last_seen_at?: string
+          likes?: number | null
+          media_urls?: string[]
+          platform: Database["public"]["Enums"]["social_platform"]
+          post_url?: string | null
+          posted_at?: string | null
+          profile_id: string
+          thumbnail_url?: string | null
+          views?: number | null
+        }
+        Update: {
+          candidate_id?: string
+          caption?: string | null
+          comments?: number | null
+          external_id?: string
+          first_seen_at?: string
+          hashtags?: string[]
+          id?: string
+          last_seen_at?: string
+          likes?: number | null
+          media_urls?: string[]
+          platform?: Database["public"]["Enums"]["social_platform"]
+          post_url?: string | null
+          posted_at?: string | null
+          profile_id?: string
+          thumbnail_url?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          candidate_id: string
+          check_interval_minutes: number
+          consecutive_errors: number
+          created_at: string
+          display_name: string | null
+          followers_count: number | null
+          id: string
+          is_active: boolean
+          is_own: boolean
+          last_checked_at: string | null
+          last_error: string | null
+          last_success_at: string | null
+          platform: Database["public"]["Enums"]["social_platform"]
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          candidate_id: string
+          check_interval_minutes?: number
+          consecutive_errors?: number
+          created_at?: string
+          display_name?: string | null
+          followers_count?: number | null
+          id?: string
+          is_active?: boolean
+          is_own?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          platform?: Database["public"]["Enums"]["social_platform"]
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          candidate_id?: string
+          check_interval_minutes?: number
+          consecutive_errors?: number
+          created_at?: string
+          display_name?: string | null
+          followers_count?: number | null
+          id?: string
+          is_active?: boolean
+          is_own?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          platform?: Database["public"]["Enums"]["social_platform"]
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      social_system_state: {
+        Row: {
+          breaker_open: boolean
+          breaker_opened_at: string | null
+          breaker_reason: string | null
+          breaker_reset_at: string | null
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          breaker_open?: boolean
+          breaker_opened_at?: string | null
+          breaker_reason?: string | null
+          breaker_reset_at?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          breaker_open?: boolean
+          breaker_opened_at?: string | null
+          breaker_reason?: string | null
+          breaker_reset_at?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      social_worker_logs: {
+        Row: {
+          context: Json
+          created_at: string
+          id: number
+          job_id: string | null
+          kind: Database["public"]["Enums"]["social_log_kind"]
+          level: Database["public"]["Enums"]["social_log_level"]
+          message: string
+          profile_id: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: number
+          job_id?: string | null
+          kind?: Database["public"]["Enums"]["social_log_kind"]
+          level?: Database["public"]["Enums"]["social_log_level"]
+          message: string
+          profile_id?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: number
+          job_id?: string | null
+          kind?: Database["public"]["Enums"]["social_log_kind"]
+          level?: Database["public"]["Enums"]["social_log_level"]
+          message?: string
+          profile_id?: string | null
+          worker_id?: string | null
+        }
+        Relationships: []
+      }
+      social_workers: {
+        Row: {
+          created_at: string
+          jobs_processed: number
+          last_error: string | null
+          last_seen_at: string
+          meta: Json
+          status: string
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          jobs_processed?: number
+          last_error?: string | null
+          last_seen_at?: string
+          meta?: Json
+          status?: string
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          jobs_processed?: number
+          last_error?: string | null
+          last_seen_at?: string
+          meta?: Json
+          status?: string
+          worker_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           candidate_id: string
@@ -820,6 +1100,22 @@ export type Database = {
     }
     Functions: {
       _slugify: { Args: { input: string }; Returns: string }
+      claim_next_social_job: {
+        Args: { _worker_id: string }
+        Returns: {
+          attempts: number
+          candidate_id: string
+          id: string
+          job_type: Database["public"]["Enums"]["social_job_type"]
+          payload: Json
+          profile_id: string
+        }[]
+      }
+      complete_social_job: {
+        Args: { _error: string; _job_id: string; _ok: boolean }
+        Returns: undefined
+      }
+      enqueue_due_social_profiles: { Args: never; Returns: number }
       get_public_candidate: {
         Args: { _slug: string }
         Returns: {
@@ -843,6 +1139,17 @@ export type Database = {
         Args: { _template_id: string }
         Returns: undefined
       }
+      social_dashboard_stats: { Args: never; Returns: Json }
+      social_worker_heartbeat: {
+        Args: {
+          _jobs_processed: number
+          _last_error: string
+          _meta: Json
+          _status: string
+          _worker_id: string
+        }
+        Returns: undefined
+      }
       unaccent: { Args: { "": string }; Returns: string }
       unset_active_template: {
         Args: { _template_id: string }
@@ -852,6 +1159,23 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "candidate"
+      social_job_status: "pending" | "running" | "done" | "failed"
+      social_job_type: "crawl_profile" | "crawl_post"
+      social_log_kind:
+        | "other"
+        | "login_wall"
+        | "rate_limit"
+        | "captcha"
+        | "network"
+        | "parse"
+        | "success"
+      social_log_level: "debug" | "info" | "warn" | "error" | "critical"
+      social_platform:
+        | "instagram"
+        | "tiktok"
+        | "facebook"
+        | "youtube"
+        | "twitter"
       whatsapp_broadcast_status:
         | "draft"
         | "running"
@@ -994,6 +1318,25 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "candidate"],
+      social_job_status: ["pending", "running", "done", "failed"],
+      social_job_type: ["crawl_profile", "crawl_post"],
+      social_log_kind: [
+        "other",
+        "login_wall",
+        "rate_limit",
+        "captcha",
+        "network",
+        "parse",
+        "success",
+      ],
+      social_log_level: ["debug", "info", "warn", "error", "critical"],
+      social_platform: [
+        "instagram",
+        "tiktok",
+        "facebook",
+        "youtube",
+        "twitter",
+      ],
       whatsapp_broadcast_status: [
         "draft",
         "running",
