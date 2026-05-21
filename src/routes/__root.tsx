@@ -67,10 +67,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const [queryClient] = useState(() => new QueryClient());
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <Outlet />
       <Toaster />
-    </>
+    </QueryClientProvider>
   );
 }
