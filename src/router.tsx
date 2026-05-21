@@ -4,6 +4,9 @@ import { routeTree } from "./routeTree.gen";
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
+  // Always log so we can debug in preview/production
+  // eslint-disable-next-line no-console
+  console.error("[router error]", error);
 
   // Auto-recover when the tab becomes visible again or regains focus.
   // Fixes the "Something went wrong" screen that appears after the tab
