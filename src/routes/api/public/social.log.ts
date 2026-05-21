@@ -5,15 +5,27 @@ import { verifySocialHmac } from "@/lib/social-hmac.server";
 
 const Body = z.object({
   level: z.enum(["debug", "info", "warn", "error", "critical"]),
-  kind: z.enum([
-    "login_wall", "rate_limit", "timeout", "parser_failure",
-    "ingest_failure", "network_error", "captcha", "breaker", "other",
-  ]),
+  kind: z.string().min(1).max(40),
   message: z.string().max(2000),
   profile_id: z.string().uuid().nullable().optional(),
   job_id: z.string().uuid().nullable().optional(),
   context: z.record(z.string(), z.unknown()).optional(),
 });
+
+type DbKind = "other" | "login_wall" | "rate_limit" | "captcha" | "network" | "parse" | "success";
+function mapKind(k: string): DbKind {
+  switch (k) {
+    case "login_wall": return "login_wall";
+    case "rate_limit": return "rate_limit";
+    case "captcha": return "captcha";
+    case "network_error":
+    case "network": return "network";
+    case "parse":
+    case "parser_failure": return "parse";
+    case "success": return "success";
+    default: return "other";
+  }
+}
 
 export const Route = createFileRoute("/api/public/social/log")({
   server: {
@@ -31,11 +43,11 @@ export const Route = createFileRoute("/api/public/social/log")({
         await supabaseAdmin.from("social_worker_logs").insert({
           worker_id: workerId,
           level: body.level,
-          kind: body.kind,
+          kind: mapKind(body.kind),
           message: body.message,
           profile_id: body.profile_id ?? null,
           job_id: body.job_id ?? null,
-          context: body.context ?? {},
+          context: (body.context ?? {}) as never,
         });
         return Response.json({ ok: true });
       },

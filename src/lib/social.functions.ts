@@ -57,7 +57,12 @@ export const updateSocialProfile = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const upd: Record<string, unknown> = {};
+    const upd: {
+      is_active?: boolean;
+      profile_type?: "own_profile" | "competitor" | "portal" | "influencer";
+      is_own?: boolean;
+      check_interval_minutes?: number;
+    } = {};
     if (data.is_active !== undefined) upd.is_active = data.is_active;
     if (data.profile_type !== undefined) {
       upd.profile_type = data.profile_type;

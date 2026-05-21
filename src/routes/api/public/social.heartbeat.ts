@@ -25,9 +25,9 @@ export const Route = createFileRoute("/api/public/social/heartbeat")({
           _worker_id: workerId,
           _status: body.status ?? "online",
           _jobs_processed: body.jobs_processed ?? 0,
-          _last_error: body.last_error ?? null,
-          _meta: body.meta ?? {},
-        });
+          _last_error: body.last_error ?? "",
+          _meta: (body.meta ?? {}) as never,
+        } as never);
 
         const { data: state } = await supabaseAdmin
           .from("social_system_state")

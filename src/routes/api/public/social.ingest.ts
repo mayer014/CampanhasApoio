@@ -52,7 +52,13 @@ export const Route = createFileRoute("/api/public/social/ingest")({
         // Atualiza perfil (metadados públicos)
         let profileRow: { id: string; candidate_id: string; profile_type: string } | null = null;
         if (body.profile_id) {
-          const upd: Record<string, unknown> = { last_checked_at: new Date().toISOString() };
+          const upd: {
+            last_checked_at: string;
+            display_name?: string | null;
+            avatar_url?: string | null;
+            bio?: string | null;
+            followers_count?: number | null;
+          } = { last_checked_at: new Date().toISOString() };
           if (body.profile_update) {
             if (body.profile_update.display_name !== undefined) upd.display_name = body.profile_update.display_name;
             if (body.profile_update.avatar_url !== undefined) upd.avatar_url = body.profile_update.avatar_url;
@@ -65,7 +71,7 @@ export const Route = createFileRoute("/api/public/social/ingest")({
             .eq("id", body.profile_id)
             .select("id, candidate_id, profile_type")
             .maybeSingle();
-          profileRow = p as typeof profileRow;
+          profileRow = (p ?? null) as { id: string; candidate_id: string; profile_type: string } | null;
         }
 
         let inserted = 0;
