@@ -1,4 +1,4 @@
-export const META_APP_ID = "1752081939539800";
+export const META_APP_ID = "2042324250036581";
 export const META_REDIRECT_URI = "https://fotodeapoio.easychain.com.br/auth/meta/callback";
 export const META_SCOPES = [
   "public_profile",
