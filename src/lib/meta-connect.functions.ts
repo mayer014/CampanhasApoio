@@ -93,10 +93,178 @@ export const getMetaOAuthUrl = createServerFn({ method: "GET" })
     };
   });
 
+async function exchangeCodeAndSave(userId: string, code: string) {
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appSecret) throw new Error("META_APP_SECRET não configurado no servidor.");
+
+  // 1) Trocar code por user access_token
+  const tokenUrl =
+    `${GRAPH}/oauth/access_token?` +
+    new URLSearchParams({
+      client_id: META_APP_ID,
+      client_secret: appSecret,
+      redirect_uri: META_REDIRECT_URI,
+      code,
+    }).toString();
+
+  const tokenRes = await fbJson<TokenResponse>(tokenUrl);
+  const userAccessToken = tokenRes.access_token;
+  const userExpiresIn = tokenRes.expires_in ?? 0;
+
+  // 2) Long-lived (60 dias)
+  let longLivedToken = userAccessToken;
+  let longLivedExpiresIn = userExpiresIn;
+  try {
+    const ll = await fbJson<TokenResponse>(
+      `${GRAPH}/oauth/access_token?` +
+        new URLSearchParams({
+          grant_type: "fb_exchange_token",
+          client_id: META_APP_ID,
+          client_secret: appSecret,
+          fb_exchange_token: userAccessToken,
+        }).toString(),
+    );
+    longLivedToken = ll.access_token;
+    longLivedExpiresIn = ll.expires_in ?? userExpiresIn;
+  } catch { /* mantém short-lived */ }
+
+  // 3) Debug token
+  const debugToken = await fbJson<DebugTokenResponse>(
+    `${GRAPH}/debug_token?` +
+      new URLSearchParams({
+        input_token: longLivedToken,
+        access_token: `${META_APP_ID}|${appSecret}`,
+      }).toString(),
+  );
+  const tokenDebug = debugToken.data ?? {};
+  console.info("[meta-oauth] token debug", {
+    is_valid: tokenDebug.is_valid ?? false,
+    app_id: tokenDebug.app_id ?? null,
+    user_id: tokenDebug.user_id ?? null,
+    scopes: tokenDebug.scopes ?? [],
+    granular_scopes: tokenDebug.granular_scopes ?? [],
+    data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
+  });
+
+  // 4) Páginas
+  const pagesRes = await fbJson<{
+    data?: Array<{
+      id: string;
+      name: string;
+      access_token: string;
+      tasks?: string[];
+      instagram_business_account?: { id: string };
+    }>;
+  }>(
+    `${GRAPH}/me/accounts?` +
+      new URLSearchParams({
+        fields: "id,name,access_token,tasks,instagram_business_account",
+        access_token: longLivedToken,
+      }).toString(),
+  );
+  const pages = pagesRes.data ?? [];
+  if (pages.length === 0) {
+    const grantedScopes = (tokenDebug.scopes ?? []).join(", ") || "nenhum scope retornado";
+    throw new Error(
+      `Nenhuma página do Facebook foi retornada por /me/accounts. Scopes concedidos: ${grantedScopes}.`,
+    );
+  }
+
+  const page = pages[0];
+  const pageAccessToken = page.access_token;
+  const instagramBusinessId = page.instagram_business_account?.id ?? null;
+
+  let instagramUsername: string | null = null;
+  let instagramPictureUrl: string | null = null;
+  if (instagramBusinessId) {
+    try {
+      const ig = await fbJson<{ id: string; username?: string; profile_picture_url?: string }>(
+        `${GRAPH}/${instagramBusinessId}?` +
+          new URLSearchParams({
+            fields: "id,username,profile_picture_url",
+            access_token: pageAccessToken,
+          }).toString(),
+      );
+      instagramUsername = ig.username ?? null;
+      instagramPictureUrl = ig.profile_picture_url ?? null;
+    } catch { /* opcional */ }
+  }
+
+  let pagePictureUrl: string | null = null;
+  try {
+    const pic = await fbJson<{ data?: { url?: string } }>(
+      `${GRAPH}/${page.id}/picture?redirect=false&type=large&access_token=${pageAccessToken}`,
+    );
+    pagePictureUrl = pic.data?.url ?? null;
+  } catch { /* opcional */ }
+
+  const expiresAt =
+    longLivedExpiresIn > 0 ? new Date(Date.now() + longLivedExpiresIn * 1000).toISOString() : null;
+
+  const row = {
+    user_id: userId,
+    platform: "meta",
+    access_token: pageAccessToken,
+    page_id: page.id,
+    page_name: page.name,
+    page_picture_url: pagePictureUrl,
+    instagram_business_id: instagramBusinessId,
+    instagram_username: instagramUsername,
+    instagram_picture_url: instagramPictureUrl,
+    expires_at: expiresAt,
+    status: page.id ? "connected" : "disconnected",
+    metadata: {
+      source: "code_oauth",
+      granted_at: new Date().toISOString(),
+      user_access_token_expires_in: longLivedExpiresIn,
+      pages_count: pages.length,
+      page_tasks: page.tasks ?? [],
+      token_debug: {
+        is_valid: tokenDebug.is_valid ?? false,
+        app_id: tokenDebug.app_id ?? null,
+        user_id: tokenDebug.user_id ?? null,
+        scopes: tokenDebug.scopes ?? [],
+        granular_scopes:
+          tokenDebug.granular_scopes?.map((s) => ({
+            scope: s.scope ?? null,
+            target_ids: s.target_ids ?? [],
+            expired_time: s.expired_time ?? null,
+          })) ?? [],
+        data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
+      },
+    },
+  };
+
+  const { error: upErr } = await supabaseAdmin
+    .from("social_connections")
+    .upsert(row, { onConflict: "user_id,platform" });
+  if (upErr) throw new Error(upErr.message);
+
+  return {
+    ok: true,
+    page_id: page.id,
+    page_name: page.name,
+    instagram_business_id: instagramBusinessId,
+    instagram_username: instagramUsername,
+    expires_at: expiresAt,
+  };
+}
+
 /**
- * Chamada pelo callback /auth/meta/callback. NÃO exige Authorization header
- * (o popup OAuth da Meta não envia bearer token). A autenticação é feita
- * exclusivamente via `state` assinado HMAC.
+ * Versão autenticada: usa a sessão Supabase do navegador (o popup compartilha
+ * localStorage com a janela principal). O `state` é validado client-side.
+ */
+export const connectMetaAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ code: z.string().min(10).max(2000) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    return exchangeCodeAndSave(context.userId, data.code);
+  });
+
+/**
+ * Versão com state assinado HMAC (mantida para compatibilidade).
  */
 export const connectMetaAccountWithState = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
@@ -109,159 +277,6 @@ export const connectMetaAccountWithState = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { uid: userId } = verifyState(data.state);
-
-    const appSecret = process.env.META_APP_SECRET;
-    if (!appSecret) throw new Error("META_APP_SECRET não configurado no servidor.");
-
-    // 1) Trocar code por user access_token
-    const tokenUrl =
-      `${GRAPH}/oauth/access_token?` +
-      new URLSearchParams({
-        client_id: META_APP_ID,
-        client_secret: appSecret,
-        redirect_uri: META_REDIRECT_URI,
-        code: data.code,
-      }).toString();
-
-    const tokenRes = await fbJson<TokenResponse>(tokenUrl);
-    const userAccessToken = tokenRes.access_token;
-    const userExpiresIn = tokenRes.expires_in ?? 0;
-
-    // 2) Long-lived (60 dias) — opcional
-    let longLivedToken = userAccessToken;
-    let longLivedExpiresIn = userExpiresIn;
-    try {
-      const ll = await fbJson<TokenResponse>(
-        `${GRAPH}/oauth/access_token?` +
-          new URLSearchParams({
-            grant_type: "fb_exchange_token",
-            client_id: META_APP_ID,
-            client_secret: appSecret,
-            fb_exchange_token: userAccessToken,
-          }).toString(),
-      );
-      longLivedToken = ll.access_token;
-      longLivedExpiresIn = ll.expires_in ?? userExpiresIn;
-    } catch { /* mantém short-lived */ }
-
-    // 3) Debug token
-    const debugToken = await fbJson<DebugTokenResponse>(
-      `${GRAPH}/debug_token?` +
-        new URLSearchParams({
-          input_token: longLivedToken,
-          access_token: `${META_APP_ID}|${appSecret}`,
-        }).toString(),
-    );
-    const tokenDebug = debugToken.data ?? {};
-    console.info("[meta-oauth] token debug", {
-      is_valid: tokenDebug.is_valid ?? false,
-      app_id: tokenDebug.app_id ?? null,
-      user_id: tokenDebug.user_id ?? null,
-      scopes: tokenDebug.scopes ?? [],
-      granular_scopes: tokenDebug.granular_scopes ?? [],
-      data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
-    });
-
-    // 4) Páginas
-    const pagesRes = await fbJson<{
-      data?: Array<{
-        id: string;
-        name: string;
-        access_token: string;
-        tasks?: string[];
-        instagram_business_account?: { id: string };
-      }>;
-    }>(
-      `${GRAPH}/me/accounts?` +
-        new URLSearchParams({
-          fields: "id,name,access_token,tasks,instagram_business_account",
-          access_token: longLivedToken,
-        }).toString(),
-    );
-    const pages = pagesRes.data ?? [];
-    if (pages.length === 0) {
-      const grantedScopes = (tokenDebug.scopes ?? []).join(", ") || "nenhum scope retornado";
-      throw new Error(
-        `Nenhuma página do Facebook foi retornada por /me/accounts. Scopes concedidos: ${grantedScopes}.`,
-      );
-    }
-
-    const page = pages[0];
-    const pageAccessToken = page.access_token;
-    const instagramBusinessId = page.instagram_business_account?.id ?? null;
-
-    let instagramUsername: string | null = null;
-    let instagramPictureUrl: string | null = null;
-    if (instagramBusinessId) {
-      try {
-        const ig = await fbJson<{ id: string; username?: string; profile_picture_url?: string }>(
-          `${GRAPH}/${instagramBusinessId}?` +
-            new URLSearchParams({
-              fields: "id,username,profile_picture_url",
-              access_token: pageAccessToken,
-            }).toString(),
-        );
-        instagramUsername = ig.username ?? null;
-        instagramPictureUrl = ig.profile_picture_url ?? null;
-      } catch { /* opcional */ }
-    }
-
-    let pagePictureUrl: string | null = null;
-    try {
-      const pic = await fbJson<{ data?: { url?: string } }>(
-        `${GRAPH}/${page.id}/picture?redirect=false&type=large&access_token=${pageAccessToken}`,
-      );
-      pagePictureUrl = pic.data?.url ?? null;
-    } catch { /* opcional */ }
-
-    const expiresAt =
-      longLivedExpiresIn > 0 ? new Date(Date.now() + longLivedExpiresIn * 1000).toISOString() : null;
-
-    const row = {
-      user_id: userId,
-      platform: "meta",
-      access_token: pageAccessToken,
-      page_id: page.id,
-      page_name: page.name,
-      page_picture_url: pagePictureUrl,
-      instagram_business_id: instagramBusinessId,
-      instagram_username: instagramUsername,
-      instagram_picture_url: instagramPictureUrl,
-      expires_at: expiresAt,
-      status: page.id ? "connected" : "disconnected",
-      metadata: {
-        source: "code_oauth_state",
-        granted_at: new Date().toISOString(),
-        user_access_token_expires_in: longLivedExpiresIn,
-        pages_count: pages.length,
-        page_tasks: page.tasks ?? [],
-        token_debug: {
-          is_valid: tokenDebug.is_valid ?? false,
-          app_id: tokenDebug.app_id ?? null,
-          user_id: tokenDebug.user_id ?? null,
-          scopes: tokenDebug.scopes ?? [],
-          granular_scopes:
-            tokenDebug.granular_scopes?.map((s) => ({
-              scope: s.scope ?? null,
-              target_ids: s.target_ids ?? [],
-              expired_time: s.expired_time ?? null,
-            })) ?? [],
-          data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
-        },
-      },
-    };
-
-    const { error: upErr } = await supabaseAdmin
-      .from("social_connections")
-      .upsert(row, { onConflict: "user_id,platform" });
-    if (upErr) throw new Error(upErr.message);
-
-    return {
-      ok: true,
-      page_id: page.id,
-      page_name: page.name,
-      instagram_business_id: instagramBusinessId,
-      instagram_username: instagramUsername,
-      expires_at: expiresAt,
-    };
+    return exchangeCodeAndSave(userId, data.code);
   });
+

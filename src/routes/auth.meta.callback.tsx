@@ -1,8 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, AlertTriangle, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { connectMetaAccountWithState } from "@/lib/meta-connect.functions";
+import { connectMetaAccount } from "@/lib/meta-connect.functions";
+import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
+
+type CallbackStatus =
+  | { kind: "loading" }
+  | { kind: "success"; pageName: string | null }
+  | { kind: "error"; message: string };
 
 export const Route = createFileRoute("/auth/meta/callback")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -12,82 +18,102 @@ export const Route = createFileRoute("/auth/meta/callback")({
     error_description:
       typeof search.error_description === "string" ? search.error_description : undefined,
   }),
-  loaderDeps: ({ search }) => ({
-    code: search.code,
-    state: search.state,
-    error: search.error,
-    error_description: search.error_description,
-  }),
-  loader: async ({ deps }) => {
-    const err = deps.error_description || deps.error;
-    if (err) throw new Error(err);
-    if (!deps.code) throw new Error("Código de autorização não retornado pela Meta.");
-    if (!deps.state) throw new Error("Parâmetro state ausente. Reinicie a conexão.");
-
-    const result = await connectMetaAccountWithState({
-      data: {
-        code: deps.code,
-        state: deps.state,
-      },
-    });
-
-    if (!result?.page_id) {
-      throw new Error(
-        "Nenhuma página do Facebook encontrada. Verifique se sua conta administra uma página.",
-      );
-    }
-
-    return result;
-  },
-  component: MetaCallbackSuccessPage,
-  errorComponent: MetaCallbackErrorPage,
-  notFoundComponent: MetaCallbackNotFoundPage,
+  component: MetaCallbackPage,
 });
 
-function MetaCallbackSuccessPage() {
+function MetaCallbackPage() {
   const navigate = useNavigate();
-  const result = Route.useLoaderData();
+  const search = Route.useSearch();
+  const [status, setStatus] = useState<CallbackStatus>({ kind: "loading" });
 
   useEffect(() => {
-    window.history.replaceState(null, "", window.location.pathname);
-
-    if (window.opener && !window.opener.closed) {
+    let cancelled = false;
+    async function run() {
       try {
-        window.opener.postMessage({ type: "meta-oauth-success" }, window.location.origin);
-      } catch {
-        /* noop */
+        const err = search.error_description || search.error;
+        if (err) throw new Error(err);
+        if (!search.code) throw new Error("Código de autorização não retornado pela Meta.");
+
+        // Validação client-side do state via localStorage
+        const expectedState = localStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
+        if (!expectedState) {
+          throw new Error(
+            "State OAuth não encontrado. Reabra a conexão a partir da página Redes Sociais.",
+          );
+        }
+        if (!search.state || search.state !== expectedState) {
+          throw new Error("State OAuth inválido. Por segurança, reinicie a conexão.");
+        }
+        // Consome o state (one-time use)
+        localStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
+
+        const result = await connectMetaAccount({ data: { code: search.code } });
+        if (!result?.page_id) {
+          throw new Error(
+            "Nenhuma página do Facebook encontrada. Verifique se sua conta administra uma página.",
+          );
+        }
+
+        if (cancelled) return;
+        setStatus({ kind: "success", pageName: result.page_name ?? null });
+
+        window.history.replaceState(null, "", window.location.pathname);
+
+        if (window.opener && !window.opener.closed) {
+          try {
+            window.opener.postMessage({ type: "meta-oauth-success" }, window.location.origin);
+          } catch { /* noop */ }
+          window.setTimeout(() => window.close(), 800);
+        } else {
+          window.setTimeout(() => navigate({ to: "/painel/redes-sociais" }), 1200);
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setStatus({
+          kind: "error",
+          message: e instanceof Error ? e.message : "Falha ao conectar com a Meta.",
+        });
       }
-      const timer = window.setTimeout(() => window.close(), 800);
-      return () => window.clearTimeout(timer);
     }
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [search.code, search.state, search.error, search.error_description, navigate]);
 
-    const timer = window.setTimeout(() => navigate({ to: "/painel/redes-sociais" }), 1200);
-    return () => window.clearTimeout(timer);
-  }, [navigate]);
+  if (status.kind === "loading") {
+    return (
+      <MetaCallbackCard>
+        <div className="text-center space-y-3">
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
+          <h1 className="text-lg font-semibold">Conectando sua conta Meta…</h1>
+          <p className="text-sm text-muted-foreground">Validando autorização e carregando páginas.</p>
+        </div>
+      </MetaCallbackCard>
+    );
+  }
 
-  return (
-    <MetaCallbackCard>
-      <div className="text-center space-y-3">
-        <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
-        <h1 className="text-lg font-semibold">Facebook conectado com sucesso!</h1>
-        <p className="text-sm text-muted-foreground">
-          {result.page_name ? `Página conectada: ${result.page_name}.` : "Sua conexão foi salva com sucesso."}
-        </p>
-        <p className="text-sm text-muted-foreground">Você pode fechar esta janela.</p>
-      </div>
-    </MetaCallbackCard>
-  );
-}
-
-function MetaCallbackErrorPage({ error }: { error: Error }) {
-  const navigate = useNavigate();
+  if (status.kind === "success") {
+    return (
+      <MetaCallbackCard>
+        <div className="text-center space-y-3">
+          <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
+          <h1 className="text-lg font-semibold">Facebook conectado com sucesso!</h1>
+          <p className="text-sm text-muted-foreground">
+            {status.pageName ? `Página conectada: ${status.pageName}.` : "Sua conexão foi salva."}
+          </p>
+          <p className="text-sm text-muted-foreground">Você pode fechar esta janela.</p>
+        </div>
+      </MetaCallbackCard>
+    );
+  }
 
   return (
     <MetaCallbackCard>
       <div className="text-center space-y-4">
         <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
         <h1 className="text-lg font-semibold">Não foi possível conectar</h1>
-        <p className="text-sm text-muted-foreground break-words">{error.message || "Falha ao conectar."}</p>
+        <p className="text-sm text-muted-foreground break-words">{status.message}</p>
         <Button onClick={() => navigate({ to: "/painel/redes-sociais" })} className="w-full">
           Voltar para Redes Sociais
         </Button>
@@ -96,19 +122,8 @@ function MetaCallbackErrorPage({ error }: { error: Error }) {
   );
 }
 
-function MetaCallbackNotFoundPage() {
-  return (
-    <MetaCallbackCard>
-      <div className="text-center space-y-4">
-        <Loader2 className="mx-auto h-8 w-8 text-primary" />
-        <h1 className="text-lg font-semibold">Callback Meta indisponível</h1>
-        <p className="text-sm text-muted-foreground">
-          Abra a conexão novamente pela página de Redes Sociais.
-        </p>
-      </div>
-    </MetaCallbackCard>
-  );
-}
+
+
 
 function MetaCallbackCard({ children }: { children: React.ReactNode }) {
   return (
