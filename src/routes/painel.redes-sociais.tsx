@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { buildMetaOAuthUrl } from "@/lib/meta-oauth";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
@@ -66,9 +67,29 @@ function RedesSociaisPage() {
   useEffect(() => { void load(); }, [user?.id]);
 
   async function handleConnect() {
-    toast.info("Integração com a Meta ainda não foi ativada", {
-      description: "A estrutura está pronta. O OAuth real será habilitado em breve.",
-    });
+    if (!user) {
+      toast.error("Você precisa estar autenticado.");
+      return;
+    }
+    const url = buildMetaOAuthUrl(user.id);
+    const w = 600, h = 750;
+    const left = window.screenX + (window.outerWidth - w) / 2;
+    const top = window.screenY + (window.outerHeight - h) / 2;
+    const popup = window.open(
+      url,
+      "meta-oauth",
+      `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
+    );
+    if (!popup) {
+      window.location.href = url;
+      return;
+    }
+    const timer = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(timer);
+        void load();
+      }
+    }, 800);
   }
 
   async function handleDisconnect() {
