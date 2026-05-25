@@ -182,6 +182,60 @@ export type Database = {
         }
         Relationships: []
       }
+      social_connections: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          instagram_business_id: string | null
+          instagram_picture_url: string | null
+          instagram_username: string | null
+          metadata: Json
+          page_id: string | null
+          page_name: string | null
+          page_picture_url: string | null
+          platform: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          instagram_business_id?: string | null
+          instagram_picture_url?: string | null
+          instagram_username?: string | null
+          metadata?: Json
+          page_id?: string | null
+          page_name?: string | null
+          page_picture_url?: string | null
+          platform?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          instagram_business_id?: string | null
+          instagram_picture_url?: string | null
+          instagram_username?: string | null
+          metadata?: Json
+          page_id?: string | null
+          page_name?: string | null
+          page_picture_url?: string | null
+          platform?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_jobs: {
         Row: {
           attempts: number
