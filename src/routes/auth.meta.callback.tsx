@@ -123,71 +123,7 @@ function MetaCallbackPage() {
 }
 
 
-function MetaCallbackSuccessPage() {
-  const navigate = useNavigate();
-  const result = Route.useLoaderData();
 
-  useEffect(() => {
-    window.history.replaceState(null, "", window.location.pathname);
-
-    if (window.opener && !window.opener.closed) {
-      try {
-        window.opener.postMessage({ type: "meta-oauth-success" }, window.location.origin);
-      } catch {
-        /* noop */
-      }
-      const timer = window.setTimeout(() => window.close(), 800);
-      return () => window.clearTimeout(timer);
-    }
-
-    const timer = window.setTimeout(() => navigate({ to: "/painel/redes-sociais" }), 1200);
-    return () => window.clearTimeout(timer);
-  }, [navigate]);
-
-  return (
-    <MetaCallbackCard>
-      <div className="text-center space-y-3">
-        <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
-        <h1 className="text-lg font-semibold">Facebook conectado com sucesso!</h1>
-        <p className="text-sm text-muted-foreground">
-          {result.page_name ? `Página conectada: ${result.page_name}.` : "Sua conexão foi salva com sucesso."}
-        </p>
-        <p className="text-sm text-muted-foreground">Você pode fechar esta janela.</p>
-      </div>
-    </MetaCallbackCard>
-  );
-}
-
-function MetaCallbackErrorPage({ error }: { error: Error }) {
-  const navigate = useNavigate();
-
-  return (
-    <MetaCallbackCard>
-      <div className="text-center space-y-4">
-        <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
-        <h1 className="text-lg font-semibold">Não foi possível conectar</h1>
-        <p className="text-sm text-muted-foreground break-words">{error.message || "Falha ao conectar."}</p>
-        <Button onClick={() => navigate({ to: "/painel/redes-sociais" })} className="w-full">
-          Voltar para Redes Sociais
-        </Button>
-      </div>
-    </MetaCallbackCard>
-  );
-}
-
-function MetaCallbackNotFoundPage() {
-  return (
-    <MetaCallbackCard>
-      <div className="text-center space-y-4">
-        <Loader2 className="mx-auto h-8 w-8 text-primary" />
-        <h1 className="text-lg font-semibold">Callback Meta indisponível</h1>
-        <p className="text-sm text-muted-foreground">
-          Abra a conexão novamente pela página de Redes Sociais.
-        </p>
-      </div>
-    </MetaCallbackCard>
-  );
-}
 
 function MetaCallbackCard({ children }: { children: React.ReactNode }) {
   return (
