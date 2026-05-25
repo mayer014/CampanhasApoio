@@ -52,7 +52,6 @@ function daysUntil(iso: string | null) {
 
 function RedesSociaisPage() {
   const { user } = useAuth();
-  const getOAuthState = useServerFn(getMetaOAuthState);
   const [loading, setLoading] = useState(true);
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
