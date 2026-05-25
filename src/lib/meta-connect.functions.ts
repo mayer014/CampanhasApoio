@@ -164,10 +164,21 @@ async function exchangeCodeAndSave(userId: string, code: string) {
   );
   const pages = pagesRes.data ?? [];
   if (pages.length === 0) {
-    const grantedScopes = (tokenDebug.scopes ?? []).join(", ") || "nenhum scope retornado";
-    throw new Error(
-      `Nenhuma página do Facebook foi retornada por /me/accounts. Scopes concedidos: ${grantedScopes}.`,
-    );
+    const diag = {
+      message:
+        "Nenhuma página do Facebook foi retornada por /me/accounts. Verifique scopes/permissões concedidas.",
+      token_debug: {
+        is_valid: tokenDebug.is_valid ?? false,
+        app_id: tokenDebug.app_id ?? null,
+        user_id: tokenDebug.user_id ?? null,
+        scopes: tokenDebug.scopes ?? [],
+        granular_scopes: tokenDebug.granular_scopes ?? [],
+        data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
+      },
+      me_accounts_raw: pagesRes,
+    };
+    console.error("[meta-oauth] /me/accounts vazio", diag);
+    throw new Error("META_DIAG:" + JSON.stringify(diag));
   }
 
   const page = pages[0];
