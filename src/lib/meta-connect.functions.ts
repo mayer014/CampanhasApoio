@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { META_APP_ID, META_REDIRECT_URI, META_GRAPH_VERSION } from "./meta-oauth";
+import { buildMetaOAuthUrl, META_APP_ID, META_REDIRECT_URI, META_GRAPH_VERSION } from "./meta-oauth";
 
 const GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
 
@@ -38,6 +38,26 @@ async function fbJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
   return json;
 }
+
+export const getMetaOAuthUrl = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ state: z.string().min(1).max(255).optional() })
+      .optional()
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
+
+    return {
+      url: buildMetaOAuthUrl({
+        state: data?.state,
+        configId,
+      }),
+      configId,
+    };
+  });
 
 export const connectMetaAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
