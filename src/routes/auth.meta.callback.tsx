@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, CheckCircle2, AlertTriangle, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { connectMetaAccount } from "@/lib/meta-connect.functions";
+import { connectMetaAccountWithState } from "@/lib/meta-connect.functions";
 
 export const Route = createFileRoute("/auth/meta/callback")({
   component: MetaCallbackPage,
