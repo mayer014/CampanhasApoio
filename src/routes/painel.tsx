@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Camera, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu, MessageCircle, Radar } from "lucide-react";
+import { Camera, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu, MessageCircle, Radar, Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/painel")({
   component: PainelLayout,
@@ -38,6 +38,7 @@ function PainelLayout() {
     { to: "/painel/leads", label: "Eleitores", icon: Users },
     { to: "/painel/whatsapp", label: "WhatsApp", icon: MessageCircle },
     { to: "/painel/social", label: "Inteligência Social", icon: Radar },
+    { to: "/painel/redes-sociais", label: "Redes Sociais", icon: Share2 },
   ];
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
