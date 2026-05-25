@@ -5,10 +5,23 @@ import { Button } from "@/components/ui/button";
 import { connectMetaAccount } from "@/lib/meta-connect.functions";
 import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
 
+type MetaDiag = {
+  message: string;
+  token_debug: {
+    is_valid: boolean;
+    app_id: string | null;
+    user_id: string | null;
+    scopes: string[];
+    granular_scopes: Array<{ scope?: string; target_ids?: string[]; expired_time?: number }>;
+    data_access_expires_at: number | null;
+  };
+  me_accounts_raw: unknown;
+};
+
 type CallbackStatus =
   | { kind: "loading" }
   | { kind: "success"; pageName: string | null }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; diag?: MetaDiag };
 
 export const Route = createFileRoute("/auth/meta/callback")({
   validateSearch: (search: Record<string, unknown>) => ({
