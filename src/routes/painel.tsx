@@ -38,6 +38,7 @@ function PainelLayout() {
     { to: "/painel/leads", label: "Eleitores", icon: Users },
     { to: "/painel/whatsapp", label: "WhatsApp", icon: MessageCircle },
     { to: "/painel/social", label: "Inteligência Social", icon: Radar },
+    { to: "/painel/redes-sociais", label: "Redes Sociais", icon: Share2 },
   ];
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
