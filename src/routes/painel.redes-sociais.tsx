@@ -114,7 +114,7 @@ function RedesSociaisPage() {
   }
 
   const expiresInDays = daysUntil(conn?.expires_at ?? null);
-  const isConnected = conn?.status === "connected";
+  const isConnected = !!conn?.page_id && conn?.status === "connected";
 
   return (
     <div className="space-y-8">
