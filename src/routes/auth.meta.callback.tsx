@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, CheckCircle2, AlertTriangle, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { connectMetaAccount } from "@/lib/meta-connect.functions";
+import { connectMetaAccountWithState } from "@/lib/meta-connect.functions";
 
 export const Route = createFileRoute("/auth/meta/callback")({
   component: MetaCallbackPage,
@@ -13,7 +13,7 @@ type Status = "loading" | "success" | "error";
 
 function MetaCallbackPage() {
   const navigate = useNavigate();
-  const connect = useServerFn(connectMetaAccount);
+  const connect = useServerFn(connectMetaAccountWithState);
   const [status, setStatus] = useState<Status>("loading");
   const [message, setMessage] = useState("Conectando sua conta Meta...");
 
@@ -25,9 +25,11 @@ function MetaCallbackPage() {
         if (err) throw new Error(err);
 
         const code = query.get("code");
+        const state = query.get("state");
         if (!code) throw new Error("Código de autorização não retornado pela Meta.");
+        if (!state) throw new Error("Parâmetro state ausente. Reinicie a conexão.");
 
-        const result = await connect({ data: { code } });
+        const result = await connect({ data: { code, state } });
         if (!result?.page_id) {
           throw new Error(
             "Nenhuma página do Facebook encontrada. Verifique se sua conta administra uma página.",

@@ -1,32 +1,60 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { createHmac, timingSafeEqual } from "crypto";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { buildMetaOAuthUrl, META_APP_ID, META_REDIRECT_URI, META_GRAPH_VERSION } from "./meta-oauth";
 
 const GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
+const STATE_TTL_MS = 10 * 60 * 1000; // 10 min
 
-type TokenResponse = {
-  access_token: string;
-  token_type?: string;
-  expires_in?: number;
-};
+function stateSecret() {
+  const s = process.env.SOCIAL_HMAC_SECRET || process.env.META_APP_SECRET;
+  if (!s) throw new Error("SOCIAL_HMAC_SECRET (ou META_APP_SECRET) não configurado.");
+  return s;
+}
 
+function b64url(buf: Buffer | string) {
+  return Buffer.from(buf).toString("base64").replace(/=+$/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+function b64urlDecode(s: string): Buffer {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  return Buffer.from(s, "base64");
+}
+
+function signState(userId: string): string {
+  const payload = { uid: userId, exp: Date.now() + STATE_TTL_MS, n: Math.random().toString(36).slice(2, 10) };
+  const body = b64url(JSON.stringify(payload));
+  const sig = b64url(createHmac("sha256", stateSecret()).update(body).digest());
+  return `${body}.${sig}`;
+}
+
+function verifyState(state: string): { uid: string } {
+  const [body, sig] = state.split(".");
+  if (!body || !sig) throw new Error("State inválido.");
+  const expected = b64url(createHmac("sha256", stateSecret()).update(body).digest());
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) throw new Error("Assinatura do state inválida.");
+  const payload = JSON.parse(b64urlDecode(body).toString("utf8")) as { uid?: string; exp?: number };
+  if (!payload.uid || !payload.exp) throw new Error("Payload do state inválido.");
+  if (Date.now() > payload.exp) throw new Error("State expirado. Tente conectar novamente.");
+  return { uid: payload.uid };
+}
+
+type TokenResponse = { access_token: string; token_type?: string; expires_in?: number };
 type DebugTokenResponse = {
   data?: {
     app_id?: string;
     user_id?: string;
     scopes?: string[];
-    granular_scopes?: Array<{
-      scope?: string;
-      target_ids?: string[];
-      expired_time?: number;
-    }>;
+    granular_scopes?: Array<{ scope?: string; target_ids?: string[]; expired_time?: number }>;
     data_access_expires_at?: number;
     expires_at?: number;
     is_valid?: boolean;
   };
 };
-
 type FbError = { error?: { message?: string; type?: string; code?: number } };
 
 async function fbJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -39,38 +67,45 @@ async function fbJson<T>(url: string, init?: RequestInit): Promise<T> {
   return json;
 }
 
+/**
+ * Gera a URL OAuth com `state` assinado HMAC contendo o user_id autenticado.
+ * Requer sessão Supabase do usuário (chamada antes de abrir o popup).
+ */
 export const getMetaOAuthUrl = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z
-      .object({ state: z.string().min(1).max(255).optional() })
-      .optional()
-      .parse(input),
+    z.object({ state: z.string().max(255).optional() }).optional().parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ context }) => {
     const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
-
+    const signed = signState(context.userId);
     return {
-      url: buildMetaOAuthUrl({
-        state: data?.state,
-        configId,
-      }),
+      url: buildMetaOAuthUrl({ state: signed, configId }),
       configId,
     };
   });
 
-export const connectMetaAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+/**
+ * Chamada pelo callback /auth/meta/callback. NÃO exige Authorization header
+ * (o popup OAuth da Meta não envia bearer token). A autenticação é feita
+ * exclusivamente via `state` assinado HMAC.
+ */
+export const connectMetaAccountWithState = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({ code: z.string().min(10).max(2000) }).parse(input),
+    z
+      .object({
+        code: z.string().min(10).max(2000),
+        state: z.string().min(10).max(2000),
+      })
+      .parse(input),
   )
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+  .handler(async ({ data }) => {
+    const { uid: userId } = verifyState(data.state);
 
     const appSecret = process.env.META_APP_SECRET;
     if (!appSecret) throw new Error("META_APP_SECRET não configurado no servidor.");
 
-    // 1+2) Trocar code por user access_token
+    // 1) Trocar code por user access_token
     const tokenUrl =
       `${GRAPH}/oauth/access_token?` +
       new URLSearchParams({
@@ -84,25 +119,24 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
     const userAccessToken = tokenRes.access_token;
     const userExpiresIn = tokenRes.expires_in ?? 0;
 
-    // (opcional) trocar por long-lived user token (60 dias)
+    // 2) Long-lived (60 dias) — opcional
     let longLivedToken = userAccessToken;
     let longLivedExpiresIn = userExpiresIn;
     try {
-      const llUrl =
+      const ll = await fbJson<TokenResponse>(
         `${GRAPH}/oauth/access_token?` +
-        new URLSearchParams({
-          grant_type: "fb_exchange_token",
-          client_id: META_APP_ID,
-          client_secret: appSecret,
-          fb_exchange_token: userAccessToken,
-        }).toString();
-      const ll = await fbJson<TokenResponse>(llUrl);
+          new URLSearchParams({
+            grant_type: "fb_exchange_token",
+            client_id: META_APP_ID,
+            client_secret: appSecret,
+            fb_exchange_token: userAccessToken,
+          }).toString(),
+      );
       longLivedToken = ll.access_token;
       longLivedExpiresIn = ll.expires_in ?? userExpiresIn;
-    } catch {
-      // mantém token de curto prazo
-    }
+    } catch { /* mantém short-lived */ }
 
+    // 3) Debug token
     const debugToken = await fbJson<DebugTokenResponse>(
       `${GRAPH}/debug_token?` +
         new URLSearchParams({
@@ -110,7 +144,6 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
           access_token: `${META_APP_ID}|${appSecret}`,
         }).toString(),
     );
-
     const tokenDebug = debugToken.data ?? {};
     console.info("[meta-oauth] token debug", {
       is_valid: tokenDebug.is_valid ?? false,
@@ -121,7 +154,7 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
       data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
     });
 
-    // 3) Listar páginas
+    // 4) Páginas
     const pagesRes = await fbJson<{
       data?: Array<{
         id: string;
@@ -137,7 +170,6 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
           access_token: longLivedToken,
         }).toString(),
     );
-
     const pages = pagesRes.data ?? [];
     if (pages.length === 0) {
       const grantedScopes = (tokenDebug.scopes ?? []).join(", ") || "nenhum scope retornado";
@@ -146,12 +178,10 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
       );
     }
 
-    // 5) Primeira página
     const page = pages[0];
     const pageAccessToken = page.access_token;
     const instagramBusinessId = page.instagram_business_account?.id ?? null;
 
-    // 7+8) Buscar username do Instagram
     let instagramUsername: string | null = null;
     let instagramPictureUrl: string | null = null;
     if (instagramBusinessId) {
@@ -165,29 +195,20 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
         );
         instagramUsername = ig.username ?? null;
         instagramPictureUrl = ig.profile_picture_url ?? null;
-      } catch {
-        // ignora se o usuário não autorizou instagram_basic
-      }
+      } catch { /* opcional */ }
     }
 
-    // foto da página
     let pagePictureUrl: string | null = null;
     try {
       const pic = await fbJson<{ data?: { url?: string } }>(
         `${GRAPH}/${page.id}/picture?redirect=false&type=large&access_token=${pageAccessToken}`,
       );
       pagePictureUrl = pic.data?.url ?? null;
-    } catch {
-      /* opcional */
-    }
+    } catch { /* opcional */ }
 
-    // 9) expires_at
     const expiresAt =
-      longLivedExpiresIn > 0
-        ? new Date(Date.now() + longLivedExpiresIn * 1000).toISOString()
-        : null;
+      longLivedExpiresIn > 0 ? new Date(Date.now() + longLivedExpiresIn * 1000).toISOString() : null;
 
-    // 6+10) Salvar — connected somente se page_id existir
     const row = {
       user_id: userId,
       platform: "meta",
@@ -201,7 +222,7 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
       expires_at: expiresAt,
       status: page.id ? "connected" : "disconnected",
       metadata: {
-        source: "code_oauth",
+        source: "code_oauth_state",
         granted_at: new Date().toISOString(),
         user_access_token_expires_in: longLivedExpiresIn,
         pages_count: pages.length,
@@ -212,17 +233,17 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
           user_id: tokenDebug.user_id ?? null,
           scopes: tokenDebug.scopes ?? [],
           granular_scopes:
-            tokenDebug.granular_scopes?.map((scope) => ({
-              scope: scope.scope ?? null,
-              target_ids: scope.target_ids ?? [],
-              expired_time: scope.expired_time ?? null,
+            tokenDebug.granular_scopes?.map((s) => ({
+              scope: s.scope ?? null,
+              target_ids: s.target_ids ?? [],
+              expired_time: s.expired_time ?? null,
             })) ?? [],
           data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
         },
       },
     };
 
-    const { error: upErr } = await supabase
+    const { error: upErr } = await supabaseAdmin
       .from("social_connections")
       .upsert(row, { onConflict: "user_id,platform" });
     if (upErr) throw new Error(upErr.message);
