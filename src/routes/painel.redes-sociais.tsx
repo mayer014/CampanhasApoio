@@ -90,21 +90,21 @@ function RedesSociaisPage() {
     const w = 600, h = 750;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
-    const popup = window.open(
-      "about:blank",
-      "meta-oauth",
-      `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
-    );
     try {
-      const { state, configId } = await getOAuthState();
-      const url = buildMetaOAuthUrl({ state, configId });
+      const state = generateOAuthState();
+      localStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
+      const url = buildMetaOAuthUrl({ state });
+
+      const popup = window.open(
+        url,
+        "meta-oauth",
+        `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
+      );
 
       if (!popup) {
         window.location.href = url;
         return;
       }
-
-      popup.location.replace(url);
 
       const timer = setInterval(() => {
         if (popup.closed) {
@@ -113,7 +113,6 @@ function RedesSociaisPage() {
         }
       }, 800);
     } catch (error) {
-      popup?.close();
       toast.error(error instanceof Error ? error.message : "Não foi possível iniciar a conexão com a Meta.");
     }
   }
