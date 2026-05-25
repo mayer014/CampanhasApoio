@@ -81,7 +81,8 @@ function RedesSociaisPage() {
       toast.error("Você precisa estar autenticado.");
       return;
     }
-    const url = buildMetaOAuthUrl(user.id);
+    const configId = import.meta.env.VITE_META_BUSINESS_LOGIN_CONFIG_ID;
+    const url = buildMetaOAuthUrl({ state: user.id, configId });
     const w = 600, h = 750;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
