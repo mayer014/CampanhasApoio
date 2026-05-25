@@ -28,6 +28,7 @@ import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configura
 import { Route as PainelTemplatesIndexRouteImport } from './routes/painel.templates.index'
 import { Route as AdminCandidatosIndexRouteImport } from './routes/admin.candidatos.index'
 import { Route as PainelTemplatesTplIdRouteImport } from './routes/painel.templates.$tplId'
+import { Route as AuthMetaCallbackRouteImport } from './routes/auth.meta.callback'
 import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
 import { Route as ApiPublicWhatsappBroadcastTickRouteImport } from './routes/api/public/whatsapp.broadcast-tick'
@@ -130,6 +131,11 @@ const PainelTemplatesTplIdRoute = PainelTemplatesTplIdRouteImport.update({
   path: '/templates/$tplId',
   getParentRoute: () => PainelRoute,
 } as any)
+const AuthMetaCallbackRoute = AuthMetaCallbackRouteImport.update({
+  id: '/auth/meta/callback',
+  path: '/auth/meta/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCandidatosIdIndexRoute = AdminCandidatosIdIndexRouteImport.update({
   id: '/candidatos/$id/',
   path: '/candidatos/$id/',
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
+  '/auth/meta/callback': typeof AuthMetaCallbackRoute
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin': typeof AdminIndexRoute
   '/painel': typeof PainelIndexRoute
+  '/auth/meta/callback': typeof AuthMetaCallbackRoute
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
   '/painel/templates': typeof PainelTemplatesIndexRoute
@@ -234,6 +242,7 @@ export interface FileRoutesById {
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
+  '/auth/meta/callback': typeof AuthMetaCallbackRoute
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/painel/whatsapp'
     | '/admin/'
     | '/painel/'
+    | '/auth/meta/callback'
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/painel/whatsapp'
     | '/admin'
     | '/painel'
+    | '/auth/meta/callback'
     | '/painel/templates/$tplId'
     | '/admin/candidatos'
     | '/painel/templates'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/painel/whatsapp'
     | '/admin/'
     | '/painel/'
+    | '/auth/meta/callback'
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PainelRoute: typeof PainelRouteWithChildren
   PSlugRoute: typeof PSlugRoute
+  AuthMetaCallbackRoute: typeof AuthMetaCallbackRoute
   ApiPublicSocialCronRoute: typeof ApiPublicSocialCronRoute
   ApiPublicSocialHealthRoute: typeof ApiPublicSocialHealthRoute
   ApiPublicWhatsappBroadcastTickRoute: typeof ApiPublicWhatsappBroadcastTickRoute
@@ -475,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelTemplatesTplIdRouteImport
       parentRoute: typeof PainelRoute
     }
+    '/auth/meta/callback': {
+      id: '/auth/meta/callback'
+      path: '/auth/meta/callback'
+      fullPath: '/auth/meta/callback'
+      preLoaderRoute: typeof AuthMetaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/candidatos/$id/': {
       id: '/admin/candidatos/$id/'
       path: '/candidatos/$id'
@@ -573,6 +593,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PainelRoute: PainelRouteWithChildren,
   PSlugRoute: PSlugRoute,
+  AuthMetaCallbackRoute: AuthMetaCallbackRoute,
   ApiPublicSocialCronRoute: ApiPublicSocialCronRoute,
   ApiPublicSocialHealthRoute: ApiPublicSocialHealthRoute,
   ApiPublicWhatsappBroadcastTickRoute: ApiPublicWhatsappBroadcastTickRoute,
