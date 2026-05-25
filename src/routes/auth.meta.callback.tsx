@@ -12,16 +12,22 @@ export const Route = createFileRoute("/auth/meta/callback")({
     error_description:
       typeof search.error_description === "string" ? search.error_description : undefined,
   }),
-  loader: async ({ search }) => {
-    const err = search.error_description || search.error;
+  loaderDeps: ({ search }) => ({
+    code: search.code,
+    state: search.state,
+    error: search.error,
+    error_description: search.error_description,
+  }),
+  loader: async ({ deps }) => {
+    const err = deps.error_description || deps.error;
     if (err) throw new Error(err);
-    if (!search.code) throw new Error("Código de autorização não retornado pela Meta.");
-    if (!search.state) throw new Error("Parâmetro state ausente. Reinicie a conexão.");
+    if (!deps.code) throw new Error("Código de autorização não retornado pela Meta.");
+    if (!deps.state) throw new Error("Parâmetro state ausente. Reinicie a conexão.");
 
     const result = await connectMetaAccountWithState({
       data: {
-        code: search.code,
-        state: search.state,
+        code: deps.code,
+        state: deps.state,
       },
     });
 
