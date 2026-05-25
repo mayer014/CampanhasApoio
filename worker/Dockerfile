@@ -1,5 +1,5 @@
 # Imagem oficial do Playwright já vem com Chromium + libs do sistema
-FROM mcr.microsoft.com/playwright:v1.55.0-jammy
+FROM mcr.microsoft.com/playwright:v1.60.0-jammy
 
 WORKDIR /app
 
