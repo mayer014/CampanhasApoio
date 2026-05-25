@@ -66,6 +66,16 @@ function RedesSociaisPage() {
 
   useEffect(() => { void load(); }, [user?.id]);
 
+  useEffect(() => {
+    function onMsg(ev: MessageEvent) {
+      if (ev.origin !== window.location.origin) return;
+      if (ev.data?.type === "meta-oauth-success") void load();
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   async function handleConnect() {
     if (!user) {
       toast.error("Você precisa estar autenticado.");
@@ -104,7 +114,7 @@ function RedesSociaisPage() {
   }
 
   const expiresInDays = daysUntil(conn?.expires_at ?? null);
-  const isConnected = conn?.status === "connected";
+  const isConnected = !!conn?.page_id && conn?.status === "connected";
 
   return (
     <div className="space-y-8">
