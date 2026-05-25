@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
+import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
 import { Route as PainelRouteImport } from './routes/painel'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CadastroRouteImport } from './routes/cadastro'
@@ -36,6 +38,16 @@ import { Route as ApiPublicSocialHealthRouteImport } from './routes/api/public/s
 import { Route as ApiPublicSocialCronRouteImport } from './routes/api/public/social.cron'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
+const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
+  id: '/termos-de-uso',
+  path: '/termos-de-uso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
+  id: '/politica-de-privacidade',
+  path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PainelRoute = PainelRouteImport.update({
   id: '/painel',
   path: '/painel',
@@ -177,6 +189,8 @@ export interface FileRoutesByFullPath {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/painel': typeof PainelRouteWithChildren
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
@@ -203,6 +217,8 @@ export interface FileRoutesByTo {
   '/bootstrap': typeof BootstrapRoute
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
@@ -232,6 +248,8 @@ export interface FileRoutesById {
   '/cadastro': typeof CadastroRoute
   '/login': typeof LoginRoute
   '/painel': typeof PainelRouteWithChildren
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
@@ -262,6 +280,8 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/painel'
+    | '/politica-de-privacidade'
+    | '/termos-de-uso'
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
@@ -288,6 +308,8 @@ export interface FileRouteTypes {
     | '/bootstrap'
     | '/cadastro'
     | '/login'
+    | '/politica-de-privacidade'
+    | '/termos-de-uso'
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
@@ -316,6 +338,8 @@ export interface FileRouteTypes {
     | '/cadastro'
     | '/login'
     | '/painel'
+    | '/politica-de-privacidade'
+    | '/termos-de-uso'
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
@@ -345,6 +369,8 @@ export interface RootRouteChildren {
   CadastroRoute: typeof CadastroRoute
   LoginRoute: typeof LoginRoute
   PainelRoute: typeof PainelRouteWithChildren
+  PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  TermosDeUsoRoute: typeof TermosDeUsoRoute
   PSlugRoute: typeof PSlugRoute
   AuthMetaCallbackRoute: typeof AuthMetaCallbackRoute
   ApiPublicSocialCronRoute: typeof ApiPublicSocialCronRoute
@@ -355,6 +381,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/termos-de-uso': {
+      id: '/termos-de-uso'
+      path: '/termos-de-uso'
+      fullPath: '/termos-de-uso'
+      preLoaderRoute: typeof TermosDeUsoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-privacidade': {
+      id: '/politica-de-privacidade'
+      path: '/politica-de-privacidade'
+      fullPath: '/politica-de-privacidade'
+      preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/painel': {
       id: '/painel'
       path: '/painel'
@@ -592,6 +632,8 @@ const rootRouteChildren: RootRouteChildren = {
   CadastroRoute: CadastroRoute,
   LoginRoute: LoginRoute,
   PainelRoute: PainelRouteWithChildren,
+  PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  TermosDeUsoRoute: TermosDeUsoRoute,
   PSlugRoute: PSlugRoute,
   AuthMetaCallbackRoute: AuthMetaCallbackRoute,
   ApiPublicSocialCronRoute: ApiPublicSocialCronRoute,
