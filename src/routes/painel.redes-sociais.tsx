@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { getMetaOAuthUrl } from "@/lib/meta-connect.functions";
+import { getMetaOAuthState } from "@/lib/meta-connect.functions";
+import { buildMetaOAuthUrl } from "@/lib/meta-oauth";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
@@ -47,7 +48,7 @@ function daysUntil(iso: string | null) {
 
 function RedesSociaisPage() {
   const { user } = useAuth();
-  const getOAuthUrl = useServerFn(getMetaOAuthUrl);
+  const getOAuthState = useServerFn(getMetaOAuthState);
   const [loading, setLoading] = useState(true);
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
@@ -83,25 +84,35 @@ function RedesSociaisPage() {
       toast.error("Você precisa estar autenticado.");
       return;
     }
-    const { url } = await getOAuthUrl({ data: { state: user.id } });
     const w = 600, h = 750;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
     const popup = window.open(
-      url,
+      "about:blank",
       "meta-oauth",
       `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
     );
-    if (!popup) {
-      window.location.href = url;
-      return;
-    }
-    const timer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(timer);
-        void load();
+    try {
+      const { state, configId } = await getOAuthState();
+      const url = buildMetaOAuthUrl({ state, configId });
+
+      if (!popup) {
+        window.location.href = url;
+        return;
       }
-    }, 800);
+
+      popup.location.replace(url);
+
+      const timer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(timer);
+          void load();
+        }
+      }, 800);
+    } catch (error) {
+      popup?.close();
+      toast.error(error instanceof Error ? error.message : "Não foi possível iniciar a conexão com a Meta.");
+    }
   }
 
   async function handleDisconnect() {
