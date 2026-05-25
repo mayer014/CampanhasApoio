@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { META_APP_ID, META_REDIRECT_URI, META_GRAPH_VERSION } from "./meta-oauth";
+import { buildMetaOAuthUrl, META_APP_ID, META_REDIRECT_URI, META_GRAPH_VERSION } from "./meta-oauth";
 
 const GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
 
@@ -9,6 +9,22 @@ type TokenResponse = {
   access_token: string;
   token_type?: string;
   expires_in?: number;
+};
+
+type DebugTokenResponse = {
+  data?: {
+    app_id?: string;
+    user_id?: string;
+    scopes?: string[];
+    granular_scopes?: Array<{
+      scope?: string;
+      target_ids?: string[];
+      expired_time?: number;
+    }>;
+    data_access_expires_at?: number;
+    expires_at?: number;
+    is_valid?: boolean;
+  };
 };
 
 type FbError = { error?: { message?: string; type?: string; code?: number } };
@@ -22,6 +38,26 @@ async function fbJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
   return json;
 }
+
+export const getMetaOAuthUrl = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ state: z.string().min(1).max(255).optional() })
+      .optional()
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
+
+    return {
+      url: buildMetaOAuthUrl({
+        state: data?.state,
+        configId,
+      }),
+      configId,
+    };
+  });
 
 export const connectMetaAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -67,26 +103,46 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
       // mantém token de curto prazo
     }
 
+    const debugToken = await fbJson<DebugTokenResponse>(
+      `${GRAPH}/debug_token?` +
+        new URLSearchParams({
+          input_token: longLivedToken,
+          access_token: `${META_APP_ID}|${appSecret}`,
+        }).toString(),
+    );
+
+    const tokenDebug = debugToken.data ?? {};
+    console.info("[meta-oauth] token debug", {
+      is_valid: tokenDebug.is_valid ?? false,
+      app_id: tokenDebug.app_id ?? null,
+      user_id: tokenDebug.user_id ?? null,
+      scopes: tokenDebug.scopes ?? [],
+      granular_scopes: tokenDebug.granular_scopes ?? [],
+      data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
+    });
+
     // 3) Listar páginas
     const pagesRes = await fbJson<{
       data?: Array<{
         id: string;
         name: string;
         access_token: string;
+        tasks?: string[];
         instagram_business_account?: { id: string };
       }>;
     }>(
       `${GRAPH}/me/accounts?` +
         new URLSearchParams({
-          fields: "id,name,access_token,instagram_business_account",
+          fields: "id,name,access_token,tasks,instagram_business_account",
           access_token: longLivedToken,
         }).toString(),
     );
 
     const pages = pagesRes.data ?? [];
     if (pages.length === 0) {
+      const grantedScopes = (tokenDebug.scopes ?? []).join(", ") || "nenhum scope retornado";
       throw new Error(
-        "Nenhuma página do Facebook encontrada. Verifique se sua conta administra uma página.",
+        `Nenhuma página do Facebook foi retornada por /me/accounts. Scopes concedidos: ${grantedScopes}.`,
       );
     }
 
@@ -149,6 +205,20 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
         granted_at: new Date().toISOString(),
         user_access_token_expires_in: longLivedExpiresIn,
         pages_count: pages.length,
+        page_tasks: page.tasks ?? [],
+        token_debug: {
+          is_valid: tokenDebug.is_valid ?? false,
+          app_id: tokenDebug.app_id ?? null,
+          user_id: tokenDebug.user_id ?? null,
+          scopes: tokenDebug.scopes ?? [],
+          granular_scopes:
+            tokenDebug.granular_scopes?.map((scope) => ({
+              scope: scope.scope ?? null,
+              target_ids: scope.target_ids ?? [],
+              expired_time: scope.expired_time ?? null,
+            })) ?? [],
+          data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
+        },
       },
     };
 

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { buildMetaOAuthUrl } from "@/lib/meta-oauth";
+import { getMetaOAuthUrl } from "@/lib/meta-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
@@ -46,6 +47,7 @@ function daysUntil(iso: string | null) {
 
 function RedesSociaisPage() {
   const { user } = useAuth();
+  const getOAuthUrl = useServerFn(getMetaOAuthUrl);
   const [loading, setLoading] = useState(true);
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
@@ -81,7 +83,7 @@ function RedesSociaisPage() {
       toast.error("Você precisa estar autenticado.");
       return;
     }
-    const url = buildMetaOAuthUrl(user.id);
+    const { url } = await getOAuthUrl({ data: { state: user.id } });
     const w = 600, h = 750;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
