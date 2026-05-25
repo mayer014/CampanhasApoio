@@ -25,9 +25,11 @@ function MetaCallbackPage() {
         if (err) throw new Error(err);
 
         const code = query.get("code");
+        const state = query.get("state");
         if (!code) throw new Error("Código de autorização não retornado pela Meta.");
+        if (!state) throw new Error("Parâmetro state ausente. Reinicie a conexão.");
 
-        const result = await connect({ data: { code } });
+        const result = await connect({ data: { code, state } });
         if (!result?.page_id) {
           throw new Error(
             "Nenhuma página do Facebook encontrada. Verifique se sua conta administra uma página.",
