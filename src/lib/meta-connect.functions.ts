@@ -16,7 +16,11 @@ type DebugTokenResponse = {
     app_id?: string;
     user_id?: string;
     scopes?: string[];
-    granular_scopes?: Array<Record<string, unknown>>;
+    granular_scopes?: Array<{
+      scope?: string;
+      target_ids?: string[];
+      expired_time?: number;
+    }>;
     data_access_expires_at?: number;
     expires_at?: number;
     is_valid?: boolean;
@@ -187,7 +191,12 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
           app_id: tokenDebug.app_id ?? null,
           user_id: tokenDebug.user_id ?? null,
           scopes: tokenDebug.scopes ?? [],
-          granular_scopes: tokenDebug.granular_scopes ?? [],
+          granular_scopes:
+            tokenDebug.granular_scopes?.map((scope) => ({
+              scope: scope.scope ?? null,
+              target_ids: scope.target_ids ?? [],
+              expired_time: scope.expired_time ?? null,
+            })) ?? [],
           data_access_expires_at: tokenDebug.data_access_expires_at ?? null,
         },
       },
