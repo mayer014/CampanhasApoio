@@ -133,10 +133,45 @@ function MetaCallbackPage() {
 
   return (
     <MetaCallbackCard>
-      <div className="text-center space-y-4">
-        <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
-        <h1 className="text-lg font-semibold">Não foi possível conectar</h1>
-        <p className="text-sm text-muted-foreground break-words">{status.message}</p>
+      <div className="space-y-4">
+        <div className="text-center space-y-2">
+          <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
+          <h1 className="text-lg font-semibold">Não foi possível conectar</h1>
+          <p className="text-sm text-muted-foreground break-words">{status.message}</p>
+        </div>
+        {status.diag && (
+          <div className="space-y-3 text-xs">
+            <div className="rounded-md border bg-muted/40 p-3">
+              <div className="font-semibold mb-1">Token debug</div>
+              <ul className="space-y-0.5 font-mono">
+                <li>is_valid: {String(status.diag.token_debug.is_valid)}</li>
+                <li>app_id: {status.diag.token_debug.app_id ?? "—"}</li>
+                <li>user_id: {status.diag.token_debug.user_id ?? "—"}</li>
+                <li>data_access_expires_at: {status.diag.token_debug.data_access_expires_at ?? "—"}</li>
+              </ul>
+            </div>
+            <div className="rounded-md border bg-muted/40 p-3">
+              <div className="font-semibold mb-1">Scopes concedidos</div>
+              <div className="font-mono break-words">
+                {status.diag.token_debug.scopes.length
+                  ? status.diag.token_debug.scopes.join(", ")
+                  : "(nenhum)"}
+              </div>
+            </div>
+            <div className="rounded-md border bg-muted/40 p-3">
+              <div className="font-semibold mb-1">Granular scopes</div>
+              <pre className="font-mono whitespace-pre-wrap break-words max-h-40 overflow-auto">
+{JSON.stringify(status.diag.token_debug.granular_scopes, null, 2)}
+              </pre>
+            </div>
+            <div className="rounded-md border bg-muted/40 p-3">
+              <div className="font-semibold mb-1">Resposta bruta de /me/accounts</div>
+              <pre className="font-mono whitespace-pre-wrap break-words max-h-48 overflow-auto">
+{JSON.stringify(status.diag.me_accounts_raw, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
         <Button onClick={() => navigate({ to: "/painel/redes-sociais" })} className="w-full">
           Voltar para Redes Sociais
         </Button>
