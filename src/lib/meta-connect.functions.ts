@@ -68,14 +68,22 @@ async function fbJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 /**
- * Gera a URL OAuth com `state` assinado HMAC contendo o user_id autenticado.
- * Requer sessão Supabase do usuário (chamada antes de abrir o popup).
+ * Gera apenas o `state` assinado e o `config_id` para que o cliente monte
+ * a URL OAuth da Meta sem jamais abrir `/_serverFn` dentro do popup.
  */
+export const getMetaOAuthState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
+    const signed = signState(context.userId);
+    return {
+      state: signed,
+      configId,
+    };
+  });
+
 export const getMetaOAuthUrl = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ state: z.string().max(255).optional() }).optional().parse(input),
-  )
   .handler(async ({ context }) => {
     const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
     const signed = signState(context.userId);
