@@ -13,7 +13,7 @@ type Status = "loading" | "success" | "error";
 
 function MetaCallbackPage() {
   const navigate = useNavigate();
-  const connect = useServerFn(connectMetaAccount);
+  const connect = useServerFn(connectMetaAccountWithState);
   const [status, setStatus] = useState<Status>("loading");
   const [message, setMessage] = useState("Conectando sua conta Meta...");
 
