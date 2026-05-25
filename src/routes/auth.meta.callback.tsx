@@ -82,10 +82,20 @@ function MetaCallbackPage() {
         }
       } catch (e) {
         if (cancelled) return;
-        setStatus({
-          kind: "error",
-          message: e instanceof Error ? e.message : "Falha ao conectar com a Meta.",
-        });
+        const raw = e instanceof Error ? e.message : "Falha ao conectar com a Meta.";
+        let diag: MetaDiag | undefined;
+        let message = raw;
+        const idx = raw.indexOf("META_DIAG:");
+        if (idx >= 0) {
+          try {
+            diag = JSON.parse(raw.slice(idx + "META_DIAG:".length)) as MetaDiag;
+            message = diag.message;
+            console.error("[meta-oauth] diagnóstico", diag);
+          } catch {
+            /* keep raw */
+          }
+        }
+        setStatus({ kind: "error", message, diag });
       }
     }
     void run();
