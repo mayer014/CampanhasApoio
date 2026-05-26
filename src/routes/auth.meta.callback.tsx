@@ -4,6 +4,7 @@ import { Loader2, CheckCircle2, AlertTriangle, Facebook, Instagram } from "lucid
 import { Button } from "@/components/ui/button";
 import { useServerFn } from "@tanstack/react-start";
 import { connectMetaAccount } from "@/lib/meta-connect.functions";
+import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
 
 type StateDiag = {
   state_received: string;
@@ -65,7 +66,7 @@ function MetaCallbackPage() {
         if (!search.code) throw new Error("Código de autorização não retornado pela Meta.");
         if (!search.state) throw new Error("Parâmetro state ausente no retorno da Meta.");
 
-        const storedState = sessionStorage.getItem("meta_oauth_state");
+        const storedState = sessionStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
         if (!storedState) {
           throw new Error(
             "STATE_DIAG:" + JSON.stringify({
@@ -93,7 +94,7 @@ function MetaCallbackPage() {
 
         if (cancelled) return;
         setStatus({ kind: "success", pageName: result.page_name ?? null });
-        sessionStorage.removeItem("meta_oauth_state");
+        sessionStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
         window.history.replaceState(null, "", window.location.pathname);
         if (window.opener && !window.opener.closed) {
           try {
