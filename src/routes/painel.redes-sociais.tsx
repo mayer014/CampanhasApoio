@@ -51,6 +51,7 @@ function RedesSociaisPage() {
   const [loading, setLoading] = useState(true);
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
+  const startOAuth = useServerFn(startMetaOAuth);
 
   async function load() {
     if (!user) return;
