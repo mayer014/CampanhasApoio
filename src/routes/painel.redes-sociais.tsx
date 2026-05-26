@@ -179,6 +179,7 @@ function RedesSociaisPage() {
     }
     const state = createMetaOAuthState(window.location.origin);
     sessionStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
+    pushDiag({ kind: "info", label: "Iniciando OAuth Meta", detail: `origin=${window.location.origin}` });
 
     const response = await fetch(`/api/public/meta/oauth?state=${encodeURIComponent(state)}`, {
       method: "GET",
@@ -189,30 +190,29 @@ function RedesSociaisPage() {
     try {
       data = await response.json();
     } catch (e) {
-      console.error("[META FETCH] JSON parse failed", e);
+      pushDiag({ kind: "error", label: "Resposta /api/public/meta/oauth não é JSON", detail: String(e) });
     }
 
-    console.log("[META FETCH STATUS]", response.status);
-    console.log("[META FETCH DATA]", data);
-
     if (!response.ok) {
+      pushDiag({ kind: "error", label: `HTTP ${response.status} em /api/public/meta/oauth`, detail: data?.error ?? "" });
       toast.error(data?.error || `Erro ${response.status} ao iniciar conexão Meta.`);
       return;
     }
 
     if (!data?.url) {
+      pushDiag({ kind: "error", label: "Servidor não retornou OAuth URL", detail: JSON.stringify(data) });
       toast.error("OAuth URL ausente na resposta do servidor.");
       return;
     }
 
-    const payload = { url: data.url };
+    pushDiag({ kind: "success", label: "OAuth URL recebida, abrindo popup", detail: new URL(data.url).host });
 
     const w = 600, h = 750;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
 
     const popup = window.open(
-      payload.url,
+      data.url,
       "meta-oauth",
       `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
     );
@@ -220,13 +220,15 @@ function RedesSociaisPage() {
       const timer = setInterval(() => {
         if (popup.closed) {
           clearInterval(timer);
+          pushDiag({ kind: "info", label: "Popup fechada, recarregando conexão", detail: "" });
           void load();
         }
       }, 800);
       return;
     }
 
-    window.location.href = payload.url;
+    pushDiag({ kind: "warn", label: "Popup bloqueada, redirecionando na mesma aba", detail: "" });
+    window.location.href = data.url;
   }
 
 
