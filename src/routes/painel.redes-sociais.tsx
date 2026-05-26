@@ -8,31 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
+import { useServerFn } from "@tanstack/react-start";
+import { startMetaOAuth } from "@/lib/meta-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
 } from "lucide-react";
 
-function generateOAuthState(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function fetchMetaOAuthUrl(state: string) {
-  const response = await fetch(`/api/public/meta/oauth?state=${encodeURIComponent(state)}`, {
-    method: "GET",
-    credentials: "same-origin",
-  });
-
-  const json = (await response.json().catch(() => null)) as { url?: string; error?: string } | null;
-  if (!response.ok || !json?.url) {
-    throw new Error(json?.error || "Não foi possível gerar a URL OAuth da Meta.");
-  }
-
-  return json.url;
-}
 
 export const Route = createFileRoute("/painel/redes-sociais")({
   component: RedesSociaisPage,
