@@ -14,7 +14,15 @@ import { connectMetaAccount } from "@/lib/meta-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
+  Activity, Trash2,
 } from "lucide-react";
+
+type DiagStep = {
+  at: string;
+  kind: "info" | "success" | "error" | "warn";
+  label: string;
+  detail?: string;
+};
 
 
 export const Route = createFileRoute("/painel/redes-sociais")({
@@ -52,7 +60,15 @@ function RedesSociaisPage() {
   const [loading, setLoading] = useState(true);
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
+  const [diag, setDiag] = useState<DiagStep[]>([]);
   const connectFn = useServerFn(connectMetaAccount);
+
+  function pushDiag(step: Omit<DiagStep, "at">) {
+    const entry: DiagStep = { at: new Date().toISOString(), ...step };
+    setDiag((d) => [entry, ...d].slice(0, 30));
+    const logFn = step.kind === "error" ? console.error : step.kind === "warn" ? console.warn : console.log;
+    logFn(`[diag:${step.kind}] ${step.label}`, step.detail ?? "");
+  }
 
   async function load() {
     if (!user) return;
@@ -63,7 +79,16 @@ function RedesSociaisPage() {
       .eq("user_id", user.id)
       .eq("platform", "meta")
       .maybeSingle();
-    if (error) toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      pushDiag({ kind: "error", label: "Falha ao consultar social_connections", detail: error.message });
+    } else {
+      pushDiag({
+        kind: data ? "success" : "info",
+        label: data ? `Conexão carregada do banco: ${data.page_name ?? data.page_id ?? "(sem nome)"}` : "Nenhuma conexão Meta encontrada para este usuário",
+        detail: data ? `status=${data.status} · page_id=${data.page_id} · ig=${data.instagram_username ?? "-"}` : `user_id=${user.id}`,
+      });
+    }
     setConn((data as Connection | null) ?? null);
     setLoading(false);
   }
@@ -72,40 +97,38 @@ function RedesSociaisPage() {
 
   useEffect(() => {
     function onMsg(ev: MessageEvent) {
-      console.log("[meta-listener] message received", {
-        origin: ev.origin,
-        type: (ev.data as { type?: string } | null)?.type,
-        windowOrigin: window.location.origin,
+      if (!ev.data || typeof ev.data !== "object") return;
+      const type = (ev.data as { type?: string }).type;
+      if (type !== "meta-oauth-callback" && type !== "meta-oauth-success") return;
+
+      pushDiag({
+        kind: "info",
+        label: `postMessage recebido: ${type}`,
+        detail: `origin=${ev.origin} · windowOrigin=${window.location.origin}`,
       });
 
-      if (!ev.data || typeof ev.data !== "object") return;
-
-      if (ev.data?.type === "meta-oauth-success") {
-        if (ev.origin !== window.location.origin) return;
-        void load();
+      if (ev.origin !== window.location.origin) {
+        pushDiag({ kind: "warn", label: "Mensagem ignorada (origem diferente)", detail: `esperado=${window.location.origin} · recebido=${ev.origin}` });
         return;
       }
 
-      if (ev.data?.type !== "meta-oauth-callback") return;
-
-      if (ev.origin !== window.location.origin) {
-        console.warn("[meta-listener] ignoring cross-origin callback message", ev.origin);
+      if (type === "meta-oauth-success") {
+        void load();
         return;
       }
 
       const storedState = sessionStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
       const parsedStored = storedState ? parseMetaOAuthState(storedState) : null;
       const parsedIncoming = typeof ev.data.state === "string" ? parseMetaOAuthState(ev.data.state) : null;
+      const nonceOk = !!parsedStored && !!parsedIncoming && parsedStored.nonce === parsedIncoming.nonce;
 
-      console.log("[meta-listener] state check", {
-        hasStored: !!storedState,
-        storedMatches: storedState === ev.data.state,
-        parsedStoredOk: !!parsedStored,
-        parsedIncomingOk: !!parsedIncoming,
-        nonceMatch: parsedStored?.nonce === parsedIncoming?.nonce,
+      pushDiag({
+        kind: nonceOk ? "success" : "warn",
+        label: nonceOk ? "State OAuth validado (nonce confere)" : "State OAuth NÃO confere",
+        detail: `hasStored=${!!storedState} · parsedStoredOk=${!!parsedStored} · parsedIncomingOk=${!!parsedIncoming}`,
       });
 
-      if (!parsedStored || !parsedIncoming || parsedStored.nonce !== parsedIncoming.nonce) {
+      if (!nonceOk) {
         toast.error("State OAuth inválido no retorno da Meta.");
         return;
       }
@@ -115,22 +138,27 @@ function RedesSociaisPage() {
         const errorMessage = typeof ev.data.error === "string" && ev.data.error
           ? ev.data.error
           : "Código de autorização não retornado pela Meta.";
+        pushDiag({ kind: "error", label: "Sem code no retorno", detail: errorMessage });
         toast.error(errorMessage);
         return;
       }
 
-      console.log("[meta-listener] calling connectMetaAccount serverFn…");
+      pushDiag({ kind: "info", label: "Chamando connectMetaAccount serverFn…", detail: `code length=${code.length}` });
       setBusy(true);
       void connectFn({ data: { code } })
         .then((result) => {
-          console.log("[meta-listener] connectFn result", result);
           sessionStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
+          pushDiag({
+            kind: "success",
+            label: `serverFn OK · page=${result?.page_name ?? "?"}`,
+            detail: `page_id=${result?.page_id} · ig=${result?.instagram_username ?? "-"} · expires_at=${result?.expires_at ?? "-"}`,
+          });
           toast.success(result?.page_name ? `Página conectada: ${result.page_name}` : "Conta Meta conectada com sucesso.");
           void load();
         })
         .catch((error) => {
           const message = error instanceof Error ? error.message : "Falha ao concluir conexão com a Meta.";
-          console.error("[meta-oauth] finalize error", error);
+          pushDiag({ kind: "error", label: "serverFn connectMetaAccount falhou", detail: message });
           toast.error(message);
         })
         .finally(() => {
@@ -143,6 +171,7 @@ function RedesSociaisPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+
   async function handleConnect() {
     if (!user) {
       toast.error("Você precisa estar autenticado.");
@@ -150,6 +179,7 @@ function RedesSociaisPage() {
     }
     const state = createMetaOAuthState(window.location.origin);
     sessionStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
+    pushDiag({ kind: "info", label: "Iniciando OAuth Meta", detail: `origin=${window.location.origin}` });
 
     const response = await fetch(`/api/public/meta/oauth?state=${encodeURIComponent(state)}`, {
       method: "GET",
@@ -160,30 +190,29 @@ function RedesSociaisPage() {
     try {
       data = await response.json();
     } catch (e) {
-      console.error("[META FETCH] JSON parse failed", e);
+      pushDiag({ kind: "error", label: "Resposta /api/public/meta/oauth não é JSON", detail: String(e) });
     }
 
-    console.log("[META FETCH STATUS]", response.status);
-    console.log("[META FETCH DATA]", data);
-
     if (!response.ok) {
+      pushDiag({ kind: "error", label: `HTTP ${response.status} em /api/public/meta/oauth`, detail: data?.error ?? "" });
       toast.error(data?.error || `Erro ${response.status} ao iniciar conexão Meta.`);
       return;
     }
 
     if (!data?.url) {
+      pushDiag({ kind: "error", label: "Servidor não retornou OAuth URL", detail: JSON.stringify(data) });
       toast.error("OAuth URL ausente na resposta do servidor.");
       return;
     }
 
-    const payload = { url: data.url };
+    pushDiag({ kind: "success", label: "OAuth URL recebida, abrindo popup", detail: new URL(data.url).host });
 
     const w = 600, h = 750;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
 
     const popup = window.open(
-      payload.url,
+      data.url,
       "meta-oauth",
       `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
     );
@@ -191,13 +220,15 @@ function RedesSociaisPage() {
       const timer = setInterval(() => {
         if (popup.closed) {
           clearInterval(timer);
+          pushDiag({ kind: "info", label: "Popup fechada, recarregando conexão", detail: "" });
           void load();
         }
       }, 800);
       return;
     }
 
-    window.location.href = payload.url;
+    pushDiag({ kind: "warn", label: "Popup bloqueada, redirecionando na mesma aba", detail: "" });
+    window.location.href = data.url;
   }
 
 
@@ -357,6 +388,55 @@ function RedesSociaisPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Diagnóstico ao vivo do fluxo OAuth */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary/10 p-2 text-primary"><Activity className="h-5 w-5" /></div>
+              <div>
+                <CardTitle className="text-base">Diagnóstico da conexão Meta</CardTitle>
+                <CardDescription>Cada etapa do fluxo OAuth aparece aqui em tempo real — útil para entender por que a conexão falhou.</CardDescription>
+              </div>
+            </div>
+            {diag.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setDiag([])}>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Limpar
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {diag.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum evento ainda. Clique em <strong>Conectar</strong> para iniciar.</p>
+          ) : (
+            <ol className="space-y-2">
+              {diag.map((d, i) => {
+                const color =
+                  d.kind === "success" ? "border-emerald-500/40 bg-emerald-500/5" :
+                  d.kind === "error" ? "border-destructive/40 bg-destructive/5" :
+                  d.kind === "warn" ? "border-amber-500/40 bg-amber-500/5" :
+                  "border-border bg-muted/30";
+                return (
+                  <li key={i} className={`rounded-md border px-3 py-2 text-xs ${color}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-medium">{d.label}</span>
+                      <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                        {new Date(d.at).toLocaleTimeString("pt-BR")}
+                      </span>
+                    </div>
+                    {d.detail && (
+                      <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] text-muted-foreground">{d.detail}</pre>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </CardContent>
+      </Card>
+
 
       {/* Placeholders */}
       <div>
