@@ -389,6 +389,55 @@ function RedesSociaisPage() {
         </CardContent>
       </Card>
 
+      {/* Diagnóstico ao vivo do fluxo OAuth */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary/10 p-2 text-primary"><Activity className="h-5 w-5" /></div>
+              <div>
+                <CardTitle className="text-base">Diagnóstico da conexão Meta</CardTitle>
+                <CardDescription>Cada etapa do fluxo OAuth aparece aqui em tempo real — útil para entender por que a conexão falhou.</CardDescription>
+              </div>
+            </div>
+            {diag.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setDiag([])}>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Limpar
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {diag.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum evento ainda. Clique em <strong>Conectar</strong> para iniciar.</p>
+          ) : (
+            <ol className="space-y-2">
+              {diag.map((d, i) => {
+                const color =
+                  d.kind === "success" ? "border-emerald-500/40 bg-emerald-500/5" :
+                  d.kind === "error" ? "border-destructive/40 bg-destructive/5" :
+                  d.kind === "warn" ? "border-amber-500/40 bg-amber-500/5" :
+                  "border-border bg-muted/30";
+                return (
+                  <li key={i} className={`rounded-md border px-3 py-2 text-xs ${color}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-medium">{d.label}</span>
+                      <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                        {new Date(d.at).toLocaleTimeString("pt-BR")}
+                      </span>
+                    </div>
+                    {d.detail && (
+                      <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] text-muted-foreground">{d.detail}</pre>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </CardContent>
+      </Card>
+
+
       {/* Placeholders */}
       <div>
         <h2 className="mb-4 text-lg font-semibold">Em breve, com sua conta conectada</h2>
