@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { generateMetaOAuthState } from "@/lib/meta-oauth";
+import { generateMetaOAuthState, META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
@@ -83,7 +83,7 @@ function RedesSociaisPage() {
       return;
     }
     const state = generateMetaOAuthState();
-    sessionStorage.setItem("meta_oauth_state", state);
+    sessionStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
 
     const response = await fetch(`/api/public/meta/oauth?state=${encodeURIComponent(state)}`, {
       method: "GET",
