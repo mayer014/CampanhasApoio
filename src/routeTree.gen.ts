@@ -36,6 +36,7 @@ import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/publi
 import { Route as ApiPublicWhatsappBroadcastTickRouteImport } from './routes/api/public/whatsapp.broadcast-tick'
 import { Route as ApiPublicSocialHealthRouteImport } from './routes/api/public/social.health'
 import { Route as ApiPublicSocialCronRouteImport } from './routes/api/public/social.cron'
+import { Route as ApiPublicMetaOauthRouteImport } from './routes/api/public/meta.oauth'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
 const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
@@ -175,6 +176,11 @@ const ApiPublicSocialCronRoute = ApiPublicSocialCronRouteImport.update({
   path: '/api/public/social/cron',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMetaOauthRoute = ApiPublicMetaOauthRouteImport.update({
+  id: '/api/public/meta/oauth',
+  path: '/api/public/meta/oauth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCandidatosIdTemplateTplIdRoute =
   AdminCandidatosIdTemplateTplIdRouteImport.update({
     id: '/candidatos/$id/template/$tplId',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/meta/oauth': typeof ApiPublicMetaOauthRoute
   '/api/public/social/cron': typeof ApiPublicSocialCronRoute
   '/api/public/social/health': typeof ApiPublicSocialHealthRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
   '/painel/templates': typeof PainelTemplatesIndexRoute
+  '/api/public/meta/oauth': typeof ApiPublicMetaOauthRoute
   '/api/public/social/cron': typeof ApiPublicSocialCronRoute
   '/api/public/social/health': typeof ApiPublicSocialHealthRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
@@ -264,6 +272,7 @@ export interface FileRoutesById {
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
+  '/api/public/meta/oauth': typeof ApiPublicMetaOauthRoute
   '/api/public/social/cron': typeof ApiPublicSocialCronRoute
   '/api/public/social/health': typeof ApiPublicSocialHealthRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
@@ -296,6 +305,7 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/meta/oauth'
     | '/api/public/social/cron'
     | '/api/public/social/health'
     | '/api/public/whatsapp/broadcast-tick'
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos'
     | '/painel/templates'
+    | '/api/public/meta/oauth'
     | '/api/public/social/cron'
     | '/api/public/social/health'
     | '/api/public/whatsapp/broadcast-tick'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
+    | '/api/public/meta/oauth'
     | '/api/public/social/cron'
     | '/api/public/social/health'
     | '/api/public/whatsapp/broadcast-tick'
@@ -373,6 +385,7 @@ export interface RootRouteChildren {
   TermosDeUsoRoute: typeof TermosDeUsoRoute
   PSlugRoute: typeof PSlugRoute
   AuthMetaCallbackRoute: typeof AuthMetaCallbackRoute
+  ApiPublicMetaOauthRoute: typeof ApiPublicMetaOauthRoute
   ApiPublicSocialCronRoute: typeof ApiPublicSocialCronRoute
   ApiPublicSocialHealthRoute: typeof ApiPublicSocialHealthRoute
   ApiPublicWhatsappBroadcastTickRoute: typeof ApiPublicWhatsappBroadcastTickRoute
@@ -570,6 +583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSocialCronRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/meta/oauth': {
+      id: '/api/public/meta/oauth'
+      path: '/api/public/meta/oauth'
+      fullPath: '/api/public/meta/oauth'
+      preLoaderRoute: typeof ApiPublicMetaOauthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/candidatos/$id/template/$tplId': {
       id: '/admin/candidatos/$id/template/$tplId'
       path: '/candidatos/$id/template/$tplId'
@@ -636,6 +656,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosDeUsoRoute: TermosDeUsoRoute,
   PSlugRoute: PSlugRoute,
   AuthMetaCallbackRoute: AuthMetaCallbackRoute,
+  ApiPublicMetaOauthRoute: ApiPublicMetaOauthRoute,
   ApiPublicSocialCronRoute: ApiPublicSocialCronRoute,
   ApiPublicSocialHealthRoute: ApiPublicSocialHealthRoute,
   ApiPublicWhatsappBroadcastTickRoute: ApiPublicWhatsappBroadcastTickRoute,
