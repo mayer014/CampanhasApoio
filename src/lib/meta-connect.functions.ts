@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createHmac, timingSafeEqual } from "crypto";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { buildMetaOAuthUrl, META_APP_ID, META_REDIRECT_URI, META_GRAPH_VERSION } from "./meta-oauth";
+import { META_APP_ID, META_REDIRECT_URI, META_GRAPH_VERSION } from "./meta-oauth";
 
 const GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
 const STATE_TTL_MS = 10 * 60 * 1000;
@@ -64,26 +64,6 @@ async function debugTokenRaw(token: string, appAccess: string): Promise<unknown>
   const json = await res.json().catch(() => ({}));
   return json;
 }
-
-/**
- * Retorna a URL OAuth completa (sempre com o config_id do servidor quando existir).
- * O cliente apenas abre esta URL no popup — nunca depende de env público.
- */
-export const getMetaOAuthUrl = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
-    const signed = signState(context.userId);
-    const url = buildMetaOAuthUrl({ state: signed, configId });
-    return { url, state: signed, configId, redirect_uri: META_REDIRECT_URI, client_id: META_APP_ID };
-  });
-
-export const getMetaOAuthState = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
-    return { state: signState(context.userId), configId };
-  });
 
 async function exchangeCodeAndSave(userId: string, code: string) {
   const appSecret = process.env.META_APP_SECRET;

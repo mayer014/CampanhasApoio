@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
-import { getMetaOAuthUrl } from "@/lib/meta-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
@@ -19,6 +18,20 @@ function generateOAuthState(): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function fetchMetaOAuthUrl(state: string) {
+  const response = await fetch(`/api/public/meta/oauth?state=${encodeURIComponent(state)}`, {
+    method: "GET",
+    credentials: "same-origin",
+  });
+
+  const json = (await response.json().catch(() => null)) as { url?: string; error?: string } | null;
+  if (!response.ok || !json?.url) {
+    throw new Error(json?.error || "Não foi possível gerar a URL OAuth da Meta.");
+  }
+
+  return json.url;
 }
 
 export const Route = createFileRoute("/painel/redes-sociais")({
@@ -92,10 +105,8 @@ function RedesSociaisPage() {
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
     try {
-      // Buscamos a URL OAuth direto do servidor para garantir uso do config_id
-      // real do ambiente (Business Login), sem depender de env público.
-      const { url, state } = await getMetaOAuthUrl();
-      void generateOAuthState; // kept for backward compat
+      const state = generateOAuthState();
+      const url = await fetchMetaOAuthUrl(state);
       localStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
       console.info("[meta-oauth] opening OAuth URL", url);
 

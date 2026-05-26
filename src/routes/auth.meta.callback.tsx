@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, AlertTriangle, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useServerFn } from "@tanstack/react-start";
 import { connectMetaAccount } from "@/lib/meta-connect.functions";
 import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
 
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/auth/meta/callback")({
 function MetaCallbackPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
+  const connectMetaAccountFn = useServerFn(connectMetaAccount);
   const [status, setStatus] = useState<CallbackStatus>({ kind: "loading" });
 
   useEffect(() => {
@@ -63,7 +65,7 @@ function MetaCallbackPage() {
         }
         localStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
 
-        const result = await connectMetaAccount({ data: { code: search.code } });
+        const result = await connectMetaAccountFn({ data: { code: search.code } });
         if (!result?.page_id) {
           throw new Error("Nenhuma página do Facebook foi encontrada para esta conta.");
         }
@@ -97,7 +99,7 @@ function MetaCallbackPage() {
     }
     void run();
     return () => { cancelled = true; };
-  }, [search.code, search.state, search.error, search.error_description, navigate]);
+  }, [search.code, search.state, search.error, search.error_description, navigate, connectMetaAccountFn]);
 
   if (status.kind === "loading") {
     return (
