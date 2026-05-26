@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, AlertTriangle, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { META_OAUTH_STATE_STORAGE_KEY, META_REDIRECT_ORIGIN, parseMetaOAuthState } from "@/lib/meta-oauth";
+import { META_REDIRECT_ORIGIN, parseMetaOAuthState } from "@/lib/meta-oauth";
 
 type StateDiag = {
   state_received: string;

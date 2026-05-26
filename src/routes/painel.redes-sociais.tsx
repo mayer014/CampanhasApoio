@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -52,7 +52,6 @@ function RedesSociaisPage() {
   const [loading, setLoading] = useState(true);
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
-  const popupRef = useRef<Window | null>(null);
   const connectFn = useServerFn(connectMetaAccount);
 
   async function load() {
@@ -118,14 +117,13 @@ function RedesSociaisPage() {
           toast.success(result?.page_name ? `Página conectada: ${result.page_name}` : "Conta Meta conectada com sucesso.");
           void load();
         })
-        .catch(async (error) => {
+        .catch((error) => {
           const message = error instanceof Error ? error.message : "Falha ao concluir conexão com a Meta.";
           console.error("[meta-oauth] finalize error", error);
           toast.error(message);
         })
         .finally(() => {
           setBusy(false);
-          popupRef.current = null;
         });
     }
 
@@ -178,8 +176,6 @@ function RedesSociaisPage() {
       "meta-oauth",
       `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
     );
-    popupRef.current = popup;
-
     if (popup && !popup.closed) {
       const timer = setInterval(() => {
         if (popup.closed) {
