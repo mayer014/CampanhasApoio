@@ -313,23 +313,6 @@ const S3 = { from: S2.from + S2.dur, dur: 6 * EVENTS_DEMO_FPS };
 const S4 = { from: S3.from + S3.dur, dur: 5 * EVENTS_DEMO_FPS };
 const S5 = { from: S4.from + S4.dur, dur: 4 * EVENTS_DEMO_FPS };
 
-const SceneSlot: React.FC<{ from: number; dur: number; children: React.ReactNode }> = ({ from, dur, children }) => {
-  const frame = useCurrentFrame();
-  if (frame < from || frame >= from + dur) return null;
-  // Render with relative frame using a wrapper component
-  return <RelativeFrame from={from}>{children}</RelativeFrame>;
-};
-
-const RelativeFrame: React.FC<{ from: number; children: React.ReactNode }> = ({ from, children }) => {
-  // Use Remotion Sequence semantics via a context trick: simplest is to render inside a Sequence
-  return <SeqWrap from={from}>{children}</SeqWrap>;
-};
-
-import { Sequence } from "remotion";
-const SeqWrap: React.FC<{ from: number; children: React.ReactNode }> = ({ from, children }) => (
-  <Sequence from={from}>{children}</Sequence>
-);
-
 export const EventsReviewDemo: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: "#000", fontFamily }}>
