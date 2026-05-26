@@ -97,40 +97,38 @@ function RedesSociaisPage() {
 
   useEffect(() => {
     function onMsg(ev: MessageEvent) {
-      console.log("[meta-listener] message received", {
-        origin: ev.origin,
-        type: (ev.data as { type?: string } | null)?.type,
-        windowOrigin: window.location.origin,
+      if (!ev.data || typeof ev.data !== "object") return;
+      const type = (ev.data as { type?: string }).type;
+      if (type !== "meta-oauth-callback" && type !== "meta-oauth-success") return;
+
+      pushDiag({
+        kind: "info",
+        label: `postMessage recebido: ${type}`,
+        detail: `origin=${ev.origin} · windowOrigin=${window.location.origin}`,
       });
 
-      if (!ev.data || typeof ev.data !== "object") return;
-
-      if (ev.data?.type === "meta-oauth-success") {
-        if (ev.origin !== window.location.origin) return;
-        void load();
+      if (ev.origin !== window.location.origin) {
+        pushDiag({ kind: "warn", label: "Mensagem ignorada (origem diferente)", detail: `esperado=${window.location.origin} · recebido=${ev.origin}` });
         return;
       }
 
-      if (ev.data?.type !== "meta-oauth-callback") return;
-
-      if (ev.origin !== window.location.origin) {
-        console.warn("[meta-listener] ignoring cross-origin callback message", ev.origin);
+      if (type === "meta-oauth-success") {
+        void load();
         return;
       }
 
       const storedState = sessionStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
       const parsedStored = storedState ? parseMetaOAuthState(storedState) : null;
       const parsedIncoming = typeof ev.data.state === "string" ? parseMetaOAuthState(ev.data.state) : null;
+      const nonceOk = !!parsedStored && !!parsedIncoming && parsedStored.nonce === parsedIncoming.nonce;
 
-      console.log("[meta-listener] state check", {
-        hasStored: !!storedState,
-        storedMatches: storedState === ev.data.state,
-        parsedStoredOk: !!parsedStored,
-        parsedIncomingOk: !!parsedIncoming,
-        nonceMatch: parsedStored?.nonce === parsedIncoming?.nonce,
+      pushDiag({
+        kind: nonceOk ? "success" : "warn",
+        label: nonceOk ? "State OAuth validado (nonce confere)" : "State OAuth NÃO confere",
+        detail: `hasStored=${!!storedState} · parsedStoredOk=${!!parsedStored} · parsedIncomingOk=${!!parsedIncoming}`,
       });
 
-      if (!parsedStored || !parsedIncoming || parsedStored.nonce !== parsedIncoming.nonce) {
+      if (!nonceOk) {
         toast.error("State OAuth inválido no retorno da Meta.");
         return;
       }
@@ -140,22 +138,27 @@ function RedesSociaisPage() {
         const errorMessage = typeof ev.data.error === "string" && ev.data.error
           ? ev.data.error
           : "Código de autorização não retornado pela Meta.";
+        pushDiag({ kind: "error", label: "Sem code no retorno", detail: errorMessage });
         toast.error(errorMessage);
         return;
       }
 
-      console.log("[meta-listener] calling connectMetaAccount serverFn…");
+      pushDiag({ kind: "info", label: "Chamando connectMetaAccount serverFn…", detail: `code length=${code.length}` });
       setBusy(true);
       void connectFn({ data: { code } })
         .then((result) => {
-          console.log("[meta-listener] connectFn result", result);
           sessionStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
+          pushDiag({
+            kind: "success",
+            label: `serverFn OK · page=${result?.page_name ?? "?"}`,
+            detail: `page_id=${result?.page_id} · ig=${result?.instagram_username ?? "-"} · expires_at=${result?.expires_at ?? "-"}`,
+          });
           toast.success(result?.page_name ? `Página conectada: ${result.page_name}` : "Conta Meta conectada com sucesso.");
           void load();
         })
         .catch((error) => {
           const message = error instanceof Error ? error.message : "Falha ao concluir conexão com a Meta.";
-          console.error("[meta-oauth] finalize error", error);
+          pushDiag({ kind: "error", label: "serverFn connectMetaAccount falhou", detail: message });
           toast.error(message);
         })
         .finally(() => {
@@ -167,6 +170,7 @@ function RedesSociaisPage() {
     return () => window.removeEventListener("message", onMsg);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
 
   async function handleConnect() {
     if (!user) {
