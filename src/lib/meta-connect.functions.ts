@@ -313,6 +313,6 @@ export const connectMetaAccountWithState = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const { uid: userId } = await verifyState(data.state);
+    const { userId } = await consumeState(data.state);
     return exchangeCodeAndSave(userId, data.code);
   });
