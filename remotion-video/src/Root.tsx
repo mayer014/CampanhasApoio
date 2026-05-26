@@ -5,6 +5,7 @@ import { MainVideoNarrated, TOTAL_FRAMES_NARRATED } from "./MainVideoNarrated";
 import { MetaReviewDemo, META_DEMO_TOTAL_FRAMES, META_DEMO_FPS } from "./MetaReviewDemo";
 import { EventsReviewDemo, EVENTS_DEMO_TOTAL_FRAMES, EVENTS_DEMO_FPS } from "./EventsReviewDemo";
 import { PagesShowListDemo, PAGES_DEMO_TOTAL_FRAMES, PAGES_DEMO_FPS } from "./PagesShowListDemo";
+import { FullFlowDemo, FULL_FLOW_TOTAL_FRAMES, FULL_FLOW_FPS } from "./FullFlowDemo";
 
 export const RemotionRoot = () => (
   <>
@@ -14,5 +15,6 @@ export const RemotionRoot = () => (
     <Composition id="metaReview" component={MetaReviewDemo} durationInFrames={META_DEMO_TOTAL_FRAMES} fps={META_DEMO_FPS} width={1920} height={1080} />
     <Composition id="eventsReview" component={EventsReviewDemo} durationInFrames={EVENTS_DEMO_TOTAL_FRAMES} fps={EVENTS_DEMO_FPS} width={1920} height={1080} />
     <Composition id="pagesShowList" component={PagesShowListDemo} durationInFrames={PAGES_DEMO_TOTAL_FRAMES} fps={PAGES_DEMO_FPS} width={1920} height={1080} />
+    <Composition id="fullFlow" component={FullFlowDemo} durationInFrames={FULL_FLOW_TOTAL_FRAMES} fps={FULL_FLOW_FPS} width={1920} height={1080} />
   </>
 );
