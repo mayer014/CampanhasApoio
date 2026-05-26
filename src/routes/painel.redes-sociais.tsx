@@ -72,6 +72,12 @@ function RedesSociaisPage() {
 
   useEffect(() => {
     function onMsg(ev: MessageEvent) {
+      console.log("[meta-listener] message received", {
+        origin: ev.origin,
+        type: (ev.data as { type?: string } | null)?.type,
+        windowOrigin: window.location.origin,
+      });
+
       if (!ev.data || typeof ev.data !== "object") return;
 
       if (ev.data?.type === "meta-oauth-success") {
@@ -82,22 +88,25 @@ function RedesSociaisPage() {
 
       if (ev.data?.type !== "meta-oauth-callback") return;
 
+      if (ev.origin !== window.location.origin) {
+        console.warn("[meta-listener] ignoring cross-origin callback message", ev.origin);
+        return;
+      }
+
       const storedState = sessionStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
       const parsedStored = storedState ? parseMetaOAuthState(storedState) : null;
       const parsedIncoming = typeof ev.data.state === "string" ? parseMetaOAuthState(ev.data.state) : null;
 
-      if (!storedState || storedState !== ev.data.state || !parsedStored || !parsedIncoming) {
+      console.log("[meta-listener] state check", {
+        hasStored: !!storedState,
+        storedMatches: storedState === ev.data.state,
+        parsedStoredOk: !!parsedStored,
+        parsedIncomingOk: !!parsedIncoming,
+        nonceMatch: parsedStored?.nonce === parsedIncoming?.nonce,
+      });
+
+      if (!parsedStored || !parsedIncoming || parsedStored.nonce !== parsedIncoming.nonce) {
         toast.error("State OAuth inválido no retorno da Meta.");
-        return;
-      }
-
-      if (parsedStored.nonce !== parsedIncoming.nonce || parsedStored.origin !== parsedIncoming.origin) {
-        toast.error("State OAuth inconsistente no retorno da Meta.");
-        return;
-      }
-
-      if (parsedIncoming.origin !== window.location.origin) {
-        toast.error("Origem do OAuth não corresponde à sessão atual.");
         return;
       }
 
@@ -110,9 +119,11 @@ function RedesSociaisPage() {
         return;
       }
 
+      console.log("[meta-listener] calling connectMetaAccount serverFn…");
       setBusy(true);
       void connectFn({ data: { code } })
         .then((result) => {
+          console.log("[meta-listener] connectFn result", result);
           sessionStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
           toast.success(result?.page_name ? `Página conectada: ${result.page_name}` : "Conta Meta conectada com sucesso.");
           void load();
