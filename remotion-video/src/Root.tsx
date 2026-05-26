@@ -13,5 +13,6 @@ export const RemotionRoot = () => (
     <Composition id="mainNarrated" component={MainVideoNarrated} durationInFrames={TOTAL_FRAMES_NARRATED} fps={30} width={1080} height={1920} />
     <Composition id="metaReview" component={MetaReviewDemo} durationInFrames={META_DEMO_TOTAL_FRAMES} fps={META_DEMO_FPS} width={1920} height={1080} />
     <Composition id="eventsReview" component={EventsReviewDemo} durationInFrames={EVENTS_DEMO_TOTAL_FRAMES} fps={EVENTS_DEMO_FPS} width={1920} height={1080} />
+    <Composition id="pagesShowList" component={PagesShowListDemo} durationInFrames={PAGES_DEMO_TOTAL_FRAMES} fps={PAGES_DEMO_FPS} width={1920} height={1080} />
   </>
 );
