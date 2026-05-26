@@ -144,6 +144,14 @@ function MetaCallbackPage() {
           <h1 className="text-lg font-semibold">Não foi possível conectar</h1>
           <p className="text-sm text-muted-foreground break-words">{status.message}</p>
         </div>
+        {status.stateDiag && (
+          <div className="rounded-md border bg-muted/40 p-3 text-xs">
+            <div className="font-semibold mb-1">Diagnóstico do state OAuth</div>
+            <pre className="font-mono whitespace-pre-wrap break-words">
+{JSON.stringify(status.stateDiag, null, 2)}
+            </pre>
+          </div>
+        )}
         {status.diag && <DiagPanel diag={status.diag} />}
         <Button onClick={() => navigate({ to: "/painel/redes-sociais" })} className="w-full">
           Voltar para Redes Sociais
