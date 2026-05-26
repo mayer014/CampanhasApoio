@@ -79,7 +79,16 @@ function RedesSociaisPage() {
       .eq("user_id", user.id)
       .eq("platform", "meta")
       .maybeSingle();
-    if (error) toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      pushDiag({ kind: "error", label: "Falha ao consultar social_connections", detail: error.message });
+    } else {
+      pushDiag({
+        kind: data ? "success" : "info",
+        label: data ? `Conexão carregada do banco: ${data.page_name ?? data.page_id ?? "(sem nome)"}` : "Nenhuma conexão Meta encontrada para este usuário",
+        detail: data ? `status=${data.status} · page_id=${data.page_id} · ig=${data.instagram_username ?? "-"}` : `user_id=${user.id}`,
+      });
+    }
     setConn((data as Connection | null) ?? null);
     setLoading(false);
   }
