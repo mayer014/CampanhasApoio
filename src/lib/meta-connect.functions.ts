@@ -2,75 +2,84 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { META_APP_ID, META_REDIRECT_URI, META_GRAPH_VERSION } from "./meta-oauth";
+import {
+  META_APP_ID,
+  META_REDIRECT_URI,
+  META_GRAPH_VERSION,
+  buildMetaOAuthUrl,
+} from "./meta-oauth";
 
 const GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
-const STATE_TTL_MS = 10 * 60 * 1000;
+const STATE_TTL_MINUTES = 15;
 
-function stateSecret() {
-  const s = process.env.SOCIAL_HMAC_SECRET || process.env.META_APP_SECRET;
-  if (!s) throw new Error("SOCIAL_HMAC_SECRET (ou META_APP_SECRET) não configurado.");
-  return s;
-}
-
-// Web Crypto API — compatível com Cloudflare Workers (workerd) e Node 20+.
-// Substitui `node:crypto` que era externalizado pelo Vite e quebrava o build.
-function bytesToB64Url(bytes: Uint8Array): string {
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin).replace(/=+$/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-function b64UrlToBytes(s: string): Uint8Array {
-  s = s.replace(/-/g, "+").replace(/_/g, "/");
-  while (s.length % 4) s += "=";
-  const bin = atob(s);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-function strToBytes(s: string): Uint8Array {
-  return new TextEncoder().encode(s);
-}
-function bytesToStr(b: Uint8Array): string {
-  return new TextDecoder().decode(b);
-}
-function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
-}
-async function hmacSha256(secret: string, data: string): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    strToBytes(secret).buffer as ArrayBuffer,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, strToBytes(data).buffer as ArrayBuffer);
-  return new Uint8Array(sig);
+function generateState(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function signState(userId: string): Promise<string> {
-  const payload = { uid: userId, exp: Date.now() + STATE_TTL_MS, n: Math.random().toString(36).slice(2, 10) };
-  const body = bytesToB64Url(strToBytes(JSON.stringify(payload)));
-  const sig = bytesToB64Url(await hmacSha256(stateSecret(), body));
-  return `${body}.${sig}`;
-}
+async function consumeState(state: string): Promise<{
+  userId: string;
+  found: boolean;
+  reason?: string;
+  row?: { id: string; user_id: string; expires_at: string; used_at: string | null };
+}> {
+  const { data, error } = await supabaseAdmin
+    .from("pending_meta_oauth_states")
+    .select("id, user_id, expires_at, used_at")
+    .eq("state", state)
+    .maybeSingle();
 
-async function verifyState(state: string): Promise<{ uid: string }> {
-  const [body, sig] = state.split(".");
-  if (!body || !sig) throw new Error("State inválido.");
-  const expected = bytesToB64Url(await hmacSha256(stateSecret(), body));
-  if (!timingSafeEqualBytes(strToBytes(sig), strToBytes(expected))) {
-    throw new Error("Assinatura do state inválida.");
+  if (error) {
+    throw new Error(`STATE_DIAG:${JSON.stringify({ state_received: state, found: false, reason: error.message })}`);
   }
-  const payload = JSON.parse(bytesToStr(b64UrlToBytes(body))) as { uid?: string; exp?: number };
-  if (!payload.uid || !payload.exp) throw new Error("Payload do state inválido.");
-  if (Date.now() > payload.exp) throw new Error("State expirado. Tente conectar novamente.");
-  return { uid: payload.uid };
+  if (!data) {
+    throw new Error(
+      `STATE_DIAG:${JSON.stringify({ state_received: state, found: false, reason: "State não encontrado no banco." })}`,
+    );
+  }
+  if (data.used_at) {
+    throw new Error(
+      `STATE_DIAG:${JSON.stringify({ state_received: state, found: true, reason: "State já foi usado.", used_at: data.used_at })}`,
+    );
+  }
+  if (new Date(data.expires_at).getTime() < Date.now()) {
+    throw new Error(
+      `STATE_DIAG:${JSON.stringify({ state_received: state, found: true, reason: "State expirado.", expires_at: data.expires_at })}`,
+    );
+  }
+
+  const { error: upErr } = await supabaseAdmin
+    .from("pending_meta_oauth_states")
+    .update({ used_at: new Date().toISOString() })
+    .eq("id", data.id)
+    .is("used_at", null);
+  if (upErr) {
+    throw new Error(
+      `STATE_DIAG:${JSON.stringify({ state_received: state, found: true, reason: `Falha ao marcar como usado: ${upErr.message}` })}`,
+    );
+  }
+
+  return { userId: data.user_id, found: true, row: data };
 }
+
+export const startMetaOAuth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const state = generateState();
+    const expiresAt = new Date(Date.now() + STATE_TTL_MINUTES * 60_000).toISOString();
+
+    const { error } = await supabaseAdmin.from("pending_meta_oauth_states").insert({
+      user_id: context.userId,
+      state,
+      expires_at: expiresAt,
+    });
+    if (error) throw new Error(`Não foi possível iniciar o OAuth: ${error.message}`);
+
+    const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
+    const url = buildMetaOAuthUrl({ state, configId });
+    return { url, state, expires_at: expiresAt };
+  });
 
 type TokenResponse = { access_token: string; token_type?: string; expires_in?: number };
 type FbError = { error?: { message?: string; type?: string; code?: number; error_subcode?: number } };
