@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { generateMetaOAuthState, META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
+import { createMetaOAuthState, META_OAUTH_STATE_STORAGE_KEY, parseMetaOAuthState } from "@/lib/meta-oauth";
+import { useServerFn } from "@tanstack/react-start";
+import { connectMetaAccount } from "@/lib/meta-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
@@ -50,6 +52,7 @@ function RedesSociaisPage() {
   const [loading, setLoading] = useState(true);
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
+  const connectFn = useServerFn(connectMetaAccount);
 
   async function load() {
     if (!user) return;
@@ -69,9 +72,61 @@ function RedesSociaisPage() {
 
   useEffect(() => {
     function onMsg(ev: MessageEvent) {
-      if (ev.origin !== window.location.origin) return;
-      if (ev.data?.type === "meta-oauth-success") void load();
+      if (!ev.data || typeof ev.data !== "object") return;
+
+      if (ev.data?.type === "meta-oauth-success") {
+        if (ev.origin !== window.location.origin) return;
+        void load();
+        return;
+      }
+
+      if (ev.data?.type !== "meta-oauth-callback") return;
+
+      const storedState = sessionStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
+      const parsedStored = storedState ? parseMetaOAuthState(storedState) : null;
+      const parsedIncoming = typeof ev.data.state === "string" ? parseMetaOAuthState(ev.data.state) : null;
+
+      if (!storedState || storedState !== ev.data.state || !parsedStored || !parsedIncoming) {
+        toast.error("State OAuth inválido no retorno da Meta.");
+        return;
+      }
+
+      if (parsedStored.nonce !== parsedIncoming.nonce || parsedStored.origin !== parsedIncoming.origin) {
+        toast.error("State OAuth inconsistente no retorno da Meta.");
+        return;
+      }
+
+      if (parsedIncoming.origin !== window.location.origin) {
+        toast.error("Origem do OAuth não corresponde à sessão atual.");
+        return;
+      }
+
+      const code = typeof ev.data.code === "string" ? ev.data.code : "";
+      if (!code) {
+        const errorMessage = typeof ev.data.error === "string" && ev.data.error
+          ? ev.data.error
+          : "Código de autorização não retornado pela Meta.";
+        toast.error(errorMessage);
+        return;
+      }
+
+      setBusy(true);
+      void connectFn({ data: { code } })
+        .then((result) => {
+          sessionStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
+          toast.success(result?.page_name ? `Página conectada: ${result.page_name}` : "Conta Meta conectada com sucesso.");
+          void load();
+        })
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : "Falha ao concluir conexão com a Meta.";
+          console.error("[meta-oauth] finalize error", error);
+          toast.error(message);
+        })
+        .finally(() => {
+          setBusy(false);
+        });
     }
+
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -82,7 +137,7 @@ function RedesSociaisPage() {
       toast.error("Você precisa estar autenticado.");
       return;
     }
-    const state = generateMetaOAuthState();
+    const state = createMetaOAuthState(window.location.origin);
     sessionStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
 
     const response = await fetch(`/api/public/meta/oauth?state=${encodeURIComponent(state)}`, {
@@ -121,7 +176,6 @@ function RedesSociaisPage() {
       "meta-oauth",
       `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
     );
-
     if (popup && !popup.closed) {
       const timer = setInterval(() => {
         if (popup.closed) {

@@ -2,9 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, AlertTriangle, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useServerFn } from "@tanstack/react-start";
-import { connectMetaAccount } from "@/lib/meta-connect.functions";
-import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
+import { META_REDIRECT_ORIGIN, parseMetaOAuthState } from "@/lib/meta-oauth";
 
 type StateDiag = {
   state_received: string;
@@ -54,7 +52,6 @@ export const Route = createFileRoute("/auth/meta/callback")({
 function MetaCallbackPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const connectFn = useServerFn(connectMetaAccount);
   const [status, setStatus] = useState<CallbackStatus>({ kind: "loading" });
 
   useEffect(() => {
@@ -66,40 +63,39 @@ function MetaCallbackPage() {
         if (!search.code) throw new Error("Código de autorização não retornado pela Meta.");
         if (!search.state) throw new Error("Parâmetro state ausente no retorno da Meta.");
 
-        const storedState = sessionStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
-        if (!storedState) {
+        const parsedState = parseMetaOAuthState(search.state);
+        if (!parsedState) {
           throw new Error(
             "STATE_DIAG:" + JSON.stringify({
               state_received: search.state,
               found: false,
-              reason: "State não encontrado em sessionStorage.",
+              reason: "State retornado pela Meta está malformado.",
             }),
           );
         }
 
-        if (storedState !== search.state) {
+        if (window.location.origin !== META_REDIRECT_ORIGIN) {
           throw new Error(
-            "STATE_DIAG:" + JSON.stringify({
-              state_received: search.state,
-              found: true,
-              reason: "State recebido difere do salvo em sessionStorage.",
-            }),
+            `Este callback está rodando em ${window.location.origin}, mas o redirect_uri configurado aponta para ${META_REDIRECT_ORIGIN}.`,
           );
         }
 
-        const result = await connectFn({ data: { code: search.code } });
-        if (!result?.page_id) {
-          throw new Error("Nenhuma página do Facebook foi encontrada para esta conta.");
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(
+            {
+              type: "meta-oauth-callback",
+              code: search.code,
+              state: search.state,
+              origin: parsedState.origin,
+            },
+            parsedState.origin,
+          );
         }
 
         if (cancelled) return;
-        setStatus({ kind: "success", pageName: result.page_name ?? null });
-        sessionStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
+        setStatus({ kind: "success", pageName: null });
         window.history.replaceState(null, "", window.location.pathname);
         if (window.opener && !window.opener.closed) {
-          try {
-            window.opener.postMessage({ type: "meta-oauth-success" }, window.location.origin);
-          } catch { /* noop */ }
           window.setTimeout(() => window.close(), 800);
         } else {
           window.setTimeout(() => navigate({ to: "/painel/redes-sociais" }), 1200);
@@ -130,7 +126,7 @@ function MetaCallbackPage() {
     }
     void run();
     return () => { cancelled = true; };
-  }, [search.code, search.state, search.error, search.error_description, navigate, connectFn]);
+  }, [search.code, search.state, search.error, search.error_description, navigate]);
 
   if (status.kind === "loading") {
     return (
@@ -149,9 +145,9 @@ function MetaCallbackPage() {
       <MetaCallbackCard>
         <div className="text-center space-y-3">
           <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
-          <h1 className="text-lg font-semibold">Facebook conectado com sucesso!</h1>
+          <h1 className="text-lg font-semibold">Autorização recebida com sucesso!</h1>
           <p className="text-sm text-muted-foreground">
-            {status.pageName ? `Página conectada: ${status.pageName}.` : "Sua conexão foi salva."}
+            {status.pageName ? `Página conectada: ${status.pageName}.` : "Voltando para concluir a conexão na janela original."}
           </p>
           <p className="text-sm text-muted-foreground">Você pode fechar esta janela.</p>
         </div>
