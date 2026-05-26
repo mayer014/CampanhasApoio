@@ -43,12 +43,12 @@ function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
 async function hmacSha256(secret: string, data: string): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey(
     "raw",
-    strToBytes(secret),
+    strToBytes(secret).buffer as ArrayBuffer,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
-  const sig = await crypto.subtle.sign("HMAC", key, strToBytes(data));
+  const sig = await crypto.subtle.sign("HMAC", key, strToBytes(data).buffer as ArrayBuffer);
   return new Uint8Array(sig);
 }
 
