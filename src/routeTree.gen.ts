@@ -20,7 +20,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PainelIndexRouteImport } from './routes/painel.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PainelWhatsappRouteImport } from './routes/painel.whatsapp'
-import { Route as PainelSocialRouteImport } from './routes/painel.social'
 import { Route as PainelRedesSociaisRouteImport } from './routes/painel.redes-sociais'
 import { Route as PainelLinkRouteImport } from './routes/painel.link'
 import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
@@ -34,8 +33,6 @@ import { Route as AuthMetaCallbackRouteImport } from './routes/auth.meta.callbac
 import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
 import { Route as ApiPublicWhatsappBroadcastTickRouteImport } from './routes/api/public/whatsapp.broadcast-tick'
-import { Route as ApiPublicSocialHealthRouteImport } from './routes/api/public/social.health'
-import { Route as ApiPublicSocialCronRouteImport } from './routes/api/public/social.cron'
 import { Route as ApiPublicMetaOauthRouteImport } from './routes/api/public/meta.oauth'
 import { Route as AdminCandidatosIdTemplateTplIdRouteImport } from './routes/admin.candidatos.$id.template.$tplId'
 
@@ -92,11 +89,6 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const PainelWhatsappRoute = PainelWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
-  getParentRoute: () => PainelRoute,
-} as any)
-const PainelSocialRoute = PainelSocialRouteImport.update({
-  id: '/social',
-  path: '/social',
   getParentRoute: () => PainelRoute,
 } as any)
 const PainelRedesSociaisRoute = PainelRedesSociaisRouteImport.update({
@@ -166,16 +158,6 @@ const ApiPublicWhatsappBroadcastTickRoute =
     path: '/api/public/whatsapp/broadcast-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicSocialHealthRoute = ApiPublicSocialHealthRouteImport.update({
-  id: '/api/public/social/health',
-  path: '/api/public/social/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicSocialCronRoute = ApiPublicSocialCronRouteImport.update({
-  id: '/api/public/social/cron',
-  path: '/api/public/social/cron',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicMetaOauthRoute = ApiPublicMetaOauthRouteImport.update({
   id: '/api/public/meta/oauth',
   path: '/api/public/meta/oauth',
@@ -203,7 +185,6 @@ export interface FileRoutesByFullPath {
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
-  '/painel/social': typeof PainelSocialRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
@@ -212,8 +193,6 @@ export interface FileRoutesByFullPath {
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
   '/api/public/meta/oauth': typeof ApiPublicMetaOauthRoute
-  '/api/public/social/cron': typeof ApiPublicSocialCronRoute
-  '/api/public/social/health': typeof ApiPublicSocialHealthRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
@@ -232,7 +211,6 @@ export interface FileRoutesByTo {
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
-  '/painel/social': typeof PainelSocialRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin': typeof AdminIndexRoute
   '/painel': typeof PainelIndexRoute
@@ -241,8 +219,6 @@ export interface FileRoutesByTo {
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
   '/painel/templates': typeof PainelTemplatesIndexRoute
   '/api/public/meta/oauth': typeof ApiPublicMetaOauthRoute
-  '/api/public/social/cron': typeof ApiPublicSocialCronRoute
-  '/api/public/social/health': typeof ApiPublicSocialHealthRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id': typeof AdminCandidatosIdIndexRoute
@@ -264,7 +240,6 @@ export interface FileRoutesById {
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
-  '/painel/social': typeof PainelSocialRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
@@ -273,8 +248,6 @@ export interface FileRoutesById {
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
   '/api/public/meta/oauth': typeof ApiPublicMetaOauthRoute
-  '/api/public/social/cron': typeof ApiPublicSocialCronRoute
-  '/api/public/social/health': typeof ApiPublicSocialHealthRoute
   '/api/public/whatsapp/broadcast-tick': typeof ApiPublicWhatsappBroadcastTickRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/admin/candidatos/$id/': typeof AdminCandidatosIdIndexRoute
@@ -297,7 +270,6 @@ export interface FileRouteTypes {
     | '/painel/leads'
     | '/painel/link'
     | '/painel/redes-sociais'
-    | '/painel/social'
     | '/painel/whatsapp'
     | '/admin/'
     | '/painel/'
@@ -306,8 +278,6 @@ export interface FileRouteTypes {
     | '/admin/candidatos/'
     | '/painel/templates/'
     | '/api/public/meta/oauth'
-    | '/api/public/social/cron'
-    | '/api/public/social/health'
     | '/api/public/whatsapp/broadcast-tick'
     | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id/'
@@ -326,7 +296,6 @@ export interface FileRouteTypes {
     | '/painel/leads'
     | '/painel/link'
     | '/painel/redes-sociais'
-    | '/painel/social'
     | '/painel/whatsapp'
     | '/admin'
     | '/painel'
@@ -335,8 +304,6 @@ export interface FileRouteTypes {
     | '/admin/candidatos'
     | '/painel/templates'
     | '/api/public/meta/oauth'
-    | '/api/public/social/cron'
-    | '/api/public/social/health'
     | '/api/public/whatsapp/broadcast-tick'
     | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id'
@@ -357,7 +324,6 @@ export interface FileRouteTypes {
     | '/painel/leads'
     | '/painel/link'
     | '/painel/redes-sociais'
-    | '/painel/social'
     | '/painel/whatsapp'
     | '/admin/'
     | '/painel/'
@@ -366,8 +332,6 @@ export interface FileRouteTypes {
     | '/admin/candidatos/'
     | '/painel/templates/'
     | '/api/public/meta/oauth'
-    | '/api/public/social/cron'
-    | '/api/public/social/health'
     | '/api/public/whatsapp/broadcast-tick'
     | '/api/public/whatsapp/webhook'
     | '/admin/candidatos/$id/'
@@ -386,8 +350,6 @@ export interface RootRouteChildren {
   PSlugRoute: typeof PSlugRoute
   AuthMetaCallbackRoute: typeof AuthMetaCallbackRoute
   ApiPublicMetaOauthRoute: typeof ApiPublicMetaOauthRoute
-  ApiPublicSocialCronRoute: typeof ApiPublicSocialCronRoute
-  ApiPublicSocialHealthRoute: typeof ApiPublicSocialHealthRoute
   ApiPublicWhatsappBroadcastTickRoute: typeof ApiPublicWhatsappBroadcastTickRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -469,13 +431,6 @@ declare module '@tanstack/react-router' {
       path: '/whatsapp'
       fullPath: '/painel/whatsapp'
       preLoaderRoute: typeof PainelWhatsappRouteImport
-      parentRoute: typeof PainelRoute
-    }
-    '/painel/social': {
-      id: '/painel/social'
-      path: '/social'
-      fullPath: '/painel/social'
-      preLoaderRoute: typeof PainelSocialRouteImport
       parentRoute: typeof PainelRoute
     }
     '/painel/redes-sociais': {
@@ -569,20 +524,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappBroadcastTickRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/social/health': {
-      id: '/api/public/social/health'
-      path: '/api/public/social/health'
-      fullPath: '/api/public/social/health'
-      preLoaderRoute: typeof ApiPublicSocialHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/social/cron': {
-      id: '/api/public/social/cron'
-      path: '/api/public/social/cron'
-      fullPath: '/api/public/social/cron'
-      preLoaderRoute: typeof ApiPublicSocialCronRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/meta/oauth': {
       id: '/api/public/meta/oauth'
       path: '/api/public/meta/oauth'
@@ -624,7 +565,6 @@ interface PainelRouteChildren {
   PainelLeadsRoute: typeof PainelLeadsRoute
   PainelLinkRoute: typeof PainelLinkRoute
   PainelRedesSociaisRoute: typeof PainelRedesSociaisRoute
-  PainelSocialRoute: typeof PainelSocialRoute
   PainelWhatsappRoute: typeof PainelWhatsappRoute
   PainelIndexRoute: typeof PainelIndexRoute
   PainelTemplatesTplIdRoute: typeof PainelTemplatesTplIdRoute
@@ -635,7 +575,6 @@ const PainelRouteChildren: PainelRouteChildren = {
   PainelLeadsRoute: PainelLeadsRoute,
   PainelLinkRoute: PainelLinkRoute,
   PainelRedesSociaisRoute: PainelRedesSociaisRoute,
-  PainelSocialRoute: PainelSocialRoute,
   PainelWhatsappRoute: PainelWhatsappRoute,
   PainelIndexRoute: PainelIndexRoute,
   PainelTemplatesTplIdRoute: PainelTemplatesTplIdRoute,
@@ -657,8 +596,6 @@ const rootRouteChildren: RootRouteChildren = {
   PSlugRoute: PSlugRoute,
   AuthMetaCallbackRoute: AuthMetaCallbackRoute,
   ApiPublicMetaOauthRoute: ApiPublicMetaOauthRoute,
-  ApiPublicSocialCronRoute: ApiPublicSocialCronRoute,
-  ApiPublicSocialHealthRoute: ApiPublicSocialHealthRoute,
   ApiPublicWhatsappBroadcastTickRoute: ApiPublicWhatsappBroadcastTickRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
