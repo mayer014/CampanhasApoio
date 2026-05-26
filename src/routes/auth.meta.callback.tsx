@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, AlertTriangle, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useServerFn } from "@tanstack/react-start";
-import { connectMetaAccountWithState } from "@/lib/meta-connect.functions";
+import { connectMetaAccount } from "@/lib/meta-connect.functions";
 
 type StateDiag = {
   state_received: string;
@@ -53,7 +53,7 @@ export const Route = createFileRoute("/auth/meta/callback")({
 function MetaCallbackPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const connectFn = useServerFn(connectMetaAccountWithState);
+  const connectFn = useServerFn(connectMetaAccount);
   const [status, setStatus] = useState<CallbackStatus>({ kind: "loading" });
 
   useEffect(() => {
@@ -65,13 +65,35 @@ function MetaCallbackPage() {
         if (!search.code) throw new Error("Código de autorização não retornado pela Meta.");
         if (!search.state) throw new Error("Parâmetro state ausente no retorno da Meta.");
 
-        const result = await connectFn({ data: { code: search.code, state: search.state } });
+        const storedState = sessionStorage.getItem("meta_oauth_state");
+        if (!storedState) {
+          throw new Error(
+            "STATE_DIAG:" + JSON.stringify({
+              state_received: search.state,
+              found: false,
+              reason: "State não encontrado em sessionStorage.",
+            }),
+          );
+        }
+
+        if (storedState !== search.state) {
+          throw new Error(
+            "STATE_DIAG:" + JSON.stringify({
+              state_received: search.state,
+              found: true,
+              reason: "State recebido difere do salvo em sessionStorage.",
+            }),
+          );
+        }
+
+        const result = await connectFn({ data: { code: search.code } });
         if (!result?.page_id) {
           throw new Error("Nenhuma página do Facebook foi encontrada para esta conta.");
         }
 
         if (cancelled) return;
         setStatus({ kind: "success", pageName: result.page_name ?? null });
+        sessionStorage.removeItem("meta_oauth_state");
         window.history.replaceState(null, "", window.location.pathname);
         if (window.opener && !window.opener.closed) {
           try {
