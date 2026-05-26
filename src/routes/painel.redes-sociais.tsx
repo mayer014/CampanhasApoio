@@ -88,10 +88,9 @@ function RedesSociaisPage() {
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
     try {
-      const state = generateOAuthState();
-      const url = await fetchMetaOAuthUrl(state);
-      localStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
+      const { url } = await startOAuth();
       console.info("[meta-oauth] opening OAuth URL", url);
+
 
       const popup = window.open(
         url,
