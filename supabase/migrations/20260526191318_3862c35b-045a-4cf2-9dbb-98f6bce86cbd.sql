@@ -1,0 +1,1 @@
+DELETE FROM public.social_connections WHERE platform='meta' AND page_id IS NULL;
