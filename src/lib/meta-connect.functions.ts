@@ -6,80 +6,9 @@ import {
   META_APP_ID,
   META_REDIRECT_URI,
   META_GRAPH_VERSION,
-  buildMetaOAuthUrl,
 } from "./meta-oauth";
 
 const GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
-const STATE_TTL_MINUTES = 15;
-
-function generateState(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function consumeState(state: string): Promise<{
-  userId: string;
-  found: boolean;
-  reason?: string;
-  row?: { id: string; user_id: string; expires_at: string; used_at: string | null };
-}> {
-  const { data, error } = await supabaseAdmin
-    .from("pending_meta_oauth_states")
-    .select("id, user_id, expires_at, used_at")
-    .eq("state", state)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`STATE_DIAG:${JSON.stringify({ state_received: state, found: false, reason: error.message })}`);
-  }
-  if (!data) {
-    throw new Error(
-      `STATE_DIAG:${JSON.stringify({ state_received: state, found: false, reason: "State não encontrado no banco." })}`,
-    );
-  }
-  if (data.used_at) {
-    throw new Error(
-      `STATE_DIAG:${JSON.stringify({ state_received: state, found: true, reason: "State já foi usado.", used_at: data.used_at })}`,
-    );
-  }
-  if (new Date(data.expires_at).getTime() < Date.now()) {
-    throw new Error(
-      `STATE_DIAG:${JSON.stringify({ state_received: state, found: true, reason: "State expirado.", expires_at: data.expires_at })}`,
-    );
-  }
-
-  const { error: upErr } = await supabaseAdmin
-    .from("pending_meta_oauth_states")
-    .update({ used_at: new Date().toISOString() })
-    .eq("id", data.id)
-    .is("used_at", null);
-  if (upErr) {
-    throw new Error(
-      `STATE_DIAG:${JSON.stringify({ state_received: state, found: true, reason: `Falha ao marcar como usado: ${upErr.message}` })}`,
-    );
-  }
-
-  return { userId: data.user_id, found: true, row: data };
-}
-
-export const startMetaOAuth = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const state = generateState();
-    const expiresAt = new Date(Date.now() + STATE_TTL_MINUTES * 60_000).toISOString();
-
-    const { error } = await supabaseAdmin.from("pending_meta_oauth_states").insert({
-      user_id: context.userId,
-      state,
-      expires_at: expiresAt,
-    });
-    if (error) throw new Error(`Não foi possível iniciar o OAuth: ${error.message}`);
-
-    const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
-    const url = buildMetaOAuthUrl({ state, configId });
-    return { url, state, expires_at: expiresAt };
-  });
 
 type TokenResponse = { access_token: string; token_type?: string; expires_in?: number };
 type FbError = { error?: { message?: string; type?: string; code?: number; error_subcode?: number } };
@@ -303,16 +232,3 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
     return exchangeCodeAndSave(context.userId, data.code);
   });
 
-export const connectMetaAccountWithState = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
-    z
-      .object({
-        code: z.string().min(10).max(2000),
-        state: z.string().min(10).max(2000),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data }) => {
-    const { userId } = await consumeState(data.state);
-    return exchangeCodeAndSave(userId, data.code);
-  });

@@ -16,6 +16,12 @@ export const META_SCOPES = [
   "instagram_manage_insights",
 ];
 
+export function generateMetaOAuthState() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 type BuildMetaOAuthUrlOptions = {
   state: string;
   configId?: string | null;

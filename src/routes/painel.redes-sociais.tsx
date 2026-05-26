@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
-import { startMetaOAuth } from "@/lib/meta-connect.functions";
+import { generateMetaOAuthState, META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
@@ -51,7 +50,6 @@ function RedesSociaisPage() {
   const [loading, setLoading] = useState(true);
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
-  const startOAuth = useServerFn(startMetaOAuth);
 
   async function load() {
     if (!user) return;
@@ -84,42 +82,47 @@ function RedesSociaisPage() {
       toast.error("Você precisa estar autenticado.");
       return;
     }
+    const state = generateMetaOAuthState();
+    sessionStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
+
+    const response = await fetch(`/api/public/meta/oauth?state=${encodeURIComponent(state)}`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    let payload: { url?: string; error?: string } | null = null;
+    try {
+      payload = (await response.json()) as { url?: string; error?: string };
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok || !payload?.url) {
+      toast.error(payload?.error || "Não foi possível iniciar a conexão com a Meta.");
+      return;
+    }
+
     const w = 600, h = 750;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
 
-    // 1) Abrir popup SINCRONAMENTE (preserva user-gesture) em about:blank.
-    //    Nunca apontamos o popup para um endpoint /_serverFn — esses são RPC POST,
-    //    não páginas navegáveis, e dariam "Expected POST method. Got GET".
     const popup = window.open(
-      "about:blank",
+      payload.url,
       "meta-oauth",
       `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
     );
 
-    try {
-      // 2) Pedir ao servidor para criar o pending state e devolver a URL do Facebook.
-      const { url } = await startOAuth();
-      console.info("[META_OAUTH_URL]", url);
-
-      // 3) Navegar o popup já aberto para a URL do Facebook.
-      if (popup && !popup.closed) {
-        popup.location.replace(url);
-        console.info("[META_POPUP_OPEN]", popup.name);
-        const timer = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(timer);
-            void load();
-          }
-        }, 800);
-      } else {
-        // Popup bloqueado: fallback de top-level redirect.
-        window.location.href = url;
-      }
-    } catch (error) {
-      if (popup && !popup.closed) popup.close();
-      toast.error(error instanceof Error ? error.message : "Não foi possível iniciar a conexão com a Meta.");
+    if (popup && !popup.closed) {
+      const timer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(timer);
+          void load();
+        }
+      }, 800);
+      return;
     }
+
+    window.location.href = payload.url;
   }
 
 

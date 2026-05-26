@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { buildMetaOAuthUrl, META_APP_ID, META_REDIRECT_URI } from "@/lib/meta-oauth";
+import { buildMetaOAuthUrl } from "@/lib/meta-oauth";
 
 function badRequest(message: string) {
   return new Response(JSON.stringify({ error: message }), {
@@ -22,13 +22,7 @@ export const Route = createFileRoute("/api/public/meta/oauth")({
         const configId = process.env.META_BUSINESS_LOGIN_CONFIG_ID ?? null;
         const oauthUrl = buildMetaOAuthUrl({ state, configId });
 
-        return Response.json({
-          url: oauthUrl,
-          state,
-          client_id: META_APP_ID,
-          redirect_uri: META_REDIRECT_URI,
-          config_id: configId,
-        });
+        return Response.json({ url: oauthUrl });
       },
     },
   },
