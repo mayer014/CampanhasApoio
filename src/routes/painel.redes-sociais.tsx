@@ -60,7 +60,15 @@ function RedesSociaisPage() {
   const [loading, setLoading] = useState(true);
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
+  const [diag, setDiag] = useState<DiagStep[]>([]);
   const connectFn = useServerFn(connectMetaAccount);
+
+  function pushDiag(step: Omit<DiagStep, "at">) {
+    const entry: DiagStep = { at: new Date().toISOString(), ...step };
+    setDiag((d) => [entry, ...d].slice(0, 30));
+    const logFn = step.kind === "error" ? console.error : step.kind === "warn" ? console.warn : console.log;
+    logFn(`[diag:${step.kind}] ${step.label}`, step.detail ?? "");
+  }
 
   async function load() {
     if (!user) return;
