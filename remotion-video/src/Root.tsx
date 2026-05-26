@@ -4,6 +4,7 @@ import { MainVideoV2, TOTAL_FRAMES_V2 } from "./MainVideoV2";
 import { MainVideoNarrated, TOTAL_FRAMES_NARRATED } from "./MainVideoNarrated";
 import { MetaReviewDemo, META_DEMO_TOTAL_FRAMES, META_DEMO_FPS } from "./MetaReviewDemo";
 import { EventsReviewDemo, EVENTS_DEMO_TOTAL_FRAMES, EVENTS_DEMO_FPS } from "./EventsReviewDemo";
+import { PagesShowListDemo, PAGES_DEMO_TOTAL_FRAMES, PAGES_DEMO_FPS } from "./PagesShowListDemo";
 
 export const RemotionRoot = () => (
   <>
