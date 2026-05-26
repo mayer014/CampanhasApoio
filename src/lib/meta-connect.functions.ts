@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { createHmac, timingSafeEqual } from "crypto";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { META_APP_ID, META_REDIRECT_URI, META_GRAPH_VERSION } from "./meta-oauth";
@@ -13,28 +12,61 @@ function stateSecret() {
   if (!s) throw new Error("SOCIAL_HMAC_SECRET (ou META_APP_SECRET) não configurado.");
   return s;
 }
-function b64url(buf: Buffer | string) {
-  return Buffer.from(buf).toString("base64").replace(/=+$/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+
+// Web Crypto API — compatível com Cloudflare Workers (workerd) e Node 20+.
+// Substitui `node:crypto` que era externalizado pelo Vite e quebrava o build.
+function bytesToB64Url(bytes: Uint8Array): string {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/=+$/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
-function b64urlDecode(s: string): Buffer {
+function b64UrlToBytes(s: string): Uint8Array {
   s = s.replace(/-/g, "+").replace(/_/g, "/");
   while (s.length % 4) s += "=";
-  return Buffer.from(s, "base64");
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
-function signState(userId: string): string {
+function strToBytes(s: string): Uint8Array {
+  return new TextEncoder().encode(s);
+}
+function bytesToStr(b: Uint8Array): string {
+  return new TextDecoder().decode(b);
+}
+function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+async function hmacSha256(secret: string, data: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    strToBytes(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, strToBytes(data));
+  return new Uint8Array(sig);
+}
+
+export async function signState(userId: string): Promise<string> {
   const payload = { uid: userId, exp: Date.now() + STATE_TTL_MS, n: Math.random().toString(36).slice(2, 10) };
-  const body = b64url(JSON.stringify(payload));
-  const sig = b64url(createHmac("sha256", stateSecret()).update(body).digest());
+  const body = bytesToB64Url(strToBytes(JSON.stringify(payload)));
+  const sig = bytesToB64Url(await hmacSha256(stateSecret(), body));
   return `${body}.${sig}`;
 }
-function verifyState(state: string): { uid: string } {
+
+async function verifyState(state: string): Promise<{ uid: string }> {
   const [body, sig] = state.split(".");
   if (!body || !sig) throw new Error("State inválido.");
-  const expected = b64url(createHmac("sha256", stateSecret()).update(body).digest());
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) throw new Error("Assinatura do state inválida.");
-  const payload = JSON.parse(b64urlDecode(body).toString("utf8")) as { uid?: string; exp?: number };
+  const expected = bytesToB64Url(await hmacSha256(stateSecret(), body));
+  if (!timingSafeEqualBytes(strToBytes(sig), strToBytes(expected))) {
+    throw new Error("Assinatura do state inválida.");
+  }
+  const payload = JSON.parse(bytesToStr(b64UrlToBytes(body))) as { uid?: string; exp?: number };
   if (!payload.uid || !payload.exp) throw new Error("Payload do state inválido.");
   if (Date.now() > payload.exp) throw new Error("State expirado. Tente conectar novamente.");
   return { uid: payload.uid };
