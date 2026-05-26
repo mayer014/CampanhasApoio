@@ -74,11 +74,28 @@ function MetaCallbackPage() {
           );
         }
 
-        if (window.location.origin !== META_REDIRECT_ORIGIN) {
-          throw new Error(
-            `Este callback está rodando em ${window.location.origin}, mas o redirect_uri configurado aponta para ${META_REDIRECT_ORIGIN}.`,
-          );
+        // Se estamos rodando em domínio diferente do que iniciou o OAuth
+        // (ex.: callback em fotodeapoio.easychain.com.br, app rodando em preview Lovable),
+        // postMessage cross-origin é silenciosamente bloqueado em alguns contextos.
+        // Solução: redirecionar a própria popup para a origem do opener — a mesma rota
+        // /auth/meta/callback roda novamente, agora same-origin, e o postMessage funciona.
+        if (window.location.origin !== parsedState.origin) {
+          console.log("[meta-callback] cross-origin bounce", {
+            from: window.location.origin,
+            to: parsedState.origin,
+          });
+          const bounce = new URL("/auth/meta/callback", parsedState.origin);
+          bounce.searchParams.set("code", search.code);
+          bounce.searchParams.set("state", search.state);
+          window.location.replace(bounce.toString());
+          return;
         }
+
+        console.log("[meta-callback] same-origin, posting to opener", {
+          hasOpener: !!window.opener,
+          openerClosed: window.opener?.closed,
+          origin: parsedState.origin,
+        });
 
         if (window.opener && !window.opener.closed) {
           window.opener.postMessage(
