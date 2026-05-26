@@ -87,32 +87,41 @@ function RedesSociaisPage() {
     const w = 600, h = 750;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
+
+    // 1) Abrir popup SINCRONAMENTE (preserva user-gesture) em about:blank.
+    //    Nunca apontamos o popup para um endpoint /_serverFn — esses são RPC POST,
+    //    não páginas navegáveis, e dariam "Expected POST method. Got GET".
+    const popup = window.open(
+      "about:blank",
+      "meta-oauth",
+      `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
+    );
+
     try {
+      // 2) Pedir ao servidor para criar o pending state e devolver a URL do Facebook.
       const { url } = await startOAuth();
-      console.info("[meta-oauth] opening OAuth URL", url);
+      console.info("[META_OAUTH_URL]", url);
 
-
-      const popup = window.open(
-        url,
-        "meta-oauth",
-        `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
-      );
-
-      if (!popup) {
+      // 3) Navegar o popup já aberto para a URL do Facebook.
+      if (popup && !popup.closed) {
+        popup.location.replace(url);
+        console.info("[META_POPUP_OPEN]", popup.name);
+        const timer = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(timer);
+            void load();
+          }
+        }, 800);
+      } else {
+        // Popup bloqueado: fallback de top-level redirect.
         window.location.href = url;
-        return;
       }
-
-      const timer = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(timer);
-          void load();
-        }
-      }, 800);
     } catch (error) {
+      if (popup && !popup.closed) popup.close();
       toast.error(error instanceof Error ? error.message : "Não foi possível iniciar a conexão com a Meta.");
     }
   }
+
 
   async function handleDisconnect() {
     if (!conn) return;
