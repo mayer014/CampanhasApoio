@@ -37,7 +37,7 @@ type MetaDiag = {
 type CallbackStatus =
   | { kind: "loading" }
   | { kind: "success"; pageName: string | null }
-  | { kind: "error"; message: string; diag?: MetaDiag };
+  | { kind: "error"; message: string; diag?: MetaDiag; stateDiag?: StateDiag };
 
 export const Route = createFileRoute("/auth/meta/callback")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -53,7 +53,7 @@ export const Route = createFileRoute("/auth/meta/callback")({
 function MetaCallbackPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const connectMetaAccountFn = useServerFn(connectMetaAccount);
+  const connectFn = useServerFn(connectMetaAccountWithState);
   const [status, setStatus] = useState<CallbackStatus>({ kind: "loading" });
 
   useEffect(() => {
@@ -63,17 +63,9 @@ function MetaCallbackPage() {
         const err = search.error_description || search.error;
         if (err) throw new Error(err);
         if (!search.code) throw new Error("Código de autorização não retornado pela Meta.");
+        if (!search.state) throw new Error("Parâmetro state ausente no retorno da Meta.");
 
-        const expectedState = localStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
-        if (!expectedState) {
-          throw new Error("State OAuth não encontrado. Reabra a conexão a partir de Redes Sociais.");
-        }
-        if (!search.state || search.state !== expectedState) {
-          throw new Error("State OAuth inválido. Por segurança, reinicie a conexão.");
-        }
-        localStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
-
-        const result = await connectMetaAccountFn({ data: { code: search.code } });
+        const result = await connectFn({ data: { code: search.code, state: search.state } });
         if (!result?.page_id) {
           throw new Error("Nenhuma página do Facebook foi encontrada para esta conta.");
         }
@@ -93,21 +85,29 @@ function MetaCallbackPage() {
         if (cancelled) return;
         const raw = e instanceof Error ? e.message : "Falha ao conectar com a Meta.";
         let diag: MetaDiag | undefined;
+        let stateDiag: StateDiag | undefined;
         let message = raw;
-        const idx = raw.indexOf("META_DIAG:");
-        if (idx >= 0) {
+        const metaIdx = raw.indexOf("META_DIAG:");
+        const stateIdx = raw.indexOf("STATE_DIAG:");
+        if (metaIdx >= 0) {
           try {
-            diag = JSON.parse(raw.slice(idx + "META_DIAG:".length)) as MetaDiag;
+            diag = JSON.parse(raw.slice(metaIdx + "META_DIAG:".length)) as MetaDiag;
             message = diag.message;
             console.error("[meta-oauth] diagnóstico completo", diag);
           } catch { /* keep raw */ }
+        } else if (stateIdx >= 0) {
+          try {
+            stateDiag = JSON.parse(raw.slice(stateIdx + "STATE_DIAG:".length)) as StateDiag;
+            message = `State OAuth inválido: ${stateDiag.reason ?? "motivo desconhecido"}`;
+            console.error("[meta-oauth] state diag", stateDiag);
+          } catch { /* keep raw */ }
         }
-        setStatus({ kind: "error", message, diag });
+        setStatus({ kind: "error", message, diag, stateDiag });
       }
     }
     void run();
     return () => { cancelled = true; };
-  }, [search.code, search.state, search.error, search.error_description, navigate, connectMetaAccountFn]);
+  }, [search.code, search.state, search.error, search.error_description, navigate, connectFn]);
 
   if (status.kind === "loading") {
     return (
