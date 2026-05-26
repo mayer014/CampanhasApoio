@@ -260,7 +260,7 @@ async function exchangeCodeAndSave(userId: string, code: string) {
 
   const { error: upErr } = await supabaseAdmin
     .from("social_connections")
-    .upsert(row, { onConflict: "user_id,platform" });
+    .upsert(row as never, { onConflict: "user_id,platform" });
   if (upErr) throw new Error(upErr.message);
 
   return {
