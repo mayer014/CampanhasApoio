@@ -90,17 +90,27 @@ function RedesSociaisPage() {
       credentials: "include",
     });
 
-    let payload: { url?: string; error?: string } | null = null;
+    let data: { url?: string; error?: string; stack?: string; env?: unknown } | null = null;
     try {
-      payload = (await response.json()) as { url?: string; error?: string };
-    } catch {
-      payload = null;
+      data = await response.json();
+    } catch (e) {
+      console.error("[META FETCH] JSON parse failed", e);
     }
 
-    if (!response.ok || !payload?.url) {
-      toast.error(payload?.error || "Não foi possível iniciar a conexão com a Meta.");
+    console.log("[META FETCH STATUS]", response.status);
+    console.log("[META FETCH DATA]", data);
+
+    if (!response.ok) {
+      toast.error(data?.error || `Erro ${response.status} ao iniciar conexão Meta.`);
       return;
     }
+
+    if (!data?.url) {
+      toast.error("OAuth URL ausente na resposta do servidor.");
+      return;
+    }
+
+    const payload = { url: data.url };
 
     const w = 600, h = 750;
     const left = window.screenX + (window.outerWidth - w) / 2;
