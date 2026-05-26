@@ -1,108 +1,105 @@
+## Objetivo
+Instrumentar o fluxo OAuth da Meta para expor o diagnóstico completo do token em produção e fechar a causa raiz de `/me/accounts` retornar vazio mesmo com seleção visual de Página/Instagram no popup.
 
-# Passo 1 — Colocar o worker pra rodar (guia detalhista)
+## Achados já confirmados no código
+- O `code` é trocado por token em `src/lib/meta-connect.functions.ts` dentro de `exchangeCodeAndSave()`.
+- O `/me/accounts` já usa o **user access token** (na prática, o long-lived token após exchange, quando disponível), não o page token.
+- O callback client-side valida `state` e chama `connectMetaAccount`, então o popup não abre mais `/_serverFn`.
+- Hoje o diagnóstico já mostra apenas uma parte do token debug: `is_valid`, `app_id`, `user_id`, `scopes`, `granular_scopes`, `data_access_expires_at` e a resposta crua de `/me/accounts`.
+- O frontend abre o OAuth com `buildMetaOAuthUrl({ state })` diretamente em `src/routes/painel.redes-sociais.tsx`.
+- Há um ponto crítico: o `config_id` no frontend depende de `VITE_META_BUSINESS_LOGIN_CONFIG_ID`, enquanto o servidor já possui `META_BUSINESS_LOGIN_CONFIG_ID`. Se a variável pública não estiver presente em produção, o popup pode estar abrindo um fluxo híbrido/tradicional sem `config_id` válido.
 
-## O que eu já verifiquei (você não precisa fazer nada disso)
+## Hipóteses priorizadas
+1. **`config_id` ausente ou incorreto no frontend publicado**
+   - Sinal esperado: URL final do OAuth sem `config_id`, ou `debug_token` indicando token de fluxo diferente do Business Login esperado.
+   - Impacto: o usuário vê seleção visual, mas o token final não recebe os assets/páginas.
 
-- ✅ Código do worker (`worker/index.js`, `worker/Dockerfile`, `worker/package.json`) está pronto e commitado no repo `mayer014/fotodeapoio`
-- ✅ As 3 funções que o worker chama no Supabase existem: `social_worker_heartbeat`, `claim_next_social_job`, `complete_social_job`
-- ✅ Tabelas necessárias existem: `social_jobs`, `social_profiles`, `social_posts`, `social_workers`, `social_worker_logs`, `social_system_state`, `social_post_snapshots`, `social_alerts`
-- ✅ A função `record_social_snapshot` (chamada pelo worker depois de inserir posts) existe
-- ✅ Endpoints HTTP antigos (`/api/public/social/*`) já foram apagados — não estorvam mais
+2. **Token válido, porém sem asset grants efetivos**
+   - Sinal esperado: `granular_scopes` sem `target_ids` relevantes, ou permissões concedidas sem vinculação às páginas.
+   - Impacto: `/me/accounts` volta `200` com `data: []`.
 
-**Conclusão:** falta apenas reconfigurar 1 container no EasyPanel. Nada de código novo, nada de migration, nada de secret novo.
+3. **Troca `code -> token` ou `long-lived exchange` altera o contexto do token**
+   - Sinal esperado: diferenças entre o `debug_token` do token curto e do long-lived (`type`, `application`, `issued_to`, `profile_id`, `scopes`, `granular_scopes`).
+   - Impacto: o token inicial teria assets, mas o token usado no `/me/accounts` não.
 
----
+4. **Conta/asset não elegível para o app em modo development / Business Manager**
+   - Sinal esperado: token válido, mas usuário sem papel correto (admin/developer/tester) ou asset não atribuído ao Business app/system user.
+   - Impacto: a UI da Meta mostra assets, mas a API não os entrega ao app.
 
-## O que SÓ VOCÊ pode fazer (10 minutos)
+5. **Mistura entre Facebook Login tradicional e Facebook Login for Business**
+   - Sinal esperado: uso simultâneo de `scope` + fluxo de Business Login sem configuração consistente; resposta de `debug_token` incompatível com token esperado do Business flow.
 
-Vou dividir em 3 partes pequenas. Faça uma de cada vez e me avise no fim de cada parte.
+## Plano de implementação
+### 1) Expandir o diagnóstico do token no servidor
+Adicionar logs e payload de erro com **todos** os campos relevantes retornados por `debug_token`, incluindo:
+- `application`
+- `type`
+- `issued_at`
+- `issued_to`
+- `profile_id`
+- `expires_at`
+- `metadata`
+- `scopes`
+- `granular_scopes`
+- `target_ids`
+- `data_access_expires_at`
+- JSON bruto completo do `debug_token`
 
----
+### 2) Instrumentar as duas etapas do token
+Executar e registrar `debug_token` em dois momentos:
+- após o `code -> token` (token curto)
+- após o `fb_exchange_token` (token long-lived, se existir)
 
-### Parte A — Pegar a chave `service_role` do Supabase
+Isso vai mostrar se a troca para long-lived está “perdendo” asset context.
 
-Essa chave é a única coisa secreta que falta. Ela vai morar nas envs do container do worker.
+### 3) Registrar a chamada de `/me/accounts` com máxima visibilidade
+Antes de salvar a conexão, registrar:
+- URL chamada
+- token usado (apenas fingerprint/parcial segura, nunca completo em tela)
+- status HTTP
+- headers relevantes da resposta
+- corpo bruto completo
+- quantidade de páginas retornadas
+- erros completos, se houver
 
-1. Abra: https://supabase.com/dashboard/project/pfppmkqsdqawvykkgafe/settings/api-keys
-2. Procure a seção **"Project API keys"**
-3. Encontre a linha **`service_role`** (cuidado: NÃO é a `anon` nem a `publishable`)
-4. Clique no botão **"Reveal"** (ou no ícone de olho 👁) ao lado dela
-5. Clique em **"Copy"** pra copiar a chave inteira (vai começar com `eyJhbGc...` e ter umas 200+ letras)
-6. Cole num bloco de notas temporário — você vai usar daqui a pouco
+### 4) Expor o diagnóstico completo na tela do callback
+Ampliar `/auth/meta/callback` para mostrar, sem exibir o token:
+- `application`, `type`, `issued_to`, `profile_id`, `expires_at`
+- debug do token curto e do long-lived lado a lado
+- `granular_scopes` completos
+- `target_ids` extraídos por permissão
+- resposta bruta e headers de `/me/accounts`
+- indicador claro se `config_id` foi usado para abrir o OAuth
 
-⚠️ **Importante:** essa chave dá acesso TOTAL ao seu banco. Não publique em lugar nenhum. Só vai colar dentro do EasyPanel (que é seu, privado).
+### 5) Corrigir a origem da URL OAuth
+Parar de depender apenas de `VITE_META_BUSINESS_LOGIN_CONFIG_ID` no cliente e fazer o botão obter do servidor a configuração efetiva do OAuth (`state + configId` ou a URL final pronta).
 
----
+Objetivo:
+- garantir que a URL publicada sempre use o `config_id` do ambiente real do servidor
+- eliminar a hipótese de preview/publicado divergirem no parâmetro mais importante do Business Login
 
-### Parte B — Reconfigurar o container no EasyPanel
+### 6) Validar o fluxo publicado
+Verificar no build publicado:
+- se a URL aberta contém `response_type=code`
+- se contém `client_id=2042324250036581`
+- se contém `redirect_uri=https://fotodeapoio.easychain.com.br/auth/meta/callback`
+- se contém `config_id` quando o Business Login estiver habilitado
+- se o `state` confere com o salvo localmente
 
-1. Abra o EasyPanel (no seu navegador, onde você gerencia a VPS)
-2. Entre no projeto onde está o container chamado **`social-crawler`** (o worker antigo)
-3. Clique nele pra abrir os detalhes
+## Resultado esperado
+Após essa instrumentação, teremos evidência suficiente para separar de forma objetiva:
+- problema de `config_id` / fluxo errado
+- problema de permissões granulares sem assets
+- problema no exchange para long-lived token
+- problema de papel/asset no Business Manager / modo development
+- problema/bug da própria Meta no `/me/accounts`
 
-**B.1 — Mudar o repositório de origem (aba "Source" ou "General"):**
-- **Type/Tipo:** GitHub
-- **Owner:** `mayer014`
-- **Repository:** `fotodeapoio` (era `social-crawler` antes — TROCAR)
-- **Branch:** `main`
-- **Build Path / Path / Build Context:** `worker` (digitar exatamente isso, sem barra)
-- **Dockerfile:** deixar como `Dockerfile` (padrão)
+## Entrega técnica
+Vou concentrar as mudanças em:
+- `src/lib/meta-connect.functions.ts`
+- `src/routes/auth.meta.callback.tsx`
+- `src/routes/painel.redes-sociais.tsx`
+- possivelmente `src/lib/meta-oauth.ts`
 
-Clique em **Save** se tiver esse botão.
-
-**B.2 — Configurar as variáveis de ambiente (aba "Environment" ou "Env"):**
-
-Apague TODAS as envs atuais (eram pra arquitetura antiga). Adicione exatamente estas 3:
-
-| Nome | Valor |
-|------|-------|
-| `SUPABASE_URL` | `https://pfppmkqsdqawvykkgafe.supabase.co` |
-| `SUPABASE_SERVICE_ROLE_KEY` | (cole a chave que você copiou na Parte A) |
-| `WORKER_ID` | `worker-1` |
-
-Se houver `TARGET_URL`, `SOCIAL_HMAC_SECRET`, `POLL_INTERVAL_MS`, qualquer outra coisa — **apague**. O worker novo só precisa dessas 3.
-
-Clique em **Save**.
-
-**B.3 — Rebuildar e deploy:**
-- Procure o botão **"Deploy"**, **"Rebuild"** ou **"Redeploy"** (geralmente no topo)
-- Clique. Vai começar a baixar o repo novo e buildar o Dockerfile do `worker/`
-- Espera 2–5 minutos (a primeira build é mais demorada porque baixa o Playwright + Chromium)
-
----
-
-### Parte C — Validar nos logs
-
-1. Ainda no container, abra a aba **"Logs"** (ou "Console")
-2. Procure por essas linhas (em ordem):
-   - ✅ `social-crawler v2 iniciado — worker=worker-1 supabase=https://pfppmkqsdqawvykkgafe.supabase.co`
-   - ✅ Sem erros tipo `FATAL: SUPABASE_SERVICE_ROLE_KEY não definido`
-   - ✅ Depois de alguns segundos, ou aparece processamento de jobs, ou silêncio (= sem jobs na fila, é normal)
-
-3. **Copie os primeiros 30 linhas de log** e me cole aqui no chat.
-
-Se aparecer qualquer linha com **`FATAL`**, **`erro`**, ou **`error`** — copia tudo e me manda. Eu te ajudo a corrigir.
-
----
-
-## Resumo do que vai acontecer
-
-```
-ANTES                              DEPOIS
-─────                              ──────
-container social-crawler           mesmo container, agora apontando
-└─ repo: social-crawler            └─ repo: fotodeapoio
-└─ envs: TARGET_URL, HMAC...       └─ envs: SUPABASE_URL, SERVICE_ROLE, WORKER_ID
-└─ fala HTTP com o site            └─ fala direto com Supabase
-```
-
-## Depois que funcionar (Passo 2 — depois, não agora)
-
-- Arquivar repo `mayer014/social-crawler` no GitHub
-- Remover secret `SOCIAL_HMAC_SECRET` do Supabase (não é mais usado)
-
-Mas isso só depois que o worker estiver respondendo. Foca em A → B → C primeiro.
-
----
-
-**Comece pela Parte A.** Quando tiver a chave copiada, me avisa e eu te oriento na Parte B em detalhes se travar em algum campo do EasyPanel.
+## Critério de sucesso
+Você conseguirá ver, no callback e nos logs, o diagnóstico bruto completo da Meta e eu consigo te devolver hipóteses confirmadas/refutadas com base em dados reais do token, não em suposição.
