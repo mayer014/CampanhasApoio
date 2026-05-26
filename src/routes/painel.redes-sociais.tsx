@@ -14,7 +14,15 @@ import { connectMetaAccount } from "@/lib/meta-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
+  Activity, Trash2,
 } from "lucide-react";
+
+type DiagStep = {
+  at: string;
+  kind: "info" | "success" | "error" | "warn";
+  label: string;
+  detail?: string;
+};
 
 
 export const Route = createFileRoute("/painel/redes-sociais")({
