@@ -3,8 +3,16 @@ import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, AlertTriangle, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useServerFn } from "@tanstack/react-start";
-import { connectMetaAccount } from "@/lib/meta-connect.functions";
-import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
+import { connectMetaAccountWithState } from "@/lib/meta-connect.functions";
+
+type StateDiag = {
+  state_received: string;
+  found: boolean;
+  reason?: string;
+  used_at?: string;
+  expires_at?: string;
+};
+
 
 type MetaDiag = {
   message: string;
