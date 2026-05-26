@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { buildMetaOAuthUrl, META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
+import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
+import { getMetaOAuthUrl } from "@/lib/meta-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   BarChart3, MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
@@ -91,9 +92,12 @@ function RedesSociaisPage() {
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
     try {
-      const state = generateOAuthState();
+      // Buscamos a URL OAuth direto do servidor para garantir uso do config_id
+      // real do ambiente (Business Login), sem depender de env público.
+      const { url, state } = await getMetaOAuthUrl();
+      void generateOAuthState; // kept for backward compat
       localStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
-      const url = buildMetaOAuthUrl({ state });
+      console.info("[meta-oauth] opening OAuth URL", url);
 
       const popup = window.open(
         url,

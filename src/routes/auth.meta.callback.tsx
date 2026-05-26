@@ -7,15 +7,22 @@ import { META_OAUTH_STATE_STORAGE_KEY } from "@/lib/meta-oauth";
 
 type MetaDiag = {
   message: string;
-  token_debug: {
-    is_valid: boolean;
-    app_id: string | null;
-    user_id: string | null;
-    scopes: string[];
-    granular_scopes: Array<{ scope?: string; target_ids?: string[]; expired_time?: number }>;
-    data_access_expires_at: number | null;
+  short_token?: { fingerprint: string; expires_in: number };
+  long_token?: {
+    fingerprint: string;
+    expires_in: number;
+    long_lived_attempted: boolean;
+    long_lived_error: string | null;
   };
-  me_accounts_raw: unknown;
+  debug_token_short?: unknown;
+  debug_token_long?: unknown;
+  me_accounts?: {
+    request_url: string;
+    status: number;
+    headers: Record<string, string>;
+    body: unknown;
+    pages_count: number;
+  };
 };
 
 type CallbackStatus =
@@ -47,31 +54,23 @@ function MetaCallbackPage() {
         if (err) throw new Error(err);
         if (!search.code) throw new Error("Código de autorização não retornado pela Meta.");
 
-        // Validação client-side do state via localStorage
         const expectedState = localStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
         if (!expectedState) {
-          throw new Error(
-            "State OAuth não encontrado. Reabra a conexão a partir da página Redes Sociais.",
-          );
+          throw new Error("State OAuth não encontrado. Reabra a conexão a partir de Redes Sociais.");
         }
         if (!search.state || search.state !== expectedState) {
           throw new Error("State OAuth inválido. Por segurança, reinicie a conexão.");
         }
-        // Consome o state (one-time use)
         localStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
 
         const result = await connectMetaAccount({ data: { code: search.code } });
         if (!result?.page_id) {
-          throw new Error(
-            "Nenhuma página do Facebook encontrada. Verifique se sua conta administra uma página.",
-          );
+          throw new Error("Nenhuma página do Facebook foi encontrada para esta conta.");
         }
 
         if (cancelled) return;
         setStatus({ kind: "success", pageName: result.page_name ?? null });
-
         window.history.replaceState(null, "", window.location.pathname);
-
         if (window.opener && !window.opener.closed) {
           try {
             window.opener.postMessage({ type: "meta-oauth-success" }, window.location.origin);
@@ -90,18 +89,14 @@ function MetaCallbackPage() {
           try {
             diag = JSON.parse(raw.slice(idx + "META_DIAG:".length)) as MetaDiag;
             message = diag.message;
-            console.error("[meta-oauth] diagnóstico", diag);
-          } catch {
-            /* keep raw */
-          }
+            console.error("[meta-oauth] diagnóstico completo", diag);
+          } catch { /* keep raw */ }
         }
         setStatus({ kind: "error", message, diag });
       }
     }
     void run();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [search.code, search.state, search.error, search.error_description, navigate]);
 
   if (status.kind === "loading") {
@@ -132,46 +127,14 @@ function MetaCallbackPage() {
   }
 
   return (
-    <MetaCallbackCard>
+    <MetaCallbackCard wide>
       <div className="space-y-4">
         <div className="text-center space-y-2">
           <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
           <h1 className="text-lg font-semibold">Não foi possível conectar</h1>
           <p className="text-sm text-muted-foreground break-words">{status.message}</p>
         </div>
-        {status.diag && (
-          <div className="space-y-3 text-xs">
-            <div className="rounded-md border bg-muted/40 p-3">
-              <div className="font-semibold mb-1">Token debug</div>
-              <ul className="space-y-0.5 font-mono">
-                <li>is_valid: {String(status.diag.token_debug.is_valid)}</li>
-                <li>app_id: {status.diag.token_debug.app_id ?? "—"}</li>
-                <li>user_id: {status.diag.token_debug.user_id ?? "—"}</li>
-                <li>data_access_expires_at: {status.diag.token_debug.data_access_expires_at ?? "—"}</li>
-              </ul>
-            </div>
-            <div className="rounded-md border bg-muted/40 p-3">
-              <div className="font-semibold mb-1">Scopes concedidos</div>
-              <div className="font-mono break-words">
-                {status.diag.token_debug.scopes.length
-                  ? status.diag.token_debug.scopes.join(", ")
-                  : "(nenhum)"}
-              </div>
-            </div>
-            <div className="rounded-md border bg-muted/40 p-3">
-              <div className="font-semibold mb-1">Granular scopes</div>
-              <pre className="font-mono whitespace-pre-wrap break-words max-h-40 overflow-auto">
-{JSON.stringify(status.diag.token_debug.granular_scopes, null, 2)}
-              </pre>
-            </div>
-            <div className="rounded-md border bg-muted/40 p-3">
-              <div className="font-semibold mb-1">Resposta bruta de /me/accounts</div>
-              <pre className="font-mono whitespace-pre-wrap break-words max-h-48 overflow-auto">
-{JSON.stringify(status.diag.me_accounts_raw, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
+        {status.diag && <DiagPanel diag={status.diag} />}
         <Button onClick={() => navigate({ to: "/painel/redes-sociais" })} className="w-full">
           Voltar para Redes Sociais
         </Button>
@@ -180,13 +143,56 @@ function MetaCallbackPage() {
   );
 }
 
+function DiagPanel({ diag }: { diag: MetaDiag }) {
+  return (
+    <div className="space-y-3 text-xs">
+      <Block title="Tokens (fingerprint, sem expor o valor)">
+        <pre className="font-mono whitespace-pre-wrap break-words">
+{JSON.stringify({ short_token: diag.short_token, long_token: diag.long_token }, null, 2)}
+        </pre>
+      </Block>
+      <Block title="debug_token — token curto (raw)">
+        <pre className="font-mono whitespace-pre-wrap break-words max-h-64 overflow-auto">
+{JSON.stringify(diag.debug_token_short, null, 2)}
+        </pre>
+      </Block>
+      <Block title="debug_token — token longo (raw)">
+        <pre className="font-mono whitespace-pre-wrap break-words max-h-64 overflow-auto">
+{JSON.stringify(diag.debug_token_long, null, 2)}
+        </pre>
+      </Block>
+      <Block title={`/me/accounts (status ${diag.me_accounts?.status ?? "?"}, pages=${diag.me_accounts?.pages_count ?? 0})`}>
+        <div className="mb-2 font-mono break-words">{diag.me_accounts?.request_url}</div>
+        <div className="mb-2">
+          <div className="font-semibold">Headers</div>
+          <pre className="font-mono whitespace-pre-wrap break-words">
+{JSON.stringify(diag.me_accounts?.headers ?? {}, null, 2)}
+          </pre>
+        </div>
+        <div>
+          <div className="font-semibold">Body</div>
+          <pre className="font-mono whitespace-pre-wrap break-words max-h-72 overflow-auto">
+{JSON.stringify(diag.me_accounts?.body, null, 2)}
+          </pre>
+        </div>
+      </Block>
+    </div>
+  );
+}
 
+function Block({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-md border bg-muted/40 p-3">
+      <div className="font-semibold mb-1">{title}</div>
+      {children}
+    </div>
+  );
+}
 
-
-function MetaCallbackCard({ children }: { children: React.ReactNode }) {
+function MetaCallbackCard({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <div className="w-full max-w-md rounded-2xl border bg-card p-8 shadow-xl">
+      <div className={`w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-2xl border bg-card p-8 shadow-xl`}>
         <div className="mb-6 flex justify-center">
           <div className="flex -space-x-2">
             <div className="rounded-full bg-[#1877F2] p-3 ring-4 ring-background">
