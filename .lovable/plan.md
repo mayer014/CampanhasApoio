@@ -1,105 +1,113 @@
-## Objetivo
-Instrumentar o fluxo OAuth da Meta para expor o diagnóstico completo do token em produção e fechar a causa raiz de `/me/accounts` retornar vazio mesmo com seleção visual de Página/Instagram no popup.
+## Plano B — Painel da própria conta Meta via Graph API oficial
 
-## Achados já confirmados no código
-- O `code` é trocado por token em `src/lib/meta-connect.functions.ts` dentro de `exchangeCodeAndSave()`.
-- O `/me/accounts` já usa o **user access token** (na prática, o long-lived token após exchange, quando disponível), não o page token.
-- O callback client-side valida `state` e chama `connectMetaAccount`, então o popup não abre mais `/_serverFn`.
-- Hoje o diagnóstico já mostra apenas uma parte do token debug: `is_valid`, `app_id`, `user_id`, `scopes`, `granular_scopes`, `data_access_expires_at` e a resposta crua de `/me/accounts`.
-- O frontend abre o OAuth com `buildMetaOAuthUrl({ state })` diretamente em `src/routes/painel.redes-sociais.tsx`.
-- Há um ponto crítico: o `config_id` no frontend depende de `VITE_META_BUSINESS_LOGIN_CONFIG_ID`, enquanto o servidor já possui `META_BUSINESS_LOGIN_CONFIG_ID`. Se a variável pública não estiver presente em produção, o popup pode estar abrindo um fluxo híbrido/tradicional sem `config_id` válido.
+Objetivo: transformar os 3 cards "Em breve" da página `/painel/redes-sociais` em features funcionais usando o token Meta que já está salvo em `social_connections`. Tudo no stack atual (TanStack server fns + Supabase + Lovable AI Gateway). Sem crawler, sem VPS extra.
 
-## Hipóteses priorizadas
-1. **`config_id` ausente ou incorreto no frontend publicado**
-   - Sinal esperado: URL final do OAuth sem `config_id`, ou `debug_token` indicando token de fluxo diferente do Business Login esperado.
-   - Impacto: o usuário vê seleção visual, mas o token final não recebe os assets/páginas.
+Entregue em 3 fases independentes, cada uma utilizável sozinha.
 
-2. **Token válido, porém sem asset grants efetivos**
-   - Sinal esperado: `granular_scopes` sem `target_ids` relevantes, ou permissões concedidas sem vinculação às páginas.
-   - Impacto: `/me/accounts` volta `200` com `data: []`.
+---
 
-3. **Troca `code -> token` ou `long-lived exchange` altera o contexto do token**
-   - Sinal esperado: diferenças entre o `debug_token` do token curto e do long-lived (`type`, `application`, `issued_to`, `profile_id`, `scopes`, `granular_scopes`).
-   - Impacto: o token inicial teria assets, mas o token usado no `/me/accounts` não.
+### Fase 1 — Métricas (Insights)
 
-4. **Conta/asset não elegível para o app em modo development / Business Manager**
-   - Sinal esperado: token válido, mas usuário sem papel correto (admin/developer/tester) ou asset não atribuído ao Business app/system user.
-   - Impacto: a UI da Meta mostra assets, mas a API não os entrega ao app.
+Nova tab/seção "Métricas" abrindo por padrão quando a conta está conectada.
 
-5. **Mistura entre Facebook Login tradicional e Facebook Login for Business**
-   - Sinal esperado: uso simultâneo de `scope` + fluxo de Business Login sem configuração consistente; resposta de `debug_token` incompatível com token esperado do Business flow.
+**Instagram Business** (via `/{ig-user-id}/insights`):
+- Seguidores totais + variação 7/30 dias (`follower_count`)
+- Alcance e impressões agregados (`reach`, `impressions`) — gráfico de linha últimos 30 dias
+- Engajamento total (`engagement`, `profile_views`, `website_clicks`)
+- Top 5 posts recentes por engajamento — thumb + likes + comments + reach
 
-## Plano de implementação
-### 1) Expandir o diagnóstico do token no servidor
-Adicionar logs e payload de erro com **todos** os campos relevantes retornados por `debug_token`, incluindo:
-- `application`
-- `type`
-- `issued_at`
-- `issued_to`
-- `profile_id`
-- `expires_at`
-- `metadata`
-- `scopes`
-- `granular_scopes`
-- `target_ids`
-- `data_access_expires_at`
-- JSON bruto completo do `debug_token`
+**Facebook Page** (via `/{page-id}/insights`):
+- Fãs da página + variação
+- Alcance de publicações
+- Engajamento total
 
-### 2) Instrumentar as duas etapas do token
-Executar e registrar `debug_token` em dois momentos:
-- após o `code -> token` (token curto)
-- após o `fb_exchange_token` (token long-lived, se existir)
+**UX**: cards KPI no topo (número + delta colorido), gráfico Recharts de série temporal, lista de top posts. Filtro de período (7/30/90 dias).
 
-Isso vai mostrar se a troca para long-lived está “perdendo” asset context.
+**Backend**:
+- `getMetaInsights` serverFn (`requireSupabaseAuth`) que lê o token do usuário e bate na Graph API v23.0
+- Cache em tabela nova `social_insights_cache` (TTL 1h) para evitar bater na Meta a cada refresh
+- Tratamento de token expirado → marca `status='expired'` e UI pede reconectar
 
-### 3) Registrar a chamada de `/me/accounts` com máxima visibilidade
-Antes de salvar a conexão, registrar:
-- URL chamada
-- token usado (apenas fingerprint/parcial segura, nunca completo em tela)
-- status HTTP
-- headers relevantes da resposta
-- corpo bruto completo
-- quantidade de páginas retornadas
-- erros completos, se houver
+---
 
-### 4) Expor o diagnóstico completo na tela do callback
-Ampliar `/auth/meta/callback` para mostrar, sem exibir o token:
-- `application`, `type`, `issued_to`, `profile_id`, `expires_at`
-- debug do token curto e do long-lived lado a lado
-- `granular_scopes` completos
-- `target_ids` extraídos por permissão
-- resposta bruta e headers de `/me/accounts`
-- indicador claro se `config_id` foi usado para abrir o OAuth
+### Fase 2 — Central de Comentários
 
-### 5) Corrigir a origem da URL OAuth
-Parar de depender apenas de `VITE_META_BUSINESS_LOGIN_CONFIG_ID` no cliente e fazer o botão obter do servidor a configuração efetiva do OAuth (`state + configId` ou a URL final pronta).
+Nova rota `/painel/redes-sociais/comentarios` com inbox unificado IG + FB.
 
-Objetivo:
-- garantir que a URL publicada sempre use o `config_id` do ambiente real do servidor
-- eliminar a hipótese de preview/publicado divergirem no parâmetro mais importante do Business Login
+**Funcionalidades**:
+- Lista paginada de comentários recentes (IG: `/{ig-media-id}/comments`, FB: `/{post-id}/comments`)
+- Filtros: plataforma, post, status (pendente/respondido/oculto), sentimento (após Fase 3)
+- Ações por comentário: responder inline, ocultar, marcar como tratado, abrir post original
+- Resposta envia via Graph API (`POST /{comment-id}/replies` no IG, `POST /{comment-id}/comments` no FB) e grava localmente
 
-### 6) Validar o fluxo publicado
-Verificar no build publicado:
-- se a URL aberta contém `response_type=code`
-- se contém `client_id=2042324250036581`
-- se contém `redirect_uri=https://fotodeapoio.easychain.com.br/auth/meta/callback`
-- se contém `config_id` quando o Business Login estiver habilitado
-- se o `state` confere com o salvo localmente
+**Backend**:
+- Tabelas novas:
+  - `social_posts_cache` — id, connection_id, platform, external_id, caption, thumb, posted_at, metrics jsonb
+  - `social_comments` — id, connection_id, platform, post_external_id, comment_external_id, author_name, text, posted_at, status enum(`pending`,`replied`,`hidden`,`handled`), parent_comment_id, raw jsonb
+- ServerFns:
+  - `syncMetaComments` — busca comentários novos dos últimos N posts e faz upsert
+  - `listSocialComments` — lê do banco com filtros
+  - `replySocialComment` — chama Graph e grava resposta
+  - `updateCommentStatus` — muda status local
+- Cron endpoint `/api/public/social/comments-sync-tick` (HMAC) chamado a cada 10min para puxar novos comentários de todas as conexões ativas
 
-## Resultado esperado
-Após essa instrumentação, teremos evidência suficiente para separar de forma objetiva:
-- problema de `config_id` / fluxo errado
-- problema de permissões granulares sem assets
-- problema no exchange para long-lived token
-- problema de papel/asset no Business Manager / modo development
-- problema/bug da própria Meta no `/me/accounts`
+---
 
-## Entrega técnica
-Vou concentrar as mudanças em:
-- `src/lib/meta-connect.functions.ts`
-- `src/routes/auth.meta.callback.tsx`
-- `src/routes/painel.redes-sociais.tsx`
-- possivelmente `src/lib/meta-oauth.ts`
+### Fase 3 — Sentimento com IA
 
-## Critério de sucesso
-Você conseguirá ver, no callback e nos logs, o diagnóstico bruto completo da Meta e eu consigo te devolver hipóteses confirmadas/refutadas com base em dados reais do token, não em suposição.
+Coluna de sentimento no inbox + painel de resumo.
+
+**Pipeline (custo baixo)**:
+1. Comentários novos entram com `sentiment = NULL`
+2. Job em batch processa em lotes de 20 comentários por chamada → Lovable AI Gateway com `google/gemini-2.5-flash-lite` retornando JSON estruturado: `{ sentiment: positive|neutral|negative, emotion: string, topics: string[] }`
+3. Grava em `social_comments` (colunas `sentiment`, `emotion`, `topics text[]`, `ai_processed_at`)
+
+**UX**:
+- Badge colorido no comentário (verde/amarelo/vermelho)
+- Filtro por sentimento e emoção no inbox
+- Card de resumo no topo da Central: % positivo/neutro/negativo dos últimos 7 dias, top 5 tópicos recorrentes, gráfico de evolução
+- Botão "Resumo executivo" → chama Gemini com amostra clusterizada para gerar parágrafo curto sobre a percepção pública
+
+**Backend**:
+- `analyzeSocialComments` serverFn (chamada pelo cron tick logo após o sync)
+- `getSentimentSummary` serverFn para o card de resumo
+
+---
+
+### Pré-requisitos
+
+- Confirmar que os escopos do OAuth atual já incluem `instagram_manage_insights` e `instagram_manage_comments`. Se não, ajustar `META_SCOPES` em `src/lib/meta-oauth.ts` — exigirá reconexão por usuário.
+- Segredo `SOCIAL_HMAC_SECRET` já existe → reaproveitar para o cron tick.
+- Configurar pg_cron (ou cron externo do VPS) chamando `https://project--7a279b36-7b6b-4e1c-bf0e-253f1a812c48.lovable.app/api/public/social/comments-sync-tick` a cada 10 min.
+
+---
+
+### Detalhes técnicos
+
+```
+src/lib/
+├── meta-graph.server.ts          (cliente Graph v23 + retry/refresh)
+├── meta-insights.functions.ts    (Fase 1)
+├── meta-comments.functions.ts    (Fase 2)
+└── social-ai.functions.ts        (Fase 3)
+
+src/routes/
+├── painel.redes-sociais.tsx              (atualiza cards → tabs reais)
+├── painel.redes-sociais.metricas.tsx     (Fase 1)
+└── painel.redes-sociais.comentarios.tsx  (Fase 2 + 3)
+
+src/routes/api/public/
+└── social.comments-sync-tick.ts  (cron HMAC)
+```
+
+Tabelas novas: `social_insights_cache`, `social_posts_cache`, `social_comments` — todas com RLS `user_id = auth.uid()` via join em `social_connections`.
+
+---
+
+### Ordem de execução proposta
+
+1. **Sprint 1** — Fase 1 completa (métricas). Entrega visível rápida, valida que o token funciona pra Graph API.
+2. **Sprint 2** — Fase 2 (comentários: sync + listar + responder). Sem IA ainda.
+3. **Sprint 3** — Fase 3 (sentimento + resumo IA).
+
+Posso começar pela Fase 1 assim que aprovar.
