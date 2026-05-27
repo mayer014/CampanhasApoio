@@ -440,15 +440,15 @@ function RedesSociaisPage() {
       </Card>
 
 
+      {/* Métricas em tempo real */}
+      {conn && conn.status === "connected" && (
+        <MetricsPanel connectionId={conn.id} />
+      )}
+
       {/* Placeholders */}
       <div>
-        <h2 className="mb-4 text-lg font-semibold">Em breve, com sua conta conectada</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <PlaceholderCard
-            icon={<BarChart3 className="h-5 w-5" />}
-            title="Métricas em tempo real"
-            description="Alcance, impressões, engajamento e crescimento de seguidores agregados por período."
-          />
+        <h2 className="mb-4 text-lg font-semibold">Em breve</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
           <PlaceholderCard
             icon={<MessageSquare className="h-5 w-5" />}
             title="Central de comentários"
@@ -461,6 +461,7 @@ function RedesSociaisPage() {
           />
         </div>
       </div>
+
     </div>
   );
 }
