@@ -254,6 +254,14 @@ export function CommentsInbox() {
                 <TabsTrigger value="facebook" className="text-xs"><Facebook className="h-3 w-3" /></TabsTrigger>
               </TabsList>
             </Tabs>
+            <Tabs value={sentiment} onValueChange={(v) => setSentiment(v as SentimentFilter)}>
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
+                <TabsTrigger value="positive" className="text-xs text-emerald-600"><Smile className="h-3 w-3" /></TabsTrigger>
+                <TabsTrigger value="neutral" className="text-xs text-amber-600"><Meh className="h-3 w-3" /></TabsTrigger>
+                <TabsTrigger value="negative" className="text-xs text-rose-600"><Frown className="h-3 w-3" /></TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
 
