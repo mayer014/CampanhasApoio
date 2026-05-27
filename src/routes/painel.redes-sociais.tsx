@@ -14,7 +14,7 @@ import { connectMetaAccount } from "@/lib/meta-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
-  Activity, Trash2,
+  Activity, Trash2, BarChart3,
 } from "lucide-react";
 import { MetricsPanel } from "@/components/social/MetricsPanel";
 
