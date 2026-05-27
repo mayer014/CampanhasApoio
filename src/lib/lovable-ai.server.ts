@@ -1,0 +1,88 @@
+// Server-only: cliente do Lovable AI Gateway (OpenAI-compatible).
+// Nunca importar do client.
+
+const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+export class LovableAIError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+export type ChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+export type ToolDef = {
+  type: "function";
+  function: {
+    name: string;
+    description?: string;
+    parameters: Record<string, unknown>;
+  };
+};
+
+export async function chatCompletion(opts: {
+  messages: ChatMessage[];
+  model?: string;
+  tools?: ToolDef[];
+  toolChoice?: { type: "function"; function: { name: string } };
+  temperature?: number;
+}): Promise<{
+  content: string | null;
+  toolArgs: Record<string, unknown> | null;
+}> {
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) throw new LovableAIError("LOVABLE_API_KEY não configurada", 500);
+
+  const body: Record<string, unknown> = {
+    model: opts.model ?? "google/gemini-2.5-flash-lite",
+    messages: opts.messages,
+  };
+  if (opts.tools) body.tools = opts.tools;
+  if (opts.toolChoice) body.tool_choice = opts.toolChoice;
+  if (opts.temperature !== undefined) body.temperature = opts.temperature;
+
+  const res = await fetch(GATEWAY_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    if (res.status === 429) {
+      throw new LovableAIError("Limite de requisições da IA atingido. Tente novamente em instantes.", 429);
+    }
+    if (res.status === 402) {
+      throw new LovableAIError("Créditos da IA esgotados. Adicione créditos no workspace.", 402);
+    }
+    throw new LovableAIError(`AI gateway erro ${res.status}: ${text.slice(0, 200)}`, res.status);
+  }
+
+  const json = (await res.json()) as {
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+        tool_calls?: Array<{ function?: { arguments?: string } }>;
+      };
+    }>;
+  };
+  const msg = json.choices?.[0]?.message;
+  const tc = msg?.tool_calls?.[0]?.function?.arguments;
+  let toolArgs: Record<string, unknown> | null = null;
+  if (tc) {
+    try {
+      toolArgs = JSON.parse(tc);
+    } catch {
+      toolArgs = null;
+    }
+  }
+  return { content: msg?.content ?? null, toolArgs };
+}
