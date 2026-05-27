@@ -123,7 +123,7 @@ export const syncMetaComments = createServerFn({ method: "POST" })
         author_id: c.from?.id ?? null,
         text: c.text ?? c.message ?? null,
         posted_at: c.timestamp ?? c.created_time ?? null,
-        raw: c as unknown as Record<string, unknown>,
+        raw: JSON.parse(JSON.stringify(c)) as never,
       }));
       // upsert ignorando status para não sobrescrever ações do usuário
       const { error } = await supabase
