@@ -442,8 +442,9 @@ function RedesSociaisPage() {
 
       {/* Métricas em tempo real */}
       {conn && conn.status === "connected" && (
-        <MetricsPanel connectionId={conn.id} />
+        <MetricsPanel />
       )}
+
 
       {/* Placeholders */}
       <div>
