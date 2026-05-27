@@ -7,7 +7,7 @@ import { SentimentSummary } from "@/components/social/SentimentSummary";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 
-export const Route = createFileRoute("/painel/redes-sociais/comentarios")({
+export const Route = createFileRoute("/painel/redes-sociais_/comentarios")({
   component: ComentariosPage,
 });
 
