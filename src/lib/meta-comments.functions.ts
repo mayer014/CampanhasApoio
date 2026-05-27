@@ -203,6 +203,7 @@ export const listSocialComments = createServerFn({ method: "POST" })
     z.object({
       platform: PlatformEnum.optional(),
       status: StatusEnum.optional(),
+      sentiment: z.enum(["positive", "neutral", "negative"]).optional(),
       postExternalId: z.string().optional(),
       limit: z.number().min(1).max(200).optional().default(100),
     }).parse(input ?? {}),
@@ -216,13 +217,14 @@ export const listSocialComments = createServerFn({ method: "POST" })
     let q = supabase
       .from("social_comments")
       .select(
-        "id, platform, post_external_id, comment_external_id, parent_comment_external_id, author_name, text, posted_at, status, reply_text, replied_at",
+        "id, platform, post_external_id, comment_external_id, parent_comment_external_id, author_name, text, posted_at, status, reply_text, replied_at, sentiment, emotion, topics",
       )
       .eq("user_id", userId)
       .order("posted_at", { ascending: false, nullsFirst: false })
       .limit(data.limit);
     if (data.platform) q = q.eq("platform", data.platform);
     if (data.status) q = q.eq("status", data.status);
+    if (data.sentiment) q = q.eq("sentiment", data.sentiment);
     if (data.postExternalId) q = q.eq("post_external_id", data.postExternalId);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
