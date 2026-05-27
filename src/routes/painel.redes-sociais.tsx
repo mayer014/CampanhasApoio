@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -359,6 +359,11 @@ function RedesSociaisPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <Button asChild className="gap-2">
+                  <Link to="/painel/redes-sociais/comentarios">
+                    <MessageSquare className="h-4 w-4" /> Abrir Central de Comentários
+                  </Link>
+                </Button>
                 <Button variant="outline" onClick={handleConnect}>
                   <RefreshCw className="mr-2 h-4 w-4" /> Renovar token
                 </Button>

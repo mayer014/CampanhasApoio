@@ -164,6 +164,69 @@ export type Database = {
         }
         Relationships: []
       }
+      social_comments: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          comment_external_id: string
+          connection_id: string
+          created_at: string
+          id: string
+          parent_comment_external_id: string | null
+          platform: string
+          post_external_id: string
+          posted_at: string | null
+          raw: Json
+          replied_at: string | null
+          replied_external_id: string | null
+          reply_text: string | null
+          status: Database["public"]["Enums"]["social_comment_status"]
+          text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string | null
+          comment_external_id: string
+          connection_id: string
+          created_at?: string
+          id?: string
+          parent_comment_external_id?: string | null
+          platform: string
+          post_external_id: string
+          posted_at?: string | null
+          raw?: Json
+          replied_at?: string | null
+          replied_external_id?: string | null
+          reply_text?: string | null
+          status?: Database["public"]["Enums"]["social_comment_status"]
+          text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string | null
+          comment_external_id?: string
+          connection_id?: string
+          created_at?: string
+          id?: string
+          parent_comment_external_id?: string | null
+          platform?: string
+          post_external_id?: string
+          posted_at?: string | null
+          raw?: Json
+          replied_at?: string | null
+          replied_external_id?: string | null
+          reply_text?: string | null
+          status?: Database["public"]["Enums"]["social_comment_status"]
+          text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_connections: {
         Row: {
           access_token: string | null
@@ -258,6 +321,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      social_posts_cache: {
+        Row: {
+          caption: string | null
+          connection_id: string
+          created_at: string
+          external_id: string
+          id: string
+          last_synced_at: string
+          media_type: string | null
+          metrics: Json
+          permalink: string | null
+          platform: string
+          posted_at: string | null
+          thumbnail_url: string | null
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          connection_id: string
+          created_at?: string
+          external_id: string
+          id?: string
+          last_synced_at?: string
+          media_type?: string | null
+          metrics?: Json
+          permalink?: string | null
+          platform: string
+          posted_at?: string | null
+          thumbnail_url?: string | null
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          connection_id?: string
+          created_at?: string
+          external_id?: string
+          id?: string
+          last_synced_at?: string
+          media_type?: string | null
+          metrics?: Json
+          permalink?: string | null
+          platform?: string
+          posted_at?: string | null
+          thumbnail_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -974,6 +1085,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "candidate"
+      social_comment_status: "pending" | "replied" | "hidden" | "handled"
       whatsapp_broadcast_status:
         | "draft"
         | "running"
@@ -1116,6 +1228,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "candidate"],
+      social_comment_status: ["pending", "replied", "hidden", "handled"],
       whatsapp_broadcast_status: [
         "draft",
         "running",
