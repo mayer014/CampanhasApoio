@@ -166,11 +166,13 @@ export type Database = {
       }
       social_comments: {
         Row: {
+          ai_processed_at: string | null
           author_id: string | null
           author_name: string | null
           comment_external_id: string
           connection_id: string
           created_at: string
+          emotion: string | null
           id: string
           parent_comment_external_id: string | null
           platform: string
@@ -180,17 +182,21 @@ export type Database = {
           replied_at: string | null
           replied_external_id: string | null
           reply_text: string | null
+          sentiment: Database["public"]["Enums"]["social_sentiment"] | null
           status: Database["public"]["Enums"]["social_comment_status"]
           text: string | null
+          topics: string[]
           updated_at: string
           user_id: string
         }
         Insert: {
+          ai_processed_at?: string | null
           author_id?: string | null
           author_name?: string | null
           comment_external_id: string
           connection_id: string
           created_at?: string
+          emotion?: string | null
           id?: string
           parent_comment_external_id?: string | null
           platform: string
@@ -200,17 +206,21 @@ export type Database = {
           replied_at?: string | null
           replied_external_id?: string | null
           reply_text?: string | null
+          sentiment?: Database["public"]["Enums"]["social_sentiment"] | null
           status?: Database["public"]["Enums"]["social_comment_status"]
           text?: string | null
+          topics?: string[]
           updated_at?: string
           user_id: string
         }
         Update: {
+          ai_processed_at?: string | null
           author_id?: string | null
           author_name?: string | null
           comment_external_id?: string
           connection_id?: string
           created_at?: string
+          emotion?: string | null
           id?: string
           parent_comment_external_id?: string | null
           platform?: string
@@ -220,8 +230,10 @@ export type Database = {
           replied_at?: string | null
           replied_external_id?: string | null
           reply_text?: string | null
+          sentiment?: Database["public"]["Enums"]["social_sentiment"] | null
           status?: Database["public"]["Enums"]["social_comment_status"]
           text?: string | null
+          topics?: string[]
           updated_at?: string
           user_id?: string
         }
@@ -1086,6 +1098,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "candidate"
       social_comment_status: "pending" | "replied" | "hidden" | "handled"
+      social_sentiment: "positive" | "neutral" | "negative"
       whatsapp_broadcast_status:
         | "draft"
         | "running"
@@ -1229,6 +1242,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "candidate"],
       social_comment_status: ["pending", "replied", "hidden", "handled"],
+      social_sentiment: ["positive", "neutral", "negative"],
       whatsapp_broadcast_status: [
         "draft",
         "running",

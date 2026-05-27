@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { CommentsInbox } from "@/components/social/CommentsInbox";
+import { SentimentSummary } from "@/components/social/SentimentSummary";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 
@@ -52,7 +53,10 @@ function ComentariosPage() {
           </div>
         </div>
       ) : (
-        <CommentsInbox />
+        <div className="space-y-6">
+          <SentimentSummary />
+          <CommentsInbox />
+        </div>
       )}
     </div>
   );

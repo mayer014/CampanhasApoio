@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   MessageSquare, Instagram, Facebook, RefreshCw, Send, EyeOff, Check,
-  ExternalLink, AlertTriangle, Filter, Reply, RotateCcw,
+  ExternalLink, AlertTriangle, Filter, Reply, RotateCcw, Smile, Meh, Frown,
 } from "lucide-react";
 import {
   listSocialComments,
@@ -21,6 +21,14 @@ import {
   type CommentStatus,
   type SocialCommentRow,
 } from "@/lib/meta-comments.functions";
+
+type SentimentFilter = "all" | "positive" | "neutral" | "negative";
+
+const SENTIMENT_META: Record<"positive" | "neutral" | "negative", { icon: typeof Smile; cls: string; label: string }> = {
+  positive: { icon: Smile, cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", label: "Positivo" },
+  neutral: { icon: Meh, cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30", label: "Neutro" },
+  negative: { icon: Frown, cls: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30", label: "Negativo" },
+};
 
 const STATUS_LABEL: Record<CommentStatus, string> = {
   pending: "Pendentes",
@@ -87,6 +95,18 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
             {c.status !== "pending" && (
               <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[c.status]}</Badge>
             )}
+            {c.sentiment && (() => {
+              const sm = SENTIMENT_META[c.sentiment];
+              const Icon = sm.icon;
+              return (
+                <Badge variant="outline" className={`gap-1 text-[10px] ${sm.cls}`}>
+                  <Icon className="h-3 w-3" /> {sm.label}
+                </Badge>
+              );
+            })()}
+            {c.emotion && (
+              <span className="text-[10px] italic text-muted-foreground">· {c.emotion}</span>
+            )}
             {c.post?.permalink && (
               <a href={c.post.permalink} target="_blank" rel="noreferrer"
                  className="ml-auto inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
@@ -95,6 +115,15 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
             )}
           </div>
           <p className="mt-1.5 text-sm">{c.text ?? "(sem texto)"}</p>
+          {c.topics && c.topics.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {c.topics.map((t) => (
+                <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                  #{t}
+                </span>
+              ))}
+            </div>
+          )}
           {c.reply_text && (
             <div className="mt-2 rounded-md border-l-2 border-primary bg-muted/40 p-2 text-xs">
               <p className="font-medium text-muted-foreground">Sua resposta · {timeAgo(c.replied_at)}</p>
@@ -159,13 +188,15 @@ export function CommentsInbox() {
 
   const [status, setStatus] = useState<CommentStatus | "all">("pending");
   const [platform, setPlatform] = useState<CommentPlatform | "all">("all");
+  const [sentiment, setSentiment] = useState<SentimentFilter>("all");
 
   const query = useQuery({
-    queryKey: ["social-comments", status, platform],
+    queryKey: ["social-comments", status, platform, sentiment],
     queryFn: () => list({
       data: {
         status: status === "all" ? undefined : status,
         platform: platform === "all" ? undefined : platform,
+        sentiment: sentiment === "all" ? undefined : sentiment,
       },
     }),
     staleTime: 30_000,
@@ -221,6 +252,14 @@ export function CommentsInbox() {
                 <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
                 <TabsTrigger value="instagram" className="text-xs"><Instagram className="h-3 w-3" /></TabsTrigger>
                 <TabsTrigger value="facebook" className="text-xs"><Facebook className="h-3 w-3" /></TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Tabs value={sentiment} onValueChange={(v) => setSentiment(v as SentimentFilter)}>
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
+                <TabsTrigger value="positive" className="text-xs text-emerald-600"><Smile className="h-3 w-3" /></TabsTrigger>
+                <TabsTrigger value="neutral" className="text-xs text-amber-600"><Meh className="h-3 w-3" /></TabsTrigger>
+                <TabsTrigger value="negative" className="text-xs text-rose-600"><Frown className="h-3 w-3" /></TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
