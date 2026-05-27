@@ -29,7 +29,7 @@ import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configura
 import { Route as PainelTemplatesIndexRouteImport } from './routes/painel.templates.index'
 import { Route as AdminCandidatosIndexRouteImport } from './routes/admin.candidatos.index'
 import { Route as PainelTemplatesTplIdRouteImport } from './routes/painel.templates.$tplId'
-import { Route as PainelRedesSociaisComentariosRouteImport } from './routes/painel.redes-sociais.comentarios'
+import { Route as PainelRedesSociaisComentariosRouteImport } from './routes/painel.redes-sociais_.comentarios'
 import { Route as AuthMetaCallbackRouteImport } from './routes/auth.meta.callback'
 import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
@@ -139,9 +139,9 @@ const PainelTemplatesTplIdRoute = PainelTemplatesTplIdRouteImport.update({
 } as any)
 const PainelRedesSociaisComentariosRoute =
   PainelRedesSociaisComentariosRouteImport.update({
-    id: '/comentarios',
-    path: '/comentarios',
-    getParentRoute: () => PainelRedesSociaisRoute,
+    id: '/redes-sociais_/comentarios',
+    path: '/redes-sociais/comentarios',
+    getParentRoute: () => PainelRoute,
   } as any)
 const AuthMetaCallbackRoute = AuthMetaCallbackRouteImport.update({
   id: '/auth/meta/callback',
@@ -191,7 +191,7 @@ export interface FileRoutesByFullPath {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
-  '/painel/redes-sociais': typeof PainelRedesSociaisRouteWithChildren
+  '/painel/redes-sociais': typeof PainelRedesSociaisRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
@@ -218,7 +218,7 @@ export interface FileRoutesByTo {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
-  '/painel/redes-sociais': typeof PainelRedesSociaisRouteWithChildren
+  '/painel/redes-sociais': typeof PainelRedesSociaisRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin': typeof AdminIndexRoute
   '/painel': typeof PainelIndexRoute
@@ -248,12 +248,12 @@ export interface FileRoutesById {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
-  '/painel/redes-sociais': typeof PainelRedesSociaisRouteWithChildren
+  '/painel/redes-sociais': typeof PainelRedesSociaisRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
   '/auth/meta/callback': typeof AuthMetaCallbackRoute
-  '/painel/redes-sociais/comentarios': typeof PainelRedesSociaisComentariosRoute
+  '/painel/redes-sociais_/comentarios': typeof PainelRedesSociaisComentariosRoute
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
   '/painel/templates/': typeof PainelTemplatesIndexRoute
@@ -340,7 +340,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/painel/'
     | '/auth/meta/callback'
-    | '/painel/redes-sociais/comentarios'
+    | '/painel/redes-sociais_/comentarios'
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
     | '/painel/templates/'
@@ -509,12 +509,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelTemplatesTplIdRouteImport
       parentRoute: typeof PainelRoute
     }
-    '/painel/redes-sociais/comentarios': {
-      id: '/painel/redes-sociais/comentarios'
-      path: '/comentarios'
+    '/painel/redes-sociais_/comentarios': {
+      id: '/painel/redes-sociais_/comentarios'
+      path: '/redes-sociais/comentarios'
       fullPath: '/painel/redes-sociais/comentarios'
       preLoaderRoute: typeof PainelRedesSociaisComentariosRouteImport
-      parentRoute: typeof PainelRedesSociaisRoute
+      parentRoute: typeof PainelRoute
     }
     '/auth/meta/callback': {
       id: '/auth/meta/callback'
@@ -581,23 +581,13 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface PainelRedesSociaisRouteChildren {
-  PainelRedesSociaisComentariosRoute: typeof PainelRedesSociaisComentariosRoute
-}
-
-const PainelRedesSociaisRouteChildren: PainelRedesSociaisRouteChildren = {
-  PainelRedesSociaisComentariosRoute: PainelRedesSociaisComentariosRoute,
-}
-
-const PainelRedesSociaisRouteWithChildren =
-  PainelRedesSociaisRoute._addFileChildren(PainelRedesSociaisRouteChildren)
-
 interface PainelRouteChildren {
   PainelLeadsRoute: typeof PainelLeadsRoute
   PainelLinkRoute: typeof PainelLinkRoute
-  PainelRedesSociaisRoute: typeof PainelRedesSociaisRouteWithChildren
+  PainelRedesSociaisRoute: typeof PainelRedesSociaisRoute
   PainelWhatsappRoute: typeof PainelWhatsappRoute
   PainelIndexRoute: typeof PainelIndexRoute
+  PainelRedesSociaisComentariosRoute: typeof PainelRedesSociaisComentariosRoute
   PainelTemplatesTplIdRoute: typeof PainelTemplatesTplIdRoute
   PainelTemplatesIndexRoute: typeof PainelTemplatesIndexRoute
 }
@@ -605,9 +595,10 @@ interface PainelRouteChildren {
 const PainelRouteChildren: PainelRouteChildren = {
   PainelLeadsRoute: PainelLeadsRoute,
   PainelLinkRoute: PainelLinkRoute,
-  PainelRedesSociaisRoute: PainelRedesSociaisRouteWithChildren,
+  PainelRedesSociaisRoute: PainelRedesSociaisRoute,
   PainelWhatsappRoute: PainelWhatsappRoute,
   PainelIndexRoute: PainelIndexRoute,
+  PainelRedesSociaisComentariosRoute: PainelRedesSociaisComentariosRoute,
   PainelTemplatesTplIdRoute: PainelTemplatesTplIdRoute,
   PainelTemplatesIndexRoute: PainelTemplatesIndexRoute,
 }
