@@ -32,6 +32,9 @@ export type SocialCommentRow = {
   status: CommentStatus;
   reply_text: string | null;
   replied_at: string | null;
+  sentiment: "positive" | "neutral" | "negative" | null;
+  emotion: string | null;
+  topics: string[] | null;
   post?: {
     caption: string | null;
     thumbnail_url: string | null;
