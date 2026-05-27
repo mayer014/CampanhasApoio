@@ -218,6 +218,47 @@ export type Database = {
         }
         Relationships: []
       }
+      social_insights_cache: {
+        Row: {
+          cache_key: string
+          connection_id: string
+          data: Json
+          expires_at: string
+          fetched_at: string
+          id: string
+          period: string
+          user_id: string
+        }
+        Insert: {
+          cache_key: string
+          connection_id: string
+          data?: Json
+          expires_at: string
+          fetched_at?: string
+          id?: string
+          period: string
+          user_id: string
+        }
+        Update: {
+          cache_key?: string
+          connection_id?: string
+          data?: Json
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          period?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_insights_cache_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "social_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           candidate_id: string
