@@ -53,7 +53,10 @@ function ComentariosPage() {
           </div>
         </div>
       ) : (
-        <CommentsInbox />
+        <div className="space-y-6">
+          <SentimentSummary />
+          <CommentsInbox />
+        </div>
       )}
     </div>
   );
