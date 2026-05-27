@@ -95,6 +95,18 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
             {c.status !== "pending" && (
               <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[c.status]}</Badge>
             )}
+            {c.sentiment && (() => {
+              const sm = SENTIMENT_META[c.sentiment];
+              const Icon = sm.icon;
+              return (
+                <Badge variant="outline" className={`gap-1 text-[10px] ${sm.cls}`}>
+                  <Icon className="h-3 w-3" /> {sm.label}
+                </Badge>
+              );
+            })()}
+            {c.emotion && (
+              <span className="text-[10px] italic text-muted-foreground">· {c.emotion}</span>
+            )}
             {c.post?.permalink && (
               <a href={c.post.permalink} target="_blank" rel="noreferrer"
                  className="ml-auto inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
@@ -103,6 +115,15 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
             )}
           </div>
           <p className="mt-1.5 text-sm">{c.text ?? "(sem texto)"}</p>
+          {c.topics && c.topics.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {c.topics.map((t) => (
+                <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                  #{t}
+                </span>
+              ))}
+            </div>
+          )}
           {c.reply_text && (
             <div className="mt-2 rounded-md border-l-2 border-primary bg-muted/40 p-2 text-xs">
               <p className="font-medium text-muted-foreground">Sua resposta · {timeAgo(c.replied_at)}</p>
