@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   MessageSquare, Instagram, Facebook, RefreshCw, Send, EyeOff, Check,
-  ExternalLink, AlertTriangle, Filter, Reply, RotateCcw,
+  ExternalLink, AlertTriangle, Filter, Reply, RotateCcw, Smile, Meh, Frown,
 } from "lucide-react";
 import {
   listSocialComments,
@@ -21,6 +21,14 @@ import {
   type CommentStatus,
   type SocialCommentRow,
 } from "@/lib/meta-comments.functions";
+
+type SentimentFilter = "all" | "positive" | "neutral" | "negative";
+
+const SENTIMENT_META: Record<"positive" | "neutral" | "negative", { icon: typeof Smile; cls: string; label: string }> = {
+  positive: { icon: Smile, cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", label: "Positivo" },
+  neutral: { icon: Meh, cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30", label: "Neutro" },
+  negative: { icon: Frown, cls: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30", label: "Negativo" },
+};
 
 const STATUS_LABEL: Record<CommentStatus, string> = {
   pending: "Pendentes",
