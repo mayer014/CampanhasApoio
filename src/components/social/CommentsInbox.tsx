@@ -188,13 +188,15 @@ export function CommentsInbox() {
 
   const [status, setStatus] = useState<CommentStatus | "all">("pending");
   const [platform, setPlatform] = useState<CommentPlatform | "all">("all");
+  const [sentiment, setSentiment] = useState<SentimentFilter>("all");
 
   const query = useQuery({
-    queryKey: ["social-comments", status, platform],
+    queryKey: ["social-comments", status, platform, sentiment],
     queryFn: () => list({
       data: {
         status: status === "all" ? undefined : status,
         platform: platform === "all" ? undefined : platform,
+        sentiment: sentiment === "all" ? undefined : sentiment,
       },
     }),
     staleTime: 30_000,
