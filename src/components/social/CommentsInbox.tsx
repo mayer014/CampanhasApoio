@@ -205,12 +205,19 @@ export function CommentsInbox() {
   const syncMut = useMutation({
     mutationFn: () => sync({ data: { postLimit: 5 } }),
     onSuccess: (r) => {
-      toast.success(`Sincronizado: ${r.commentsSynced} comentários em ${r.postsSynced} posts`);
+      if (r.commentsSynced === 0 && r.warnings.length > 0) {
+        toast.warning(`Sincronizado, mas nenhum comentário novo. Avisos: ${r.warnings.slice(0, 2).join(" | ")}`);
+      } else if (r.commentsSynced === 0) {
+        toast.info(`Sincronizado: nenhum comentário novo em ${r.postsSynced} post(s).`);
+      } else {
+        toast.success(`Sincronizado: ${r.commentsSynced} comentário(s) em ${r.postsSynced} post(s).`);
+      }
       if (r.warnings.length > 0) console.warn("sync warnings", r.warnings);
       qc.invalidateQueries({ queryKey: ["social-comments"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao sincronizar"),
   });
+
 
   const counts = query.data?.counts;
   const comments = query.data?.comments ?? [];
