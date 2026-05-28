@@ -203,7 +203,7 @@ export function CommentsInbox() {
   });
 
   const syncMut = useMutation({
-    mutationFn: () => sync({ data: { postLimit: 10 } }),
+    mutationFn: () => sync({ data: { postLimit: 5 } }),
     onSuccess: (r) => {
       toast.success(`Sincronizado: ${r.commentsSynced} comentários em ${r.postsSynced} posts`);
       if (r.warnings.length > 0) console.warn("sync warnings", r.warnings);
