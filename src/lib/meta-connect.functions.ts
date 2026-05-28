@@ -117,7 +117,54 @@ async function exchangeCodeAndSave(
     paging?: unknown;
     error?: unknown;
   };
-  const pages = meBody.data ?? [];
+  let pages = meBody.data ?? [];
+
+  // FALLBACK NPE (New Pages Experience): páginas novas não aparecem em /me/accounts
+  // mesmo para admins. Tentamos consultar diretamente cada page_id que o usuário marcou
+  // na tela de permissões (vêm em granular_scopes.pages_show_list.target_ids).
+  let npeFallbackTried = false;
+  const npeAttempts: Array<{ page_id: string; ok: boolean; error?: string }> = [];
+  if (pages.length === 0) {
+    const granular = (shortDebug as {
+      data?: { granular_scopes?: Array<{ scope: string; target_ids?: string[] }> };
+    })?.data?.granular_scopes ?? [];
+    const selectedPageIds = granular.find((g) => g.scope === "pages_show_list")?.target_ids ?? [];
+
+    if (selectedPageIds.length > 0) {
+      npeFallbackTried = true;
+      const recovered: typeof pages = [];
+      for (const pid of selectedPageIds) {
+        try {
+          const p = await fbJson<{
+            id: string;
+            name: string;
+            access_token: string;
+            tasks?: string[];
+            instagram_business_account?: { id: string };
+          }>(
+            `${GRAPH}/${pid}?` +
+              new URLSearchParams({
+                fields: "id,name,access_token,tasks,instagram_business_account",
+                access_token: longToken,
+              }).toString(),
+          );
+          if (p.access_token) {
+            recovered.push(p);
+            npeAttempts.push({ page_id: pid, ok: true });
+          } else {
+            npeAttempts.push({ page_id: pid, ok: false, error: "sem access_token" });
+          }
+        } catch (e) {
+          npeAttempts.push({
+            page_id: pid,
+            ok: false,
+            error: e instanceof Error ? e.message : "erro",
+          });
+        }
+      }
+      if (recovered.length > 0) pages = recovered;
+    }
+  }
 
   console.info("[meta-oauth] diag", {
     short_token_fp: tokenFingerprint(shortToken),
@@ -131,33 +178,18 @@ async function exchangeCodeAndSave(
       status: meRes.status,
       headers: meHeaders,
       body: meBody,
-      pages_count: pages.length,
+      pages_count: meBody.data?.length ?? 0,
     },
+    npe_fallback: { tried: npeFallbackTried, attempts: npeAttempts, recovered_count: pages.length },
   });
 
   if (pages.length === 0) {
-    // Diagnóstico completo apenas no log do servidor — usuário recebe mensagem limpa
-    const diag = {
-      short_token: { fingerprint: tokenFingerprint(shortToken), expires_in: shortExpiresIn },
-      long_token: {
-        fingerprint: tokenFingerprint(longToken),
-        expires_in: longExpiresIn,
-        long_lived_attempted: longLivedAttempted,
-        long_lived_error: longLivedError,
-      },
-      debug_token_short: shortDebug,
-      debug_token_long: longDebug,
-      me_accounts: {
-        request_url: `${GRAPH}/me/accounts?fields=id,name,access_token,tasks,instagram_business_account&access_token=<redacted>`,
-        status: meRes.status,
-        headers: meHeaders,
-        body: meBody,
-        pages_count: pages.length,
-      },
-    };
-    console.error("[meta-oauth] no pages returned", JSON.stringify(diag));
+    console.error("[meta-oauth] no pages returned (npe fallback also failed)", JSON.stringify({
+      npe_attempts: npeAttempts,
+      short_debug: shortDebug,
+      long_debug: longDebug,
+    }));
 
-    // Tenta extrair os IDs de página que o usuário marcou na tela do Facebook
     const granular = (shortDebug as { data?: { granular_scopes?: Array<{ scope: string; target_ids?: string[] }> } })
       ?.data?.granular_scopes ?? [];
     const selectedPageIds = granular.find((g) => g.scope === "pages_show_list")?.target_ids ?? [];
@@ -170,7 +202,7 @@ async function exchangeCodeAndSave(
       "O que fazer: abra facebook.com/settings → Páginas (ou o Meta Business Suite), confirme que você é Admin da página, e tente conectar novamente marcando-a na lista.";
 
     const extra = selectedPageIds.length > 0
-      ? `\n\nVocê marcou ${selectedPageIds.length} página(s) na tela de permissões, mas o Facebook não nos deu acesso de gestão a nenhuma delas (provavelmente seu papel nessa(s) página(s) não é Admin).`
+      ? `\n\nVocê marcou ${selectedPageIds.length} página(s) na tela de permissões (IDs: ${selectedPageIds.join(", ")}), e tentamos buscar cada uma diretamente, mas o Facebook negou acesso. Detalhe técnico: ${npeAttempts.map((a) => `${a.page_id}=${a.ok ? "ok" : a.error}`).join("; ")}`
       : "\n\nVocê não marcou nenhuma página na tela de permissões do Facebook. Refaça a conexão e selecione pelo menos uma página.";
 
     throw new Error(baseMsg + extra);
