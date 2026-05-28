@@ -90,11 +90,22 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <PlatformIcon className={`h-3.5 w-3.5 ${platformColor}`} />
-            <span className="font-semibold">{c.author_name ?? "Anônimo"}</span>
+            <span
+              className="font-semibold"
+              title={
+                !c.author_name && c.platform === "facebook"
+                  ? "O Facebook oculta o nome de quem comenta a menos que a pessoa seja administradora da Página ou tenha autorizado o app. É uma restrição da Meta, não um bug."
+                  : undefined
+              }
+            >
+              {c.author_name ??
+                (c.platform === "facebook" ? "Usuário do Facebook" : "Anônimo")}
+            </span>
             <span className="text-muted-foreground">· {timeAgo(c.posted_at)}</span>
             {c.status !== "pending" && (
               <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[c.status]}</Badge>
             )}
+
             {c.sentiment && (() => {
               const sm = SENTIMENT_META[c.sentiment];
               const Icon = sm.icon;

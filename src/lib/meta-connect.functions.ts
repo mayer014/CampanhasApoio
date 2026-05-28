@@ -220,9 +220,15 @@ async function exchangeCodeAndSave(
     throw new Error(baseMsg + extra);
   }
 
-  const page = pages[0];
+  // Se a conta gerencia várias páginas, preferimos a que tem Instagram
+  // Business vinculado — caso contrário o usuário pode escolher uma página
+  // (Moreninhas) que não tem IG anexado e perder a conexão do Insta de outra
+  // página (Radio Radar) selecionada no mesmo fluxo.
+  const pageWithIg = pages.find((p) => p.instagram_business_account?.id);
+  const page = pageWithIg ?? pages[0];
   const pageAccessToken = page.access_token;
   const instagramBusinessId = page.instagram_business_account?.id ?? null;
+
 
   let instagramUsername: string | null = null;
   let instagramPictureUrl: string | null = null;
@@ -279,6 +285,35 @@ async function exchangeCodeAndSave(
     .upsert(row as never, { onConflict: "user_id,platform" });
   if (upErr) throw new Error(upErr.message);
 
+  // Lista de TODAS as páginas retornadas pelo Graph, para o usuário saber
+  // quais ficaram disponíveis (mas não foram conectadas, pois só guardamos 1
+  // página + IG dela por usuário).
+  const availablePages = pages.map((p) => ({
+    id: p.id,
+    name: p.name,
+    has_instagram: Boolean(p.instagram_business_account?.id),
+  }));
+  const otherPages = availablePages.filter((p) => p.id !== page.id);
+  let warning: string | null = null;
+  if (otherPages.length > 0) {
+    warning =
+      `Foram autorizadas ${pages.length} páginas, mas só uma conexão é mantida por vez. ` +
+      `Conectamos "${page.name}"${instagramUsername ? ` (com Instagram @${instagramUsername})` : ""}. ` +
+      `Outras: ${otherPages.map((p) => `${p.name}${p.has_instagram ? " [+IG]" : ""}`).join(", ")}. ` +
+      `Para usar outra página, desconecte e reconecte marcando apenas a página desejada na tela do Facebook.`;
+  } else if (!instagramBusinessId) {
+    // Usuário pediu acesso a IG mas a página conectada não tem IG vinculado.
+    const igTargets = (shortDebug as { data?: { granular_scopes?: Array<{ scope: string; target_ids?: string[] }> } })
+      ?.data?.granular_scopes?.find((g) => g.scope === "instagram_basic" || g.scope === "instagram_manage_comments")
+      ?.target_ids ?? [];
+    if (igTargets.length > 0) {
+      warning =
+        `A página "${page.name}" não tem Instagram Business vinculado. ` +
+        `O Instagram autorizado (${igTargets.join(", ")}) está conectado a OUTRA página do Facebook. ` +
+        `Para usar esse Instagram, reconecte selecionando a página do Facebook à qual ele está vinculado.`;
+    }
+  }
+
   return {
     ok: true,
     page_id: page.id,
@@ -286,8 +321,11 @@ async function exchangeCodeAndSave(
     instagram_business_id: instagramBusinessId,
     instagram_username: instagramUsername,
     expires_at: expiresAt,
+    available_pages: availablePages,
+    warning,
   };
 }
+
 
 export const connectMetaAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
