@@ -220,9 +220,15 @@ async function exchangeCodeAndSave(
     throw new Error(baseMsg + extra);
   }
 
-  const page = pages[0];
+  // Se a conta gerencia várias páginas, preferimos a que tem Instagram
+  // Business vinculado — caso contrário o usuário pode escolher uma página
+  // (Moreninhas) que não tem IG anexado e perder a conexão do Insta de outra
+  // página (Radio Radar) selecionada no mesmo fluxo.
+  const pageWithIg = pages.find((p) => p.instagram_business_account?.id);
+  const page = pageWithIg ?? pages[0];
   const pageAccessToken = page.access_token;
   const instagramBusinessId = page.instagram_business_account?.id ?? null;
+
 
   let instagramUsername: string | null = null;
   let instagramPictureUrl: string | null = null;
