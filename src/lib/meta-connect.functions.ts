@@ -136,9 +136,8 @@ async function exchangeCodeAndSave(
   });
 
   if (pages.length === 0) {
+    // Diagnóstico completo apenas no log do servidor — usuário recebe mensagem limpa
     const diag = {
-      message:
-        "Nenhuma página retornada por /me/accounts. Veja os blocos abaixo para confirmar a causa.",
       short_token: { fingerprint: tokenFingerprint(shortToken), expires_in: shortExpiresIn },
       long_token: {
         fingerprint: tokenFingerprint(longToken),
@@ -156,7 +155,25 @@ async function exchangeCodeAndSave(
         pages_count: pages.length,
       },
     };
-    throw new Error("META_DIAG:" + JSON.stringify(diag));
+    console.error("[meta-oauth] no pages returned", JSON.stringify(diag));
+
+    // Tenta extrair os IDs de página que o usuário marcou na tela do Facebook
+    const granular = (shortDebug as { data?: { granular_scopes?: Array<{ scope: string; target_ids?: string[] }> } })
+      ?.data?.granular_scopes ?? [];
+    const selectedPageIds = granular.find((g) => g.scope === "pages_show_list")?.target_ids ?? [];
+
+    const baseMsg =
+      "Não conseguimos acessar nenhuma página do Facebook dessa conta. Isso geralmente acontece em 3 situações:\n\n" +
+      "1) Você não é Admin da página (apenas Editor, Moderador ou Anunciante não bastam).\n" +
+      "2) A página usa a \"Nova Experiência de Páginas\" — nesse caso, ela precisa estar vinculada ao Business Manager com você como Admin.\n" +
+      "3) Você não marcou nenhuma página na tela de permissões do Facebook (passou direto).\n\n" +
+      "O que fazer: abra facebook.com/settings → Páginas (ou o Meta Business Suite), confirme que você é Admin da página, e tente conectar novamente marcando-a na lista.";
+
+    const extra = selectedPageIds.length > 0
+      ? `\n\nVocê marcou ${selectedPageIds.length} página(s) na tela de permissões, mas o Facebook não nos deu acesso de gestão a nenhuma delas (provavelmente seu papel nessa(s) página(s) não é Admin).`
+      : "\n\nVocê não marcou nenhuma página na tela de permissões do Facebook. Refaça a conexão e selecione pelo menos uma página.";
+
+    throw new Error(baseMsg + extra);
   }
 
   const page = pages[0];
