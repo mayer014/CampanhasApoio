@@ -139,57 +139,46 @@ export const syncMetaComments = createServerFn({ method: "POST" })
       else commentsSynced += rows.length;
     }
 
-    // Instagram
-    if (conn.instagram_business_id) {
+    async function processPost(platform: CommentPlatform, m: RawMedia) {
+      await upsertPost(platform, m);
       try {
-        const media = await fetchInstagramMedia(
-          conn.instagram_business_id,
-          conn.access_token,
-          data.postLimit,
-        );
-        for (const m of media) {
-          await upsertPost("instagram", m);
-          try {
-            const cs = await fetchInstagramComments(m.id, conn.access_token);
-            await upsertComments("instagram", m.id, cs);
-          } catch (e) {
-            warnings.push(`IG comments ${m.id}: ${e instanceof Error ? e.message : "erro"}`);
-          }
-        }
+        const cs = platform === "instagram"
+          ? await fetchInstagramComments(m.id, conn.access_token)
+          : await fetchFacebookComments(m.id, conn.access_token);
+        await upsertComments(platform, m.id, cs);
+      } catch (e) {
+        warnings.push(`${platform} comments ${m.id}: ${e instanceof Error ? e.message : "erro"}`);
+      }
+    }
+
+    async function syncPlatform(
+      platform: CommentPlatform,
+      fetchMedia: () => Promise<RawMedia[]>,
+    ) {
+      try {
+        const media = await fetchMedia();
+        await Promise.all(media.map((m) => processPost(platform, m)));
       } catch (e) {
         try {
           handleTokenError(e, supabase, conn.id);
         } catch (err) {
-          warnings.push(`Instagram: ${err instanceof Error ? err.message : "erro"}`);
+          warnings.push(`${platform}: ${err instanceof Error ? err.message : "erro"}`);
         }
       }
     }
 
-    // Facebook
-    if (conn.page_id) {
-      try {
-        const posts = await fetchFacebookPagePosts(
-          conn.page_id,
-          conn.access_token,
-          data.postLimit,
-        );
-        for (const p of posts) {
-          await upsertPost("facebook", p);
-          try {
-            const cs = await fetchFacebookComments(p.id, conn.access_token);
-            await upsertComments("facebook", p.id, cs);
-          } catch (e) {
-            warnings.push(`FB comments ${p.id}: ${e instanceof Error ? e.message : "erro"}`);
-          }
-        }
-      } catch (e) {
-        try {
-          handleTokenError(e, supabase, conn.id);
-        } catch (err) {
-          warnings.push(`Facebook: ${err instanceof Error ? err.message : "erro"}`);
-        }
-      }
+    const tasks: Promise<void>[] = [];
+    if (conn.instagram_business_id) {
+      tasks.push(syncPlatform("instagram", () =>
+        fetchInstagramMedia(conn.instagram_business_id, conn.access_token, data.postLimit),
+      ));
     }
+    if (conn.page_id) {
+      tasks.push(syncPlatform("facebook", () =>
+        fetchFacebookPagePosts(conn.page_id, conn.access_token, data.postLimit),
+      ));
+    }
+    await Promise.all(tasks);
 
     return { postsSynced, commentsSynced, warnings };
   });
