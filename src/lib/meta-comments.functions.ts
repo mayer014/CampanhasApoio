@@ -71,7 +71,7 @@ function handleTokenError(e: unknown, supabase: any, connId: string): never {
 export const syncMetaComments = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ postLimit: z.number().min(1).max(25).optional().default(10) })
+    z.object({ postLimit: z.number().min(1).max(25).optional().default(5) })
       .parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
