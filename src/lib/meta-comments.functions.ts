@@ -203,12 +203,32 @@ export const listSocialComments = createServerFn({ method: "POST" })
   }> => {
     const { supabase, userId } = context;
 
+    // Só mostra comentários da(s) conexão(ões) Meta atualmente vinculada(s)
+    // ao usuário. Conexões antigas (já removidas/substituídas) deixam linhas
+    // órfãs em social_comments — não devem aparecer no inbox.
+    const { data: activeConns, error: connErr } = await supabase
+      .from("social_connections")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("platform", "meta")
+      .eq("status", "connected");
+    if (connErr) throw new Error(connErr.message);
+    const activeIds = (activeConns ?? []).map((c: { id: string }) => c.id);
+
+    if (activeIds.length === 0) {
+      return {
+        comments: [],
+        counts: { pending: 0, replied: 0, hidden: 0, handled: 0 },
+      };
+    }
+
     let q = supabase
       .from("social_comments")
       .select(
         "id, platform, post_external_id, comment_external_id, parent_comment_external_id, author_name, text, posted_at, status, reply_text, replied_at, sentiment, emotion, topics",
       )
       .eq("user_id", userId)
+      .in("connection_id", activeIds)
       .order("posted_at", { ascending: false, nullsFirst: false })
       .limit(data.limit);
     if (data.platform) q = q.eq("platform", data.platform);
@@ -226,6 +246,7 @@ export const listSocialComments = createServerFn({ method: "POST" })
         .from("social_posts_cache")
         .select("external_id, caption, thumbnail_url, permalink")
         .eq("user_id", userId)
+        .in("connection_id", activeIds)
         .in("external_id", postIds);
       for (const p of posts ?? []) {
         postMap.set(p.external_id, {
@@ -236,11 +257,12 @@ export const listSocialComments = createServerFn({ method: "POST" })
       }
     }
 
-    // contagens por status
+    // contagens por status (apenas da conexão ativa)
     const { data: countsRaw } = await supabase
       .from("social_comments")
       .select("status")
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .in("connection_id", activeIds);
     const counts: Record<CommentStatus, number> = {
       pending: 0, replied: 0, hidden: 0, handled: 0,
     };
@@ -252,6 +274,7 @@ export const listSocialComments = createServerFn({ method: "POST" })
     }));
     return { comments, counts };
   });
+
 
 // -----------------------------------------------------------------------------
 // REPLY
