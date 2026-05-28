@@ -22,6 +22,9 @@ export type RawComment = {
   is_hidden?: boolean;
   like_count?: number;
   comment_count?: number;
+  parent?: {
+    id?: string;
+  };
 };
 
 export type RawMedia = {
@@ -107,12 +110,44 @@ export async function fetchFacebookComments(
     },
     pageAccessToken,
   );
-  return (res.data ?? []).map((c) => ({
+  const base = (res.data ?? []).map((c) => ({
     ...c,
     text: c.text ?? c.message,
     timestamp: c.timestamp ?? c.created_time,
     hidden: c.hidden ?? c.is_hidden,
+    parent_id: c.parent_id ?? c.parent?.id,
   }));
+
+  const missingAuthorIds = base
+    .filter((c) => !c.from?.name && !c.from?.id)
+    .map((c) => c.id);
+
+  if (missingAuthorIds.length === 0) return base;
+
+  const hydrated = new Map<string, RawComment>();
+  for (const commentId of missingAuthorIds) {
+    try {
+      const full = await graphGet<RawComment>(
+        commentId,
+        {
+          fields:
+            "id,message,created_time,from{id,name,picture.width(100).height(100)},comment_count,is_hidden,like_count,parent{id}",
+        },
+        pageAccessToken,
+      );
+      hydrated.set(commentId, {
+        ...full,
+        text: full.text ?? full.message,
+        timestamp: full.timestamp ?? full.created_time,
+        hidden: full.hidden ?? full.is_hidden,
+        parent_id: full.parent_id ?? full.parent?.id,
+      });
+    } catch {
+      // Mantém o comentário original quando a Meta não devolve o autor nem na consulta individual.
+    }
+  }
+
+  return base.map((comment) => hydrated.get(comment.id) ?? comment);
 }
 
 async function graphPost<T>(
