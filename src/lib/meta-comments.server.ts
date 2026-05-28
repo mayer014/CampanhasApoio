@@ -11,10 +11,17 @@ export type RawComment = {
   timestamp?: string;
   created_time?: string;
   username?: string;
-  from?: { id?: string; name?: string; username?: string };
+  from?: {
+    id?: string;
+    name?: string;
+    username?: string;
+    picture?: { data?: { url?: string } };
+  };
   parent_id?: string;
   hidden?: boolean;
+  is_hidden?: boolean;
   like_count?: number;
+  comment_count?: number;
 };
 
 export type RawMedia = {
