@@ -128,12 +128,12 @@ export const syncMetaComments = createServerFn({ method: "POST" })
         posted_at: c.timestamp ?? c.created_time ?? null,
         raw: JSON.parse(JSON.stringify(c)) as never,
       }));
-      // upsert ignorando status para não sobrescrever ações do usuário
+      // upsert atualizando autor/raw em conflitos (sem tocar em colunas de status/replies).
       const { error } = await supabase
         .from("social_comments")
         .upsert(rows, {
           onConflict: "connection_id,platform,comment_external_id",
-          ignoreDuplicates: true,
+          ignoreDuplicates: false,
         });
       if (error) warnings.push(`upsert comments ${postExternalId}: ${error.message}`);
       else commentsSynced += rows.length;
