@@ -134,34 +134,46 @@ async function exchangeCodeAndSave(
       npeFallbackTried = true;
       const recovered: typeof pages = [];
       for (const pid of selectedPageIds) {
-        try {
-          const p = await fbJson<{
-            id: string;
-            name: string;
-            access_token: string;
-            tasks?: string[];
-            instagram_business_account?: { id: string };
-          }>(
-            `${GRAPH}/${pid}?` +
-              new URLSearchParams({
-                fields: "id,name,access_token,tasks,instagram_business_account",
-                access_token: longToken,
-              }).toString(),
-          );
-          if (p.access_token) {
-            recovered.push(p);
-            npeAttempts.push({ page_id: pid, ok: true });
-          } else {
-            npeAttempts.push({ page_id: pid, ok: false, error: "sem access_token" });
+        // Try with `tasks` first; some page types (NPE/classic-com-restrição) não expõem o campo
+        // e retornam (#100) Tried accessing nonexisting field (tasks). Fazemos fallback sem `tasks`.
+        const fieldSets = [
+          "id,name,access_token,tasks,instagram_business_account",
+          "id,name,access_token,instagram_business_account",
+          "id,name,access_token",
+        ];
+        let lastErr: string | null = null;
+        let got: {
+          id: string;
+          name: string;
+          access_token?: string;
+          tasks?: string[];
+          instagram_business_account?: { id: string };
+        } | null = null;
+        for (const fields of fieldSets) {
+          try {
+            got = await fbJson(
+              `${GRAPH}/${pid}?` +
+                new URLSearchParams({ fields, access_token: longToken }).toString(),
+            );
+            break;
+          } catch (e) {
+            lastErr = e instanceof Error ? e.message : "erro";
+            // só tenta o próximo fieldset se o erro for de campo inexistente
+            if (!/nonexisting field|\(#100\)/i.test(lastErr)) break;
           }
-        } catch (e) {
+        }
+        if (got?.access_token) {
+          recovered.push({ ...got, access_token: got.access_token, tasks: got.tasks });
+          npeAttempts.push({ page_id: pid, ok: true });
+        } else {
           npeAttempts.push({
             page_id: pid,
             ok: false,
-            error: e instanceof Error ? e.message : "erro",
+            error: lastErr ?? "sem access_token",
           });
         }
       }
+
       if (recovered.length > 0) pages = recovered;
     }
   }
