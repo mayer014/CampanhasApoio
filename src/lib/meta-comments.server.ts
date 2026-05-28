@@ -86,14 +86,35 @@ export async function fetchFacebookComments(
   postId: string,
   token: string,
 ): Promise<RawComment[]> {
-  const res = await graphGet<{ data: RawComment[] }>(
-    `${postId}/comments`,
-    {
-      fields: "id,message,created_time,from,parent",
-      limit: 50,
-    },
-    token,
-  );
+  // IMPORTANTE: para receber o nome do autor é preciso:
+  // 1) usar o PAGE ACCESS TOKEN (não user token) — já garantido em getConnection
+  // 2) ter a permissão pages_read_user_content concedida — já está em META_SCOPES
+  // 3) pedir explicitamente os subcampos de `from` (from{id,name,picture})
+  // Sem os subcampos explícitos a Graph API v17+ frequentemente devolve `from` vazio.
+  // Também usamos `filter=stream` para incluir respostas e `order=reverse_chronological`.
+  let res: { data: RawComment[] };
+  try {
+    res = await graphGet<{ data: RawComment[] }>(
+      `${postId}/comments`,
+      {
+        fields: "id,message,created_time,from{id,name,picture},parent{id},like_count",
+        filter: "stream",
+        order: "reverse_chronological",
+        limit: 50,
+      },
+      token,
+    );
+  } catch {
+    // Fallback: alguns tipos de página/post rejeitam `filter=stream` ou subcampos.
+    res = await graphGet<{ data: RawComment[] }>(
+      `${postId}/comments`,
+      {
+        fields: "id,message,created_time,from{id,name},parent,like_count",
+        limit: 50,
+      },
+      token,
+    );
+  }
   // normalize message → text
   return (res.data ?? []).map((c) => ({
     ...c,
