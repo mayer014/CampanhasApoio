@@ -153,11 +153,15 @@ function RedesSociaisPage() {
           pushDiag({
             kind: "success",
             label: `serverFn OK · page=${result?.page_name ?? "?"}`,
-            detail: `page_id=${result?.page_id} · ig=${result?.instagram_username ?? "-"} · expires_at=${result?.expires_at ?? "-"}`,
+            detail: `page_id=${result?.page_id} · ig=${result?.instagram_username ?? "-"} · expires_at=${result?.expires_at ?? "-"}${result?.warning ? ` · warning=${result.warning}` : ""}`,
           });
           toast.success(result?.page_name ? `Página conectada: ${result.page_name}` : "Conta Meta conectada com sucesso.");
+          if (result?.warning) {
+            toast.warning(result.warning, { duration: 12000 });
+          }
           void load();
         })
+
         .catch((error) => {
           const message = error instanceof Error ? error.message : "Falha ao concluir conexão com a Meta.";
           pushDiag({ kind: "error", label: "serverFn connectMetaAccount falhou", detail: message });
