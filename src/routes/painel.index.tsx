@@ -121,7 +121,6 @@ function PainelHome() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const valueLabel = "R$ 89,90";
   const dueLabel = sub?.due_date ? new Date(sub.due_date).toLocaleDateString("pt-BR") : null;
 
   // Cliente "pago" = já foi liberado pelo admin alguma vez (ilimitado)
@@ -182,23 +181,6 @@ function PainelHome() {
           <div className="mt-2 text-2xl font-bold sm:text-3xl">{stats.generations}</div>
         </Card>
       </div>
-
-      {/* Assinatura + Renovação */}
-      <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background p-4 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" /> Sua assinatura
-            </div>
-            <div className="mt-2 flex flex-wrap items-baseline gap-2 sm:gap-3">
-              <span className="text-xl font-bold capitalize sm:text-2xl">{sub?.status ?? "—"}</span>
-              <span className="text-base font-semibold text-primary sm:text-lg">{valueLabel}/mês</span>
-              {dueLabel && <span className="text-xs text-muted-foreground sm:text-sm">vence em {dueLabel}</span>}
-            </div>
-          </div>
-          {/* Removido botão de renovação manual enquanto gateway é configurado */}
-        </div>
-      </Card>
 
       {/* Gráficos */}
       <div className="grid gap-4 lg:grid-cols-2">

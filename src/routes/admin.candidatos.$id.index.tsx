@@ -19,7 +19,7 @@ type Profile = {
 };
 
 type Sub = { status: string; due_date: string | null; monthly_amount: number | null };
-type Pay = { id: string; amount: number; paid_at: string; method: string | null; notes: string | null };
+
 type Tpl = { id: string; name: string; is_active: boolean; generation_count: number };
 type Lead = { id: string; full_name: string; phone: string; street: string; number: string; neighborhood: string; created_at: string };
 
@@ -31,7 +31,7 @@ function CandidateDetail() {
   const { id } = Route.useParams();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [sub, setSub] = useState<Sub | null>(null);
-  const [pays, setPays] = useState<Pay[]>([]);
+  
   const [tpls, setTpls] = useState<Tpl[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [deletingTpl, setDeletingTpl] = useState<string | null>(null);
@@ -46,16 +46,14 @@ function CandidateDetail() {
   };
 
   const load = async () => {
-    const [{ data: p }, { data: s }, { data: pys }, { data: ts }, { data: ls }] = await Promise.all([
+    const [{ data: p }, { data: s }, { data: ts }, { data: ls }] = await Promise.all([
       supabase.from("candidate_profiles").select("*").eq("id", id).single(),
       supabase.from("subscriptions").select("status, due_date, monthly_amount").eq("candidate_id", id).maybeSingle(),
-      supabase.from("payments").select("*").eq("candidate_id", id).order("paid_at", { ascending: false }),
       supabase.from("templates").select("id, name, is_active, generation_count").eq("candidate_id", id).order("created_at", { ascending: false }),
       supabase.from("voter_leads").select("*").eq("candidate_id", id).order("created_at", { ascending: false }),
     ]);
     setProfile(p);
     setSub(s);
-    setPays(pys ?? []);
     setTpls(ts ?? []);
     setLeads(ls ?? []);
   };
