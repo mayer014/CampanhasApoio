@@ -88,42 +88,6 @@ function ConfigPage() {
           </div>
         </Card>
 
-        <Card className="space-y-4 p-6">
-          <div>
-            <h2 className="text-lg font-semibold">PIX</h2>
-            <p className="text-sm text-muted-foreground">Dados que o candidato vê para pagar a mensalidade.</p>
-          </div>
-          <div>
-            <Label>Nome do titular</Label>
-            <Input value={s.pix_owner_name ?? ""} onChange={(e) => setS({ ...s, pix_owner_name: e.target.value })} />
-          </div>
-          <div>
-            <Label>Chave PIX (aleatória)</Label>
-            <Input value={s.pix_key ?? ""} onChange={(e) => setS({ ...s, pix_key: e.target.value })} />
-          </div>
-          <div>
-            <Label>QR Code do PIX (imagem)</Label>
-            <div className="mt-2 flex items-start gap-4">
-              {s.pix_qr_url && (
-                <img src={s.pix_qr_url} alt="QR PIX" className="h-32 w-32 rounded-md border bg-white object-contain p-2" />
-              )}
-              <label className="inline-flex">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && uploadQr(e.target.files[0])}
-                />
-                <Button asChild variant="outline" disabled={uploading}>
-                  <span>
-                    <Upload className="mr-2 h-4 w-4" />
-                    {uploading ? "Enviando..." : s.pix_qr_url ? "Trocar QR" : "Enviar QR"}
-                  </span>
-                </Button>
-              </label>
-            </div>
-          </div>
-        </Card>
       </div>
 
       <div className="mt-6">
