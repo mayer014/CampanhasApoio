@@ -46,16 +46,14 @@ function CandidateDetail() {
   };
 
   const load = async () => {
-    const [{ data: p }, { data: s }, { data: pys }, { data: ts }, { data: ls }] = await Promise.all([
+    const [{ data: p }, { data: s }, { data: ts }, { data: ls }] = await Promise.all([
       supabase.from("candidate_profiles").select("*").eq("id", id).single(),
       supabase.from("subscriptions").select("status, due_date, monthly_amount").eq("candidate_id", id).maybeSingle(),
-      supabase.from("payments").select("*").eq("candidate_id", id).order("paid_at", { ascending: false }),
       supabase.from("templates").select("id, name, is_active, generation_count").eq("candidate_id", id).order("created_at", { ascending: false }),
       supabase.from("voter_leads").select("*").eq("candidate_id", id).order("created_at", { ascending: false }),
     ]);
     setProfile(p);
     setSub(s);
-    setPays(pys ?? []);
     setTpls(ts ?? []);
     setLeads(ls ?? []);
   };
