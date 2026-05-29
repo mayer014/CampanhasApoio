@@ -31,7 +31,7 @@ function CandidateDetail() {
   const { id } = Route.useParams();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [sub, setSub] = useState<Sub | null>(null);
-  const [pays, setPays] = useState<Pay[]>([]);
+  
   const [tpls, setTpls] = useState<Tpl[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [deletingTpl, setDeletingTpl] = useState<string | null>(null);
