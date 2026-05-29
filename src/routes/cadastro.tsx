@@ -116,8 +116,8 @@ function CadastroPage() {
         <div className="mt-4 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div>
-            <strong>5 fotos grátis</strong> ao se cadastrar. Sem cartão de crédito. Após o trial,
-            o acesso é liberado mediante pagamento e confirmação do administrador.
+            <strong>5 fotos grátis</strong> ao se cadastrar. Sem cartão de crédito. Após o teste gratuito, 
+            você poderá assinar um plano diretamente pelo painel.
           </div>
         </div>
 

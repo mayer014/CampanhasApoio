@@ -166,7 +166,7 @@ function CandidateDetail() {
             <Button onClick={saveSub}>Salvar assinatura</Button>
           </Card>
 
-          <PaymentsCard candidateId={id} payments={pays} onChange={load} />
+          
         </TabsContent>
 
         <TabsContent value="leads">
@@ -205,68 +205,6 @@ function CandidateDetail() {
   );
 }
 
-function PaymentsCard({ candidateId, payments, onChange }: { candidateId: string; payments: Pay[]; onChange: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ amount: "", paid_at: new Date().toISOString().slice(0, 10), method: "", notes: "" });
-
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { error } = await supabase.from("payments").insert({
-      candidate_id: candidateId,
-      amount: parseFloat(form.amount),
-      paid_at: form.paid_at,
-      method: form.method || null,
-      notes: form.notes || null,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Pagamento registrado");
-    setForm({ amount: "", paid_at: new Date().toISOString().slice(0, 10), method: "", notes: "" });
-    setOpen(false);
-    onChange();
-  };
-
-  const remove = async (id: string) => {
-    const { error } = await supabase.from("payments").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    onChange();
-  };
-
-  return (
-    <Card className="mt-4 p-6">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Histórico de pagamentos</h3>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Registrar</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Novo pagamento</DialogTitle></DialogHeader>
-            <form onSubmit={add} className="space-y-3">
-              <div><Label>Valor (R$)</Label><Input type="number" step="0.01" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
-              <div><Label>Data</Label><Input type="date" required value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value })} /></div>
-              <div><Label>Método</Label><Input placeholder="PIX, dinheiro..." value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })} /></div>
-              <div><Label>Observação</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-              <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-      <div className="mt-3 divide-y">
-        {payments.map((p) => (
-          <div key={p.id} className="flex items-center justify-between py-3 text-sm">
-            <div>
-              <div className="font-medium">R$ {p.amount.toFixed(2)} {p.method && <span className="text-muted-foreground">· {p.method}</span>}</div>
-              {p.notes && <div className="text-xs text-muted-foreground">{p.notes}</div>}
-            </div>
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <span>{new Date(p.paid_at).toLocaleDateString("pt-BR")}</span>
-              <Button size="icon" variant="ghost" onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></Button>
-            </div>
-          </div>
-        ))}
-        {payments.length === 0 && <div className="py-6 text-center text-muted-foreground">Sem pagamentos</div>}
-      </div>
-    </Card>
-  );
-}
 
 function SecurityCard({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
