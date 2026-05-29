@@ -393,21 +393,6 @@ function AdminHome() {
         </div>
       </Card>
 
-      {dueSoon.length > 0 && (
-        <Card className="mt-6 p-4 sm:p-6">
-          <h2 className="font-semibold">Assinaturas vencendo nos próximos 7 dias</h2>
-          <ul className="mt-3 divide-y">
-            {dueSoon.map((d) => (
-              <li key={d.candidate_id} className="flex items-center justify-between py-2 text-sm">
-                <span>{d.full_name}</span>
-                <Link to="/admin/candidatos/$id" params={{ id: d.candidate_id }} className="text-primary hover:underline">
-                  Vence em {new Date(d.due_date).toLocaleDateString("pt-BR")}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
     </div>
   );
 }
