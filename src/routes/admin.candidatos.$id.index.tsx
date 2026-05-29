@@ -19,7 +19,7 @@ type Profile = {
 };
 
 type Sub = { status: string; due_date: string | null; monthly_amount: number | null };
-type Pay = { id: string; amount: number; paid_at: string; method: string | null; notes: string | null };
+
 type Tpl = { id: string; name: string; is_active: boolean; generation_count: number };
 type Lead = { id: string; full_name: string; phone: string; street: string; number: string; neighborhood: string; created_at: string };
 
