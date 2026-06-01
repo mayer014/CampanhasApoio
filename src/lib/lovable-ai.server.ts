@@ -3,6 +3,34 @@
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
+async function getActiveAISetting() {
+  // Nota: como este arquivo é usado apenas em Server Functions,
+  // process.env está disponível, mas aqui usaremos o admin client
+  // para buscar a configuração ativa do banco.
+  // Importação dinâmica para evitar ciclos se houver.
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data } = await supabase
+    .from('ai_settings')
+    .select('provider, model_name, api_key')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  return data;
+}
+
+const PROVIDER_URLS: Record<string, string> = {
+  openai: "https://api.openai.com/v1/chat/completions",
+  anthropic: "https://api.anthropic.com/v1/messages", // Nota: Anthropic tem formato diferente, requer adapter
+  groq: "https://api.groq.com/openai/v1/chat/completions",
+  openrouter: "https://openrouter.ai/api/v1/chat/completions",
+  lovable: GATEWAY_URL
+};
+
 export class LovableAIError extends Error {
   status: number;
   constructor(message: string, status: number) {
