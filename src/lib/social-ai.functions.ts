@@ -166,6 +166,8 @@ Responda SEMPRE via a função classify_comments.`,
         const results = (toolArgs?.results as Array<{
           id: string;
           sentiment: Sentiment;
+          confidence: number;
+          reason: string;
           emotion: string;
           topics: string[];
         }> | undefined) ?? [];
