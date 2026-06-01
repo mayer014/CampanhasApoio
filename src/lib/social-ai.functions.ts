@@ -90,22 +90,42 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
     let batches = 0;
     const errors: string[] = [];
 
+    // Busca correções humanas para few-shot
+    const { data: corrections } = await supabase
+      .from("sentiment_corrections")
+      .select("comment_text, post_message, sentiment_human")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const fewShotExamples = (corrections ?? []).map(c => 
+      `Comentário: "${c.comment_text}" | Post: "${c.post_message ?? ''}" -> Sentimento: ${c.sentiment_human}`
+    ).join("\n");
+
     for (let i = 0; i < data.maxBatches; i++) {
       const { data: rows, error } = await supabase
         .from("social_comments")
-        .select("id, text")
+        .select(`
+          id, text, post_external_id, 
+          social_posts_cache!inner (caption)
+        `)
         .eq("user_id", userId)
         .is("ai_processed_at", null)
         .not("text", "is", null)
         .limit(data.batchSize);
+      
       if (error) throw new Error(error.message);
       if (!rows || rows.length === 0) break;
 
       const items = rows
         .filter((r) => (r.text ?? "").trim().length > 0)
-        .map((r) => ({ id: r.id as string, text: (r.text as string).slice(0, 500) }));
+        .map((r) => ({ 
+          id: r.id as string, 
+          text: (r.text as string).slice(0, 500),
+          post_caption: (r.social_posts_cache as any)?.caption ?? ''
+        }));
+
       if (items.length === 0) {
-        // marca como processados mesmo sem texto
         await supabase
           .from("social_comments")
           .update({ ai_processed_at: new Date().toISOString() })
@@ -116,21 +136,31 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
       try {
         const { toolArgs } = await chatCompletion({
           userId: userId,
-          model: "google/gemini-2.5-flash-lite",
           messages: [
             {
               role: "system",
-              content:
-                "Você é um analista de mídias sociais brasileiro. Classifique cada comentário com sentimento (positive/neutral/negative), emoção predominante (1 palavra) e até 3 tópicos curtos. Considere ironia, gírias e regionalismos do português do Brasil.",
+              content: `Você é um analista de mídias sociais brasileiro especializado em política. 
+Sua tarefa é classificar comentários. 
+
+REGRAS CRÍTICAS:
+- post_stance: postura do post (denuncia | conquista | convite | opiniao | neutro).
+- target: alvo do comentário (candidato | fato_do_post | terceiro | ambiguo).
+- alignment: concorda | discorda | neutro em relação ao post.
+- Se o post é uma DENÚNCIA e o comentário concorda com a denúncia usando palavras fortes ("absurdo", "vergonha"), o sentimento é POSITIVO (apoio ao candidato que denunciou).
+
+EXEMPLOS DE CORREÇÕES HUMANAS:
+${fewShotExamples || "Nenhum exemplo disponível."}
+
+Responda SEMPRE via a função classify_comments.`,
             },
             {
               role: "user",
-              content: `Classifique os comentários abaixo. Retorne via a função classify_comments.\n\n${JSON.stringify(items)}`,
+              content: `Classifique os comentários abaixo:\n\n${JSON.stringify(items)}`,
             },
           ],
           tools: [ANALYZE_TOOL],
           toolChoice: { type: "function", function: { name: "classify_comments" } },
-          temperature: 0.2,
+          temperature: 0.1,
         });
 
         const results = (toolArgs?.results as Array<{
