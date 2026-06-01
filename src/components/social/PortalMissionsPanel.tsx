@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2, ExternalLink, GripVertical, Facebook, Instagram, Search } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, GripVertical, Facebook, Instagram, Search, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface Mission {
