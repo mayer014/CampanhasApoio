@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Camera, LayoutDashboard, Users, LogOut, Settings, Menu, MessageCircle } from "lucide-react";
+import { Rocket, LayoutDashboard, Users, LogOut, Settings, Menu, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -63,9 +63,9 @@ function AdminLayout() {
     <div className="flex min-h-screen bg-background">
       <aside className="hidden w-64 flex-col bg-sidebar text-sidebar-foreground md:flex">
         <div className="flex items-center gap-2 px-6 py-6">
-          <Camera className="h-6 w-6 text-sidebar-primary" />
+          <Rocket className="h-6 w-6 text-sidebar-primary" />
           <div>
-            <div className="font-bold">Foto de Campanha</div>
+            <div className="font-bold">Minha Campanha</div>
             <div className="text-xs text-sidebar-foreground/60">Super Admin</div>
           </div>
         </div>
@@ -83,8 +83,8 @@ function AdminLayout() {
         {/* Topbar mobile */}
         <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b bg-background/95 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex items-center gap-2">
-            <Camera className="h-5 w-5 text-primary" />
-            <span className="text-sm font-bold">Foto de Campanha</span>
+            <Rocket className="h-5 w-5 text-primary" />
+            <span className="text-sm font-bold">Minha Campanha</span>
           </div>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -94,9 +94,9 @@ function AdminLayout() {
             </SheetTrigger>
             <SheetContent side="left" className="w-72 bg-sidebar p-0 text-sidebar-foreground">
               <div className="flex items-center gap-2 px-6 py-6">
-                <Camera className="h-6 w-6 text-sidebar-primary" />
+                <Rocket className="h-6 w-6 text-sidebar-primary" />
                 <div>
-                  <div className="font-bold">Foto de Campanha</div>
+                  <div className="font-bold">Minha Campanha</div>
                   <div className="text-xs text-sidebar-foreground/60">Super Admin</div>
                 </div>
               </div>
