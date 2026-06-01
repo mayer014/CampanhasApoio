@@ -151,6 +151,9 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
               content: `Você é um analista de mídias sociais brasileiro especializado em política. 
 Sua tarefa é classificar comentários. 
 
+CONTEXTO DA PÁGINA:
+${aiSetting?.system_instruction || "Não há orientações específicas."}
+
 REGRAS CRÍTICAS:
 - post_stance: postura do post (denuncia | conquista | convite | opiniao | neutro).
 - target: alvo do comentário (candidato | fato_do_post | terceiro | ambiguo).
