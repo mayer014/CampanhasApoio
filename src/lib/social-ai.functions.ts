@@ -110,6 +110,7 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
 
       try {
         const { toolArgs } = await chatCompletion({
+          userId: userId,
           model: "google/gemini-2.5-flash-lite",
           messages: [
             {
