@@ -411,6 +411,9 @@ export const generateSocialReply = createServerFn({ method: "POST" })
     const systemPrompt = `Você é um assistente de comunicação social experiente em política brasileira.
 Seu objetivo é redigir uma resposta para um comentário em rede social (Instagram/Facebook).
 
+ORIENTAÇÃO GERAL DA PÁGINA:
+${aiSetting?.system_instruction || "Não há orientações específicas."}
+
 CONTEXTO DO CANDIDATO:
 Nome: ${profile?.full_name || 'Candidato'}
 
