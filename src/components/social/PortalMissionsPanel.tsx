@@ -33,7 +33,10 @@ interface Mission {
   title: string;
   description: string;
   platform: string;
-  post_url: string;
+  post_url: string | null;
+  fb_post_url: string | null;
+  ig_post_url: string | null;
+  whatsapp_template: string | null;
   is_active: boolean;
   display_order: number;
 }
