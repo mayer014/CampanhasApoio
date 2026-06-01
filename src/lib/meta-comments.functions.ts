@@ -27,14 +27,21 @@ export type SocialCommentRow = {
   comment_external_id: string;
   parent_comment_external_id: string | null;
   author_name: string | null;
+  author_id: string | null;
   text: string | null;
   posted_at: string | null;
   status: CommentStatus;
   reply_text: string | null;
   replied_at: string | null;
   sentiment: "positive" | "neutral" | "negative" | null;
+  sentiment_source: 'ai' | 'human' | null;
+  sentiment_confidence: number | null;
+  sentiment_reason: string | null;
+  needs_review: boolean;
   emotion: string | null;
   topics: string[] | null;
+  is_ignored: boolean;
+  militant_badge?: string | null;
   post?: {
     caption: string | null;
     thumbnail_url: string | null;
@@ -261,7 +268,21 @@ export const listSocialComments = createServerFn({ method: "POST" })
 
     // join manual com posts cache
     const postIds = Array.from(new Set((rows ?? []).map((r: any) => r.post_external_id)));
+    const authorIds = Array.from(new Set((rows ?? []).map((r: any) => r.author_id).filter(Boolean)));
+    
     let postMap = new Map<string, { caption: string | null; thumbnail_url: string | null; permalink: string | null }>();
+    let militantMap = new Map<string, string | null>();
+
+    if (authorIds.length > 0) {
+      const { data: militants } = await supabase
+        .from("social_militants")
+        .select("platform_user_id, current_badge")
+        .eq("user_id", userId)
+        .in("platform_user_id", authorIds);
+      for (const m of militants ?? []) {
+        militantMap.set(m.platform_user_id, m.current_badge);
+      }
+    }
     if (postIds.length > 0) {
       const { data: posts } = await supabase
         .from("social_posts_cache")
@@ -291,6 +312,7 @@ export const listSocialComments = createServerFn({ method: "POST" })
 
     const comments: SocialCommentRow[] = (rows ?? []).map((r: any) => ({
       ...r,
+      militant_badge: militantMap.get(r.author_id) ?? 'observador',
       post: postMap.get(r.post_external_id) ?? null,
     }));
     return { comments, counts };

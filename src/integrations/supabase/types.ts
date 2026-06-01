@@ -705,6 +705,7 @@ export type Database = {
         Row: {
           author_name: string | null
           avatar_url: string | null
+          current_badge: string | null
           first_seen_at: string
           id: string
           last_seen_at: string
@@ -723,6 +724,7 @@ export type Database = {
         Insert: {
           author_name?: string | null
           avatar_url?: string | null
+          current_badge?: string | null
           first_seen_at?: string
           id?: string
           last_seen_at?: string
@@ -741,6 +743,7 @@ export type Database = {
         Update: {
           author_name?: string | null
           avatar_url?: string | null
+          current_badge?: string | null
           first_seen_at?: string
           id?: string
           last_seen_at?: string
@@ -1489,6 +1492,18 @@ export type Database = {
     }
     Functions: {
       _slugify: { Args: { input: string }; Returns: string }
+      calculate_militant_badge: {
+        Args: {
+          first_seen: string
+          last_seen: string
+          neg_30d: number
+          pos_30d: number
+          total_comments: number
+          total_neg: number
+          total_pos: number
+        }
+        Returns: string
+      }
       get_public_candidate: {
         Args: { _slug: string }
         Returns: {

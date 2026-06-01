@@ -11,7 +11,17 @@ import { toast } from "sonner";
 import {
   MessageSquare, Instagram, Facebook, RefreshCw, Send, EyeOff, Check,
   ExternalLink, AlertTriangle, Filter, Reply, RotateCcw, Smile, Meh, Frown,
+  Trash2, UserMinus, ShieldAlert, Sparkles, Ghost, Info
 } from "lucide-react";
+import { MilitancyBadge } from "./MilitancyBadge";
+import { correctSentiment } from "@/lib/social-ai.functions";
+import { toggleIgnoreComment } from "@/lib/meta-comments.functions";
+import { 
+  Tooltip as UITooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 import {
   listSocialComments,
   syncMetaComments,
@@ -55,6 +65,10 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
   const [draft, setDraft] = useState("");
   const reply = useServerFn(replySocialComment);
   const updateStatus = useServerFn(updateCommentStatus);
+  const correct = useServerFn(correctSentiment);
+  const toggleIgnore = useServerFn(toggleIgnoreComment);
+
+  const qc = useQueryClient();
 
   const replyMut = useMutation({
     mutationFn: () => reply({ data: { commentId: c.id, message: draft.trim() } }),
@@ -72,6 +86,24 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
       updateStatus({ data: { commentId: c.id, status: s, hideOnPlatform: s === "hidden" } }),
     onSuccess: () => onChange(),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const correctMut = useMutation({
+    mutationFn: (s: "positive" | "neutral" | "negative") => correct({ data: { commentId: c.id, humanSentiment: s } }),
+    onSuccess: () => {
+      toast.success("Sentimento corrigido");
+      onChange();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao corrigir"),
+  });
+
+  const ignoreMut = useMutation({
+    mutationFn: (ignored: boolean) => toggleIgnore({ data: { commentId: c.id, isIgnored: ignored } }),
+    onSuccess: () => {
+      toast.success(c.is_ignored ? "Restaurado" : "Ignorado");
+      onChange();
+    },
+    onError: (e) => toast.error("Erro ao alterar status"),
   });
 
   const PlatformIcon = c.platform === "instagram" ? Instagram : Facebook;
@@ -101,6 +133,9 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
               {c.author_name ??
                 (c.platform === "facebook" ? "Usuário do Facebook" : "Anônimo")}
             </span>
+
+            <MilitancyBadge type={c.militant_badge} />
+
             <span className="text-muted-foreground">· {timeAgo(c.posted_at)}</span>
             {c.status !== "pending" && (
               <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[c.status]}</Badge>
@@ -111,9 +146,28 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
               if (!sm) return null;
               const Icon = sm.icon;
               return (
-                <Badge variant="outline" className={`gap-1 text-[10px] ${sm.cls}`}>
-                  <Icon className="h-3 w-3" /> {sm.label}
-                </Badge>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Badge 
+                        variant="outline" 
+                        className={`gap-1 text-[10px] cursor-help ${sm.cls} ${c.needs_review ? 'ring-1 ring-amber-500' : ''}`}
+                      >
+                        <Icon className="h-3 w-3" /> {sm.label}
+                        {c.sentiment_source === 'ai' ? <Sparkles className="h-2 w-2 ml-0.5 opacity-70" /> : <Ghost className="h-2 w-2 ml-0.5 opacity-70" />}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs p-3">
+                      <p className="text-xs font-bold mb-1">Análise da IA ({Math.round((c.sentiment_confidence || 0) * 100)}% confiança)</p>
+                      <p className="text-[10px] italic">{c.sentiment_reason || "Sem detalhes adicionais."}</p>
+                      <div className="mt-2 flex gap-1 border-t pt-2">
+                        <button onClick={() => correctMut.mutate('positive')} className="hover:text-emerald-500 transition-colors"><Smile className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => correctMut.mutate('neutral')} className="hover:text-amber-500 transition-colors"><Meh className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => correctMut.mutate('negative')} className="hover:text-rose-500 transition-colors"><Frown className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               );
             })()}
             {c.emotion && (
@@ -176,7 +230,7 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
                 </Button>
               )}
               {c.status !== "hidden" ? (
-                <Button size="sm" variant="ghost" className="text-destructive"
+                <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10"
                         onClick={() => statusMut.mutate("hidden")}>
                   <EyeOff className="mr-1 h-3.5 w-3.5" /> Ocultar
                 </Button>
@@ -185,6 +239,16 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
                   <RotateCcw className="mr-1 h-3.5 w-3.5" /> Restaurar
                 </Button>
               )}
+              
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className={c.is_ignored ? 'text-blue-500' : 'text-muted-foreground'}
+                onClick={() => ignoreMut.mutate(!c.is_ignored)}
+              >
+                {c.is_ignored ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Ghost className="mr-1 h-3.5 w-3.5" />}
+                {c.is_ignored ? 'Desarquivar' : 'Ignorar'}
+              </Button>
             </div>
           )}
         </div>
