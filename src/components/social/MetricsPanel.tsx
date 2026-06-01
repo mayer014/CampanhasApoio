@@ -78,7 +78,7 @@ function SeriesChart({
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-        <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+        <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => (typeof v === 'string' ? v.slice(5) : '')} />
         <YAxis tick={{ fontSize: 10 }} tickFormatter={fmtNum} />
         <Tooltip
           contentStyle={{
