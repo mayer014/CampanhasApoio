@@ -197,8 +197,7 @@ function PainelHome() {
           <h2>Engajamento de Eleitores</h2>
         </div>
         <Card className="p-4 sm:p-6">
-          <h3 className="font-semibold">Eleitores por bairro</h3>
-          <p className="text-xs text-muted-foreground">Top 8 bairros</p>
+          <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">Eleitores por bairro (Top 8)</h3>
           <div className="mt-4 h-64">
             {byNeighborhood.length === 0 ? (
               <EmptyChart />
