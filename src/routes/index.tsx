@@ -115,12 +115,12 @@ function Index() {
             >
               <Link to="/cadastro">
                 <Button size="lg" className="text-base shadow-xl shadow-primary/25 hover-scale">
-                  Comece grátis com 5 fotos <ArrowRight className="ml-2 h-4 w-4" />
+                  Iniciar teste gratuito <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/login">
                 <Button size="lg" variant="outline" className="text-base">
-                  Já tenho conta
+                  Acessar painel
                 </Button>
               </Link>
             </div>
@@ -129,9 +129,9 @@ function Index() {
               className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground opacity-0"
               style={{ animation: "fade-in 0.7s ease-out 0.6s forwards" }}
             >
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Sem cartão de crédito</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Pronto em 2 minutos</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Cancele quando quiser</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Análise de Sentimento (IA)</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> CRM de Eleitores</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Militância Digital Automatizada</span>
             </div>
 
             {/* Stat strip */}
@@ -139,41 +139,41 @@ function Index() {
               className="mx-auto mt-14 grid max-w-3xl grid-cols-3 gap-4 rounded-2xl border bg-card/60 p-6 backdrop-blur opacity-0"
               style={{ animation: "fade-in 0.8s ease-out 0.75s forwards" }}
             >
-              <Stat number="3x" label="mais alcance que panfleto" />
-              <Stat number="< 30s" label="pro eleitor mudar a foto" />
-              <Stat number="100%" label="dos contatos pra você" />
+              <Stat number="95%" label="de precisão na análise" />
+              <Stat number="24/7" label="monitoramento IA" />
+              <Stat number="100%" label="controle sobre sua base" />
             </div>
           </div>
         </section>
 
-        {/* COMO FUNCIONA */}
+        {/* COMO FUNCIONA - Reformulado para Ecossistema */}
         <section className="container mx-auto px-6 py-20">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-primary">Em 3 passos</p>
-            <h2 className="mt-2 text-3xl font-bold md:text-4xl">Simples como mandar mensagem</h2>
+            <p className="text-sm font-semibold uppercase tracking-wider text-primary">Plataforma Completa</p>
+            <h2 className="mt-2 text-3xl font-bold md:text-4xl">Tudo o que você precisa para vencer</h2>
             <p className="mt-3 text-muted-foreground">
-              Você não precisa entender de tecnologia. A gente cuida do design, você só compartilha o link.
+              Não somos apenas uma ferramenta, somos o seu centro de comando digital.
             </p>
           </div>
 
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             <Step
               n={1}
-              icon={<Sparkles className="h-5 w-5" />}
-              title="Crie até 3 templates"
-              text="Suba seu logo, fundo e moldura. Ou peça pro nosso time montar pra você. Pronto em minutos."
+              icon={<Bot className="h-5 w-5" />}
+              title="Escute o Eleitor"
+              text="Nossa IA lê e classifica cada comentário nas suas redes. Saiba instantaneamente o que o povo está sentindo."
             />
             <Step
               n={2}
-              icon={<Share2 className="h-5 w-5" />}
-              title="Compartilhe seu link"
-              text="Você ganha um link único do tipo /seu-nome. Mande nos grupos de WhatsApp e nas suas redes."
+              icon={<Users className="h-5 w-5" />}
+              title="Organize a Militância"
+              text="Identifique seus maiores apoiadores automaticamente e dê as ferramentas para eles trabalharem por você."
             />
             <Step
               n={3}
               icon={<MessageCircle className="h-5 w-5" />}
-              title="Eles trocam, você cresce"
-              text="O eleitor envia a foto, ajusta e baixa em segundos. Cada perfil novo é uma propaganda gratuita."
+              title="Automatize o WhatsApp"
+              text="Comunique-se em escala. Atendimento automatizado e gestão de leads direto no celular do eleitor."
             />
           </div>
         </section>
