@@ -217,52 +217,71 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
     title: mission?.title || "",
     description: mission?.description || "",
     post_url: mission?.post_url || "",
-    platform: mission?.platform || "facebook",
+    fb_post_url: mission?.fb_post_url || "",
+    ig_post_url: mission?.ig_post_url || "",
+    whatsapp_template: mission?.whatsapp_template || "",
+    platform: mission?.platform || "ambos",
     is_active: mission?.is_active ?? true
   });
-  const [selectionMode, setSelectionMode] = useState<'url' | 'select'>(mission?.post_url ? 'url' : 'select');
+  const [selectionMode, setSelectionMode] = useState<'url' | 'select'>(mission?.id ? 'url' : 'select');
 
   const { data: recentPosts, isLoading: isLoadingPosts } = useQuery({
-    queryKey: ["recent-posts-for-missions", clientId],
+    queryKey: ["recent-posts-for-missions-thumbs", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("social_posts_cache")
-        .select("id, caption, permalink, platform")
+        .select("id, caption, permalink, platform, thumbnail_url")
         .eq("user_id", clientId)
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .order("posted_at", { ascending: false })
+        .limit(40);
       if (error) throw error;
       return data || [];
     },
     enabled: selectionMode === 'select'
   });
 
+  const generateWATemplate = (f: typeof form) => {
+    let links = "";
+    if (f.fb_post_url) links += `\n🔵 Facebook: ${f.fb_post_url}`;
+    if (f.ig_post_url) links += `\n💖 Instagram: ${f.ig_post_url}`;
+    if (!f.fb_post_url && !f.ig_post_url && f.post_url) links += `\n👉 Link: ${f.post_url}`;
+
+    return `🚀 Apoiador(a), temos uma nova missão para você!\n\n*${f.title}*\n${f.description || ""}\n${links}\n\nSua interação faz diferença. Vamos juntos!`;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.post_url) {
-      toast.error("Preencha título e selecione ou cole a URL do post");
+    if (!form.title || (!form.post_url && !form.fb_post_url && !form.ig_post_url)) {
+      toast.error("Preencha título e selecione ao menos um post");
       return;
     }
     
-    // Auto detect platform from URL
-    let platform = form.platform;
-    if (form.post_url.includes("facebook.com") || form.post_url.includes("fb.com") || form.post_url.includes("fb.watch")) {
-      platform = "facebook";
-    } else if (form.post_url.includes("instagram.com")) {
-      platform = "instagram";
-    }
+    // Auto detect platform
+    let platform = "ambos";
+    if (form.fb_post_url && !form.ig_post_url) platform = "facebook";
+    if (form.ig_post_url && !form.fb_post_url) platform = "instagram";
+    
+    const finalTemplate = form.whatsapp_template || generateWATemplate(form);
 
-    onSave({ ...form, platform });
+    onSave({ ...form, platform, whatsapp_template: finalTemplate });
   };
 
-  const handlePostSelect = (post: any) => {
-    setForm({
+  const togglePost = (post: any) => {
+    const isFB = post.platform === 'facebook';
+    const currentUrl = isFB ? form.fb_post_url : form.ig_post_url;
+    
+    const newForm = {
       ...form,
-      title: form.title || post.caption?.slice(0, 50) || "Nova Missão",
-      post_url: post.permalink,
-      platform: post.platform
-    });
-    setSelectionMode('url'); // Switch back to see the result or let user edit
+      [isFB ? 'fb_post_url' : 'ig_post_url']: currentUrl === post.permalink ? "" : post.permalink,
+      title: form.title || post.caption?.slice(0, 50) || "Nova Missão"
+    };
+
+    // Auto-update WA template if not manually edited yet
+    if (!form.whatsapp_template) {
+      // It will be generated on save if empty
+    }
+
+    setForm(newForm);
   };
 
   return (
