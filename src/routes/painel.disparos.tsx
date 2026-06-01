@@ -36,7 +36,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DispatchLogDialog } from "@/components/social/DispatchLogDialog";
 
-export const Route = createFileRoute("/disparos")({
+export const Route = createFileRoute("/painel/disparos")({
   component: DisparosPage,
 });
 
