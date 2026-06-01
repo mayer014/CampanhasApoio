@@ -154,7 +154,7 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
               <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[c.status]}</Badge>
             )}
 
-            {c.sentiment && (() => {
+            {c.sentiment ? (() => {
               const sm = SENTIMENT_META[c.sentiment as keyof typeof SENTIMENT_META];
               if (!sm) return null;
               const Icon = sm.icon;
@@ -164,25 +164,74 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
                     <TooltipTrigger asChild>
                       <Badge 
                         variant="outline" 
-                        className={`gap-1 text-[10px] cursor-help ${sm.cls} ${c.needs_review ? 'ring-1 ring-amber-500' : ''}`}
+                        className={`gap-1 text-[10px] cursor-help transition-all hover:scale-105 ${sm.cls} ${c.needs_review ? 'ring-1 ring-amber-500' : ''}`}
                       >
                         <Icon className="h-3 w-3" /> {sm.label}
-                        {c.sentiment_source === 'ai' ? <Sparkles className="h-2 w-2 ml-0.5 opacity-70" /> : <Ghost className="h-2 w-2 ml-0.5 opacity-70" />}
+                        {c.sentiment_source === 'ai' ? <Sparkles className="h-2 w-2 ml-0.5 opacity-70" /> : <UserMinus className="h-2 w-2 ml-0.5 opacity-70" />}
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs p-3">
-                      <p className="text-xs font-bold mb-1">Análise da IA ({Math.round((c.sentiment_confidence || 0) * 100)}% confiança)</p>
-                      <p className="text-[10px] italic">{c.sentiment_reason || "Sem detalhes adicionais."}</p>
-                      <div className="mt-2 flex gap-1 border-t pt-2">
-                        <button onClick={() => correctMut.mutate('positive')} className="hover:text-emerald-500 transition-colors"><Smile className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => correctMut.mutate('neutral')} className="hover:text-amber-500 transition-colors"><Meh className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => correctMut.mutate('negative')} className="hover:text-rose-500 transition-colors"><Frown className="h-3.5 w-3.5" /></button>
+                      <p className="text-xs font-bold mb-1">
+                        Análise {c.sentiment_source === 'ai' ? 'da IA' : 'Manual'} 
+                        {c.sentiment_source === 'ai' && ` (${Math.round((c.sentiment_confidence || 0) * 100)}% confiança)`}
+                      </p>
+                      <p className="text-[10px] italic mb-3">{c.sentiment_reason || "Sem detalhes adicionais."}</p>
+                      
+                      <div className="space-y-2 border-t pt-2">
+                        <p className="text-[9px] font-bold uppercase text-muted-foreground">Alterar sentimento manualmente:</p>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-7 px-2 text-emerald-600 hover:bg-emerald-500/10 gap-1 text-[10px]"
+                            onClick={() => correctMut.mutate('positive')}
+                            disabled={correctMut.isPending}
+                          >
+                            <Smile className="h-3 w-3" /> Positivo
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-7 px-2 text-amber-600 hover:bg-amber-500/10 gap-1 text-[10px]"
+                            onClick={() => correctMut.mutate('neutral')}
+                            disabled={correctMut.isPending}
+                          >
+                            <Meh className="h-3 w-3" /> Neutro
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-7 px-2 text-rose-600 hover:bg-rose-500/10 gap-1 text-[10px]"
+                            onClick={() => correctMut.mutate('negative')}
+                            disabled={correctMut.isPending}
+                          >
+                            <Frown className="h-3 w-3" /> Negativo
+                          </Button>
+                        </div>
                       </div>
                     </TooltipContent>
                   </UITooltip>
                 </TooltipProvider>
               );
-            })()}
+            })() : (
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="text-[10px] cursor-help opacity-50 hover:opacity-100">
+                      Sem análise
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent className="p-3">
+                    <p className="text-[10px] font-bold mb-2 uppercase">Classificar manualmente:</p>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-emerald-600" onClick={() => correctMut.mutate('positive')}><Smile className="h-3.5 w-3.5" /></Button>
+                      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-amber-600" onClick={() => correctMut.mutate('neutral')}><Meh className="h-3.5 w-3.5" /></Button>
+                      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-rose-600" onClick={() => correctMut.mutate('negative')}><Frown className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            )}
             {c.emotion && (
               <span className="text-[10px] italic text-muted-foreground">· {c.emotion}</span>
             )}
