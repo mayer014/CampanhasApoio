@@ -107,7 +107,8 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
             )}
 
             {c.sentiment && (() => {
-              const sm = SENTIMENT_META[c.sentiment];
+              const sm = SENTIMENT_META[c.sentiment as keyof typeof SENTIMENT_META];
+              if (!sm) return null;
               const Icon = sm.icon;
               return (
                 <Badge variant="outline" className={`gap-1 text-[10px] ${sm.cls}`}>

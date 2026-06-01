@@ -13,29 +13,6 @@ export function useAuth() {
   useEffect(() => {
     let active = true;
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (!active) return;
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        setTimeout(() => fetchRole(s.user.id), 0);
-      } else {
-        setRole(null);
-        setLoading(false);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) {
-        fetchRole(data.session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
     async function fetchRole(uid: string) {
       try {
         const { data, error } = await supabase
@@ -66,6 +43,37 @@ export function useAuth() {
         }
       }
     }
+
+    // Use getSession first, then listen to changes
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      const s = data.session;
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) {
+        fetchRole(s.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (!active) return;
+      
+      // If the event is just INITIAL_SESSION, we already handled it with getSession
+      if (event === 'INITIAL_SESSION') return;
+
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) {
+        setLoading(true);
+        fetchRole(s.user.id);
+      } else {
+        setRole(null);
+        setLoading(false);
+      }
+    });
+
 
     return () => {
       active = false;

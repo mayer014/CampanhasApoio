@@ -68,9 +68,9 @@ export function SentimentSummary() {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-3">
-              <SentimentCard icon={Smile} label="Positivo" value={stats!.positive} pct={pct(stats!.positive)} tone="positive" />
-              <SentimentCard icon={Meh} label="Neutro" value={stats!.neutral} pct={pct(stats!.neutral)} tone="neutral" />
-              <SentimentCard icon={Frown} label="Negativo" value={stats!.negative} pct={pct(stats!.negative)} tone="negative" />
+              <SentimentCard icon={Smile} label="Positivo" value={stats?.positive ?? 0} pct={pct(stats?.positive ?? 0)} tone="positive" />
+              <SentimentCard icon={Meh} label="Neutro" value={stats?.neutral ?? 0} pct={pct(stats?.neutral ?? 0)} tone="neutral" />
+              <SentimentCard icon={Frown} label="Negativo" value={stats?.negative ?? 0} pct={pct(stats?.negative ?? 0)} tone="negative" />
             </div>
 
             {(summary.data?.topTopics?.length ?? 0) > 0 && (
@@ -79,7 +79,7 @@ export function SentimentSummary() {
                   <TrendingUp className="h-3.5 w-3.5" /> Tópicos recorrentes
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {summary.data!.topTopics.map((t) => (
+                  {(summary.data?.topTopics || []).map((t) => (
                     <Badge key={t.topic} variant="secondary" className="text-xs">
                       {t.topic} <span className="ml-1 opacity-60">·{t.count}</span>
                     </Badge>

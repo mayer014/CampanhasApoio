@@ -19,7 +19,8 @@ const PERIODS = [
   { value: "90", label: "90 dias" },
 ] as const;
 
-function fmtNum(n: number): string {
+function fmtNum(n: number | undefined | null): string {
+  if (n === undefined || n === null || isNaN(n)) return "0";
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "k";
   return n.toLocaleString("pt-BR");
@@ -77,7 +78,7 @@ function SeriesChart({
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-        <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+        <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => (typeof v === 'string' ? v.slice(5) : '')} />
         <YAxis tick={{ fontSize: 10 }} tickFormatter={fmtNum} />
         <Tooltip
           contentStyle={{

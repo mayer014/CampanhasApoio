@@ -29,6 +29,18 @@ type DiagStep = {
 
 export const Route = createFileRoute("/painel/redes-sociais")({
   component: RedesSociaisPage,
+  errorComponent: ({ error, reset }) => (
+    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center">
+      <AlertTriangle className="h-10 w-10 text-destructive" />
+      <div>
+        <h2 className="text-lg font-semibold text-destructive">Algo deu errado nesta página</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{error instanceof Error ? error.message : "Erro desconhecido"}</p>
+      </div>
+      <Button variant="outline" size="sm" onClick={() => reset()}>
+        Tentar novamente
+      </Button>
+    </div>
+  ),
 });
 
 type Connection = {

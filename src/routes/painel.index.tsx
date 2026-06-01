@@ -97,7 +97,7 @@ function PainelHome() {
       m.set(d.toISOString().slice(0, 10), 0);
     }
     leads.forEach((l) => {
-      const k = l.created_at.slice(0, 10);
+      const k = (l.created_at || "").slice(0, 10);
       if (m.has(k)) m.set(k, (m.get(k) ?? 0) + 1);
     });
     return Array.from(m, ([date, total]) => ({
