@@ -26,6 +26,7 @@ import { Route as PainelMilitanciaRouteImport } from './routes/painel.militancia
 import { Route as PainelLinkRouteImport } from './routes/painel.link'
 import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
 import { Route as PainelDisparosRouteImport } from './routes/painel.disparos'
+import { Route as PainelCentralWhatsappRouteImport } from './routes/painel.central-whatsapp'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AdminWhatsappRouteImport } from './routes/admin.whatsapp'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
@@ -125,6 +126,11 @@ const PainelDisparosRoute = PainelDisparosRouteImport.update({
   path: '/disparos',
   getParentRoute: () => PainelRoute,
 } as any)
+const PainelCentralWhatsappRoute = PainelCentralWhatsappRouteImport.update({
+  id: '/central-whatsapp',
+  path: '/central-whatsapp',
+  getParentRoute: () => PainelRoute,
+} as any)
 const PSlugRoute = PSlugRouteImport.update({
   id: '/p/$slug',
   path: '/p/$slug',
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
+  '/painel/central-whatsapp': typeof PainelCentralWhatsappRoute
   '/painel/disparos': typeof PainelDisparosRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
+  '/painel/central-whatsapp': typeof PainelCentralWhatsappRoute
   '/painel/disparos': typeof PainelDisparosRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
@@ -270,6 +278,7 @@ export interface FileRoutesById {
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
+  '/painel/central-whatsapp': typeof PainelCentralWhatsappRoute
   '/painel/disparos': typeof PainelDisparosRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
@@ -304,6 +313,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
+    | '/painel/central-whatsapp'
     | '/painel/disparos'
     | '/painel/leads'
     | '/painel/link'
@@ -334,6 +344,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
+    | '/painel/central-whatsapp'
     | '/painel/disparos'
     | '/painel/leads'
     | '/painel/link'
@@ -366,6 +377,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
+    | '/painel/central-whatsapp'
     | '/painel/disparos'
     | '/painel/leads'
     | '/painel/link'
@@ -524,6 +536,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelDisparosRouteImport
       parentRoute: typeof PainelRoute
     }
+    '/painel/central-whatsapp': {
+      id: '/painel/central-whatsapp'
+      path: '/central-whatsapp'
+      fullPath: '/painel/central-whatsapp'
+      preLoaderRoute: typeof PainelCentralWhatsappRouteImport
+      parentRoute: typeof PainelRoute
+    }
     '/p/$slug': {
       id: '/p/$slug'
       path: '/p/$slug'
@@ -639,6 +658,7 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PainelRouteChildren {
+  PainelCentralWhatsappRoute: typeof PainelCentralWhatsappRoute
   PainelDisparosRoute: typeof PainelDisparosRoute
   PainelLeadsRoute: typeof PainelLeadsRoute
   PainelLinkRoute: typeof PainelLinkRoute
@@ -653,6 +673,7 @@ interface PainelRouteChildren {
 }
 
 const PainelRouteChildren: PainelRouteChildren = {
+  PainelCentralWhatsappRoute: PainelCentralWhatsappRoute,
   PainelDisparosRoute: PainelDisparosRoute,
   PainelLeadsRoute: PainelLeadsRoute,
   PainelLinkRoute: PainelLinkRoute,
