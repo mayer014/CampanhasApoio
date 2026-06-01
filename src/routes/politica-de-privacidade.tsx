@@ -4,17 +4,17 @@ import { Shield, Lock, Database, UserX, Mail, FileText } from "lucide-react";
 export const Route = createFileRoute("/politica-de-privacidade")({
   head: () => ({
     meta: [
-      { title: "Política de Privacidade — Foto de Campanha" },
+      { title: "Política de Privacidade — Minha Campanha" },
       {
         name: "description",
         content:
-          "Política de Privacidade do Foto de Campanha: como coletamos, usamos e protegemos seus dados, incluindo integrações com Facebook e Instagram.",
+          "Política de Privacidade da Minha Campanha: como coletamos, usamos e protegemos seus dados e integrações.",
       },
-      { property: "og:title", content: "Política de Privacidade — Foto de Campanha" },
+      { property: "og:title", content: "Política de Privacidade — Minha Campanha" },
       {
         property: "og:description",
         content:
-          "Saiba como o Foto de Campanha trata dados pessoais, tokens da Meta e métricas de redes sociais.",
+          "Saiba como a Minha Campanha trata dados pessoais, tokens da Meta e inteligência de dados.",
       },
     ],
     links: [
@@ -52,11 +52,10 @@ function PrivacyPage() {
         <article className="prose prose-neutral max-w-none dark:prose-invert space-y-8 text-[15px] leading-relaxed text-foreground">
           <Section title="1. Introdução">
             <p>
-              O <strong>Foto de Campanha</strong> ("nós", "nosso" ou "plataforma") é um
-              SaaS voltado a candidatos e equipes de campanha que permite criar fotos de
-              perfil personalizadas, gerenciar engajamento no WhatsApp e conectar redes
-              sociais oficiais. Esta Política de Privacidade descreve como coletamos,
-              utilizamos, armazenamos e protegemos suas informações.
+              O <strong>Minha Campanha</strong> ("nós", "nosso" ou "plataforma") é um
+              SaaS voltado a candidatos e equipes de campanha que oferece inteligência de
+              dados, gestão de militância e automação de redes sociais. Esta Política de
+              Privacidade descreve como coletamos, utilizamos, armazenamos e protegemos suas informações.
             </p>
           </Section>
 
@@ -73,7 +72,7 @@ function PrivacyPage() {
 
           <Section title="3. Uso de Facebook Login e Instagram Graph API">
             <p>
-              O Foto de Campanha utiliza <strong>autenticação oficial da Meta</strong>{" "}
+              O Minha Campanha utiliza <strong>autenticação oficial da Meta</strong>{" "}
               (Facebook Login for Business) e a <strong>Instagram Graph API</strong> para
               permitir conexão de páginas, análise de métricas, leitura de comentários e
               funcionalidades de automação autorizadas pelo usuário.
@@ -219,7 +218,7 @@ export function PublicHeader() {
           <div className="rounded-md bg-primary/10 p-1.5 text-primary">
             <FileText className="h-4 w-4" />
           </div>
-          Foto de Campanha
+          Minha Campanha
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <Link
@@ -247,7 +246,7 @@ export function PublicFooter() {
     <footer className="border-t bg-muted/30">
       <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-4 px-4 py-8 sm:flex-row sm:items-center sm:px-6">
         <div className="text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Foto de Campanha · EasyChain. Todos os direitos
+          © {new Date().getFullYear()} Minha Campanha · EasyChain. Todos os direitos
           reservados.
         </div>
         <div className="flex items-center gap-4 text-sm">
