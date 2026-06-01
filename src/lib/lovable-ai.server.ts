@@ -68,7 +68,7 @@ export async function chatCompletion(opts: {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new LovableAIError("LOVABLE_API_KEY não configurada", 500);
 
-  const activeSetting = await getActiveAISetting();
+  const activeSetting = await getActiveAISetting(opts.userId);
   
   let url = GATEWAY_URL;
   let authHeader = `Bearer ${process.env.LOVABLE_API_KEY}`;
