@@ -192,11 +192,21 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
             </div>
             <div className="space-y-2">
               <Label>Nome do Modelo</Label>
-              <Input
-                placeholder="ex: gpt-4o-mini, claude-3-5-sonnet, llama-3-70b"
+              <Select
                 value={form.model_name}
-                onChange={(e) => setForm({ ...form, model_name: e.target.value })}
-              />
+                onValueChange={(v) => setForm({ ...form, model_name: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MODELS[form.provider].map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>API Key</Label>
