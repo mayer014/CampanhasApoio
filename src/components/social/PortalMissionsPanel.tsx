@@ -66,9 +66,18 @@ export function PortalMissionsPanel({ clientId }: { clientId: string }) {
           .eq("id", payload.id);
         if (error) throw error;
       } else {
+        // Ensure required fields for insert
         const { error } = await supabase
           .from("portal_missions")
-          .insert({ ...payload, client_id: clientId });
+          .insert({
+            client_id: clientId,
+            title: payload.title!,
+            platform: payload.platform!,
+            post_url: payload.post_url!,
+            description: payload.description,
+            is_active: payload.is_active,
+            display_order: payload.display_order ?? 0
+          });
         if (error) throw error;
       }
     },
