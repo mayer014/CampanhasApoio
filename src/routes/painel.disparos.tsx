@@ -29,8 +29,10 @@ import {
   Trash2,
   FileText,
   Sparkles,
-  Eye
+  Eye,
+  ChevronLeft
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
