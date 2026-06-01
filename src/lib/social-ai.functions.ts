@@ -379,7 +379,7 @@ export const syncMilitants = createServerFn({ method: "POST" })
     // 1. Agrega dados de social_comments para identificar padrões de apoio
     const { data: stats, error } = await supabase
       .from("social_comments")
-      .select("author_id, author_name, sentiment, platform")
+      .select("author_id, author_name, sentiment, platform, raw")
       .eq("user_id", userId)
       .not("sentiment", "is", null);
 

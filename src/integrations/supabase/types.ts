@@ -607,7 +607,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_social_comments_post_cache"
+            columns: ["post_external_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts_cache"
+            referencedColumns: ["external_id"]
+          },
+        ]
       }
       social_connections: {
         Row: {
