@@ -79,7 +79,7 @@ export function SentimentSummary() {
                   <TrendingUp className="h-3.5 w-3.5" /> Tópicos recorrentes
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {summary.data!.topTopics.map((t) => (
+                  {(summary.data?.topTopics || []).map((t) => (
                     <Badge key={t.topic} variant="secondary" className="text-xs">
                       {t.topic} <span className="ml-1 opacity-60">·{t.count}</span>
                     </Badge>
