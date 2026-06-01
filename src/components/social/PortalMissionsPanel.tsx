@@ -309,44 +309,66 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
           </TabsList>
           
           <TabsContent value="select" className="space-y-2 mt-2">
-            <div className="max-h-[250px] overflow-y-auto border rounded-md p-1 space-y-1 bg-muted/20">
+            <div className="max-h-[350px] overflow-y-auto border rounded-md p-1 space-y-1 bg-muted/20">
               {isLoadingPosts ? (
                 <div className="p-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-                  <Search className="h-3 w-3 animate-spin" /> Carregando posts recentes...
+                  <Search className="h-3 w-3 animate-spin" /> Carregando posts...
                 </div>
               ) : recentPosts?.length === 0 ? (
                 <div className="p-4 text-center text-xs text-muted-foreground italic">
-                  Nenhum post encontrado nas suas redes conectadas.
+                  Nenhum post encontrado.
                 </div>
               ) : (
-                recentPosts?.map((post) => (
-                  <button
-                    key={post.id}
-                    type="button"
-                    onClick={() => handlePostSelect(post)}
-                    className={`w-full text-left p-2 rounded hover:bg-accent transition-colors text-xs flex gap-2 items-start border ${form.post_url === post.permalink ? 'border-primary bg-primary/5' : 'border-transparent'}`}
-                  >
-                    <div className="mt-0.5 shrink-0">
-                      {post.platform === 'facebook' ? <Facebook className="h-3 w-3 text-blue-600" /> : <Instagram className="h-3 w-3 text-pink-600" />}
-                    </div>
-                    <span className="line-clamp-2">{post.caption || "(Sem legenda)"}</span>
-                  </button>
-                ))
+                <div className="grid grid-cols-2 gap-2 p-1">
+                  {recentPosts?.map((post) => {
+                    const isSelected = form.fb_post_url === post.permalink || form.ig_post_url === post.permalink;
+                    return (
+                      <button
+                        key={post.id}
+                        type="button"
+                        onClick={() => togglePost(post)}
+                        className={`text-left p-1 rounded transition-colors flex flex-col border h-full ${isSelected ? 'border-primary bg-primary/10' : 'border-transparent bg-background hover:bg-accent'}`}
+                      >
+                        <div className="relative aspect-square w-full mb-1 rounded overflow-hidden bg-zinc-100">
+                          {post.thumbnail_url ? (
+                            <img src={post.thumbnail_url} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                              <ImageIcon className="h-6 w-6" />
+                            </div>
+                          )}
+                          <div className="absolute top-1 right-1">
+                            {post.platform === 'facebook' ? <Facebook className="h-4 w-4 text-blue-600 bg-white rounded-full p-0.5" /> : <Instagram className="h-4 w-4 text-pink-600 bg-white rounded-full p-0.5" />}
+                          </div>
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <div className="bg-primary text-white rounded-full p-1"><Plus className="h-4 w-4 rotate-45" /></div>
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[10px] line-clamp-2 px-1 pb-1">{post.caption || "(Sem legenda)"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
             <p className="text-[10px] text-muted-foreground italic text-center">
-              Mostrando os últimos 20 posts sincronizados.
+              Selecione um post do Facebook e um do Instagram para uma missão dupla.
             </p>
           </TabsContent>
 
           <TabsContent value="url" className="space-y-2 mt-2">
-            <Label htmlFor="url" className="text-xs">URL do Post (Facebook ou Instagram)</Label>
-            <Input 
-              id="url" 
-              value={form.post_url} 
-              onChange={e => setForm({...form, post_url: e.target.value})} 
-              placeholder="https://facebook.com/..." 
-            />
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="fb_url" className="text-xs">URL Facebook</Label>
+                <Input id="fb_url" value={form.fb_post_url} onChange={e => setForm({...form, fb_post_url: e.target.value})} placeholder="https://facebook.com/..." className="h-8 text-xs" />
+              </div>
+              <div>
+                <Label htmlFor="ig_url" className="text-xs">URL Instagram</Label>
+                <Input id="ig_url" value={form.ig_post_url} onChange={e => setForm({...form, ig_post_url: e.target.value})} placeholder="https://instagram.com/..." className="h-8 text-xs" />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
