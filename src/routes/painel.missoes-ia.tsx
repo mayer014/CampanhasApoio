@@ -5,7 +5,8 @@ import { resolveClientId } from "@/lib/resolve-client-id";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIMissionsPanel } from "@/components/social/AIMissionsPanel";
 import { PortalMissionsPanel } from "@/components/social/PortalMissionsPanel";
-import { Sparkles, LayoutList } from "lucide-react";
+import { Sparkles, LayoutList, ChevronLeft } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/painel/missoes-ia")({
   component: MissoesIA,
