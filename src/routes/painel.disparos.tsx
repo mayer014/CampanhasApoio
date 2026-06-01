@@ -197,10 +197,13 @@ function DisparosPage() {
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
+      <Link to="/painel" className="text-xs text-muted-foreground flex items-center gap-1 mb-4 hover:text-primary transition-colors">
+        <ChevronLeft className="h-3 w-3" /> Voltar para o início
+      </Link>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Disparos WhatsApp</h1>
-          <p className="text-muted-foreground">Comunique-se em massa com seus eleitores e apoiadores.</p>
+          <p className="text-muted-foreground text-sm">Comunique-se em massa com seus eleitores e apoiadores.</p>
         </div>
         <Card className={`px-4 py-2 flex items-center gap-2 border-none shadow-sm ${bridgeStatus === 'connected' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
           {bridgeStatus === 'checking' ? <Loader2 className="h-4 w-4 animate-spin" /> : 
