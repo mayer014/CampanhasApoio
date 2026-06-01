@@ -384,3 +384,22 @@ export const updateCommentStatus = createServerFn({ method: "POST" })
     if (updErr) throw new Error(updErr.message);
     return { ok: true };
   });
+
+export const toggleIgnoreComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      commentId: z.string().uuid(),
+      isIgnored: z.boolean(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("social_comments")
+      .update({ is_ignored: data.isIgnored })
+      .eq("id", data.commentId)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
