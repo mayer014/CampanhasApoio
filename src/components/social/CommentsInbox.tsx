@@ -230,7 +230,7 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
                 </Button>
               )}
               {c.status !== "hidden" ? (
-                <Button size="sm" variant="ghost" className="text-destructive"
+                <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10"
                         onClick={() => statusMut.mutate("hidden")}>
                   <EyeOff className="mr-1 h-3.5 w-3.5" /> Ocultar
                 </Button>
@@ -239,6 +239,16 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
                   <RotateCcw className="mr-1 h-3.5 w-3.5" /> Restaurar
                 </Button>
               )}
+              
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className={c.is_ignored ? 'text-blue-500' : 'text-muted-foreground'}
+                onClick={() => ignoreMut.mutate(!c.is_ignored)}
+              >
+                {c.is_ignored ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Ghost className="mr-1 h-3.5 w-3.5" />}
+                {c.is_ignored ? 'Desarquivar' : 'Ignorar'}
+              </Button>
             </div>
           )}
         </div>
