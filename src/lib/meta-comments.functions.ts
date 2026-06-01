@@ -312,6 +312,7 @@ export const listSocialComments = createServerFn({ method: "POST" })
 
     const comments: SocialCommentRow[] = (rows ?? []).map((r: any) => ({
       ...r,
+      militant_badge: militantMap.get(r.author_id) ?? 'observador',
       post: postMap.get(r.post_external_id) ?? null,
     }));
     return { comments, counts };
