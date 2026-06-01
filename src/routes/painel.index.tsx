@@ -274,6 +274,7 @@ function PainelHome() {
             )}
           </div>
         </Card>
+        </div>
       </div>
     </div>
   );
