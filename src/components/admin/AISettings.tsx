@@ -170,6 +170,42 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
     }
   }
 
+  async function handleSaveInstruction() {
+    if (!effectiveUserId) return;
+    setBusy(true);
+
+    const activeSetting = settings.find(s => s.is_active);
+
+    if (activeSetting) {
+      const { error } = await supabase
+        .from('ai_settings')
+        .update({ system_instruction: systemInstruction })
+        .eq('id', activeSetting.id);
+
+      if (error) toast.error(error.message);
+      else toast.success("Orientação salva com sucesso!");
+    } else {
+      // Se não houver configuração ativa, criamos uma para o provedor 'lovable'
+      const { error } = await supabase
+        .from('ai_settings')
+        .insert({
+          user_id: effectiveUserId,
+          provider: 'lovable',
+          model_name: MODELS.lovable[0].value,
+          api_key: 'gateway',
+          is_active: true,
+          system_instruction: systemInstruction
+        });
+
+      if (error) toast.error(error.message);
+      else {
+        toast.success("Orientação configurada para o provedor padrão.");
+        load();
+      }
+    }
+    setBusy(false);
+  }
+
   const handleProviderChange = (v: AIProvider) => {
     setForm({
       ...form,
