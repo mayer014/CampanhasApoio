@@ -133,6 +133,9 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
               {c.author_name ??
                 (c.platform === "facebook" ? "Usuário do Facebook" : "Anônimo")}
             </span>
+
+            <MilitancyBadge type={c.militant_badge} />
+
             <span className="text-muted-foreground">· {timeAgo(c.posted_at)}</span>
             {c.status !== "pending" && (
               <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[c.status]}</Badge>
