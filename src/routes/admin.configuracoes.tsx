@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Save } from "lucide-react";
+import { Save, BrainCircuit } from "lucide-react";
+import { AISettings } from "@/components/admin/AISettings";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Settings = {
   whatsapp_number: string | null;
