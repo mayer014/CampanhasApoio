@@ -90,13 +90,21 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
     let batches = 0;
     const errors: string[] = [];
 
-    // Busca correções humanas para few-shot
-    const { data: corrections } = await supabase
-      .from("sentiment_corrections")
-      .select("comment_text, post_message, sentiment_human")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(10);
+    // Busca correções humanas para few-shot e orientações da página
+    const [ { data: corrections }, { data: aiSetting } ] = await Promise.all([
+      supabase
+        .from("sentiment_corrections")
+        .select("comment_text, post_message, sentiment_human")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase
+        .from("ai_settings")
+        .select("system_instruction")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .maybeSingle()
+    ]);
 
     const fewShotExamples = (corrections ?? []).map(c => 
       `Comentário: "${c.comment_text}" | Post: "${c.post_message ?? ''}" -> Sentimento: ${c.sentiment_human}`
@@ -142,6 +150,9 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
               role: "system",
               content: `Você é um analista de mídias sociais brasileiro especializado em política. 
 Sua tarefa é classificar comentários. 
+
+CONTEXTO DA PÁGINA:
+${aiSetting?.system_instruction || "Não há orientações específicas."}
 
 REGRAS CRÍTICAS:
 - post_stance: postura do post (denuncia | conquista | convite | opiniao | neutro).
@@ -400,17 +411,19 @@ export const generateSocialReply = createServerFn({ method: "POST" })
       .maybeSingle();
 
     // 2. Busca informações do candidato para dar contexto à IA
-    const { data: profile } = await supabase
-      .from("candidate_profiles")
-      .select("full_name")
-      .eq("id", userId)
-      .maybeSingle();
+    const [ { data: profile }, { data: aiSetting } ] = await Promise.all([
+      supabase.from("candidate_profiles").select("full_name").eq("id", userId).maybeSingle(),
+      supabase.from("ai_settings").select("system_instruction").eq("user_id", userId).eq("is_active", true).maybeSingle()
+    ]);
 
     const postCaption = post?.caption || "N/A (Contexto do post não disponível)";
     const author = comment.author_name || "um usuário";
 
     const systemPrompt = `Você é um assistente de comunicação social experiente em política brasileira.
 Seu objetivo é redigir uma resposta para um comentário em rede social (Instagram/Facebook).
+
+ORIENTAÇÃO GERAL DA PÁGINA:
+${aiSetting?.system_instruction || "Não há orientações específicas."}
 
 CONTEXTO DO CANDIDATO:
 Nome: ${profile?.full_name || 'Candidato'}

@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { BrainCircuit, Save, Trash2, CheckCircle2, AlertTriangle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { BrainCircuit, Save, Trash2, CheckCircle2, AlertTriangle, Eye, EyeOff, Loader2, Info } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 type AIProvider = 'lovable' | 'openrouter' | 'openai' | 'anthropic' | 'groq';
@@ -19,6 +20,7 @@ type AISetting = {
   api_key: string;
   is_active: boolean;
   user_id: string;
+  system_instruction?: string;
 };
 
 const PROVIDERS: { value: AIProvider; label: string; description: string }[] = [
@@ -64,6 +66,7 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
+  const [systemInstruction, setSystemInstruction] = useState("");
 
   const [form, setForm] = useState<{
     provider: AIProvider;
@@ -91,7 +94,16 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
     if (error) {
       toast.error("Erro ao carregar configurações de IA: " + error.message);
     } else {
-      setSettings((data as unknown as AISetting[]) || []);
+      const rows = (data as unknown as AISetting[]) || [];
+      setSettings(rows);
+      const active = rows.find(s => s.is_active);
+      if (active) {
+        setSystemInstruction(active.system_instruction || "");
+      } else {
+        // Se não tiver nenhum ativo, mas tiver algum registro (ex: Lovable padrão), tenta pegar dele
+        const lovable = rows.find(s => s.provider === 'lovable');
+        if (lovable) setSystemInstruction(lovable.system_instruction || "");
+      }
     }
     setLoading(false);
   }
@@ -158,6 +170,42 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
     }
   }
 
+  async function handleSaveInstruction() {
+    if (!effectiveUserId) return;
+    setBusy(true);
+
+    const activeSetting = settings.find(s => s.is_active);
+
+    if (activeSetting) {
+      const { error } = await supabase
+        .from('ai_settings')
+        .update({ system_instruction: systemInstruction })
+        .eq('id', activeSetting.id);
+
+      if (error) toast.error(error.message);
+      else toast.success("Orientação salva com sucesso!");
+    } else {
+      // Se não houver configuração ativa, criamos uma para o provedor 'lovable'
+      const { error } = await supabase
+        .from('ai_settings')
+        .insert({
+          user_id: effectiveUserId,
+          provider: 'lovable',
+          model_name: MODELS.lovable[0].value,
+          api_key: 'gateway',
+          is_active: true,
+          system_instruction: systemInstruction
+        });
+
+      if (error) toast.error(error.message);
+      else {
+        toast.success("Orientação configurada para o provedor padrão.");
+        load();
+      }
+    }
+    setBusy(false);
+  }
+
   const handleProviderChange = (v: AIProvider) => {
     setForm({
       ...form,
@@ -186,7 +234,39 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-8">
+          {/* Nova Área de Orientação da IA */}
+          <div className="rounded-xl border bg-primary/5 p-4 sm:p-6 space-y-4">
+            <div className="flex items-center gap-2 text-primary font-semibold">
+              <Info className="h-5 w-5" />
+              <h4>Orientação da IA (Contexto da Página)</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Descreva aqui a personalidade da página, o tom de voz do candidato e informações importantes que a IA deve saber ao gerar respostas. 
+              Isso ajudará a IA a entender melhor o contexto antes de responder aos comentários.
+            </p>
+            <div className="space-y-2">
+              <Textarea 
+                placeholder="Ex: O candidato é focado em educação e saúde. O tom deve ser esperançoso mas firme. Sempre cite que estamos abertos a sugestões..."
+                rows={4}
+                value={systemInstruction}
+                onChange={(e) => setSystemInstruction(e.target.value)}
+                className="bg-background"
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  onClick={handleSaveInstruction} 
+                  disabled={busy}
+                  className="gap-2"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar Orientação
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label>Provedor</Label>
