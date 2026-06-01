@@ -60,8 +60,8 @@ function KpiCard({
 
 function SeriesChart({
   data, color, label,
-}: { data: Array<{ date: string; value: number }>; color: string; label: string }) {
-  if (data.length === 0) {
+}: { data: Array<{ date: string; value: number }> | undefined | null; color: string; label: string }) {
+  if (!data || data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-xs text-muted-foreground">
         Sem dados de {label} no período.
@@ -194,13 +194,13 @@ export function MetricsPanel() {
 
         {query.data && (
           <>
-            {query.data.warnings.length > 0 && (
+            {(query.data.warnings || []).length > 0 && (
               <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
                 <p className="mb-1 flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="h-3.5 w-3.5" /> Alguns dados não puderam ser obtidos
                 </p>
                 <ul className="list-disc space-y-0.5 pl-5 text-muted-foreground">
-                  {query.data.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                  {(query.data.warnings || []).map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
               </div>
             )}
@@ -229,11 +229,11 @@ export function MetricsPanel() {
                     <SeriesChart data={query.data.instagram.impressions_series} color="#4f5bd5" label="Impressões" />
                   </div>
                 </div>
-                {query.data.instagram.top_posts.length > 0 && (
+                {(query.data.instagram.top_posts || []).length > 0 && (
                   <div>
                     <p className="mb-2 text-xs font-medium text-muted-foreground">Top 5 posts por engajamento</p>
                     <div className="grid gap-2">
-                      {query.data.instagram.top_posts.map((p) => <TopPostRow key={p.id} post={p} />)}
+                      {(query.data.instagram.top_posts || []).map((p) => <TopPostRow key={p.id} post={p} />)}
                     </div>
                   </div>
                 )}
