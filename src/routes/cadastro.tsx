@@ -7,21 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Camera, Sparkles, CheckCircle2 } from "lucide-react";
+import { Rocket, Sparkles, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/cadastro")({
   head: () => ({
     meta: [
-      { title: "Cadastro grátis — Foto de Campanha" },
+      { title: "Criar Conta — Minha Campanha" },
       {
         name: "description",
         content:
-          "Crie sua conta grátis e ganhe 5 fotos de campanha personalizadas. Sem cartão de crédito.",
+          "Cadastre-se na plataforma Minha Campanha e comece a gerenciar sua estratégia digital com inteligência artificial.",
       },
-      { property: "og:title", content: "Cadastre-se grátis — Foto de Campanha" },
+      { property: "og:title", content: "Cadastre-se na Minha Campanha" },
       {
         property: "og:description",
-        content: "Ganhe 5 fotos de perfil personalizadas para sua campanha eleitoral.",
+        content: "Inteligência política, militância digital e automação para sua campanha.",
       },
     ],
   }),
@@ -105,8 +105,8 @@ function CadastroPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-lg p-8">
         <Link to="/" className="mb-6 flex items-center gap-2">
-          <Camera className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold">Foto de Campanha</span>
+          <Rocket className="h-6 w-6 text-primary" />
+          <span className="text-lg font-bold">Minha Campanha</span>
         </Link>
         <h1 className="text-2xl font-bold">Cadastre-se grátis</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -116,8 +116,8 @@ function CadastroPage() {
         <div className="mt-4 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div>
-            <strong>5 fotos grátis</strong> ao se cadastrar. Sem cartão de crédito. Após o teste gratuito, 
-            você poderá assinar um plano diretamente pelo painel.
+            <strong>Inicie sua jornada digital</strong>. Comece agora a organizar sua militância e 
+            analisar o sentimento das suas redes com nossa IA.
           </div>
         </div>
 
@@ -167,9 +167,9 @@ function CadastroPage() {
         </form>
 
         <ul className="mt-6 space-y-1.5 text-xs text-muted-foreground">
-          <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> 5 fotos personalizadas no plano grátis</li>
-          <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Sem cartão de crédito</li>
-          <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Cancelamento a qualquer momento</li>
+          <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Inteligência Artificial integrada</li>
+          <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Gestão de militância digital</li>
+          <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Automação de WhatsApp e Leads</li>
         </ul>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
