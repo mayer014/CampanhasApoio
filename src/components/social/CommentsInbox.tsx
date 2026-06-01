@@ -14,7 +14,7 @@ import {
   Trash2, UserMinus, ShieldAlert, Sparkles, Ghost, Info
 } from "lucide-react";
 import { MilitancyBadge } from "./MilitancyBadge";
-import { correctSentiment } from "@/lib/social-ai.functions";
+import { correctSentiment, generateSocialReply } from "@/lib/social-ai.functions";
 import { toggleIgnoreComment } from "@/lib/meta-comments.functions";
 import { 
   Tooltip as UITooltip, 
@@ -63,9 +63,11 @@ function timeAgo(iso: string | null): string {
 function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => void }) {
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState("");
+  const [orientation, setOrientation] = useState("");
   const reply = useServerFn(replySocialComment);
   const updateStatus = useServerFn(updateCommentStatus);
   const correct = useServerFn(correctSentiment);
+  const generate = useServerFn(generateSocialReply);
   const toggleIgnore = useServerFn(toggleIgnoreComment);
 
   const qc = useQueryClient();
@@ -104,6 +106,17 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
       onChange();
     },
     onError: (e) => toast.error("Erro ao alterar status"),
+  });
+
+  const generateMut = useMutation({
+    mutationFn: () => generate({ data: { commentId: c.id, orientation: orientation.trim() || undefined } }),
+    onSuccess: (data) => {
+      if (data.reply) {
+        setDraft(data.reply);
+        toast.success("Sugestão de resposta gerada!");
+      }
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao gerar resposta"),
   });
 
   const PlatformIcon = c.platform === "instagram" ? Instagram : Facebook;
@@ -198,13 +211,46 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
           )}
 
           {replying ? (
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-col gap-2 rounded-lg bg-muted/50 p-3 border border-dashed">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Orientar IA (Opcional)</span>
+                  <TooltipProvider>
+                    <UITooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-[10px] max-w-[200px]">Ex: "seja sarcástico", "responda falando sobre a nova escola", "agradeça pelo carinho e peça o voto"</p>
+                      </TooltipContent>
+                    </UITooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="flex gap-2">
+                  <Textarea
+                    value={orientation}
+                    onChange={(e) => setOrientation(e.target.value)}
+                    placeholder="Ex: Reforce que estamos trabalhando muito pela cidade..."
+                    className="text-[11px] h-12 min-h-0 bg-background"
+                  />
+                  <Button 
+                    size="sm" 
+                    variant="secondary"
+                    className="h-auto px-3 shrink-0"
+                    disabled={generateMut.isPending}
+                    onClick={() => generateMut.mutate()}
+                  >
+                    <Sparkles className={`h-4 w-4 ${generateMut.isPending ? 'animate-pulse' : ''}`} />
+                  </Button>
+                </div>
+              </div>
+
               <Textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Escreva uma resposta cordial e objetiva…"
-                rows={2}
-                className="text-sm"
+                rows={3}
+                className="text-sm bg-background"
               />
               <div className="flex gap-2">
                 <Button size="sm" disabled={!draft.trim() || replyMut.isPending}
@@ -212,7 +258,7 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
                   <Send className="mr-1.5 h-3.5 w-3.5" />
                   {replyMut.isPending ? "Enviando…" : "Enviar"}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => { setReplying(false); setDraft(""); }}>
+                <Button size="sm" variant="ghost" onClick={() => { setReplying(false); setDraft(""); setOrientation(""); }}>
                   Cancelar
                 </Button>
               </div>

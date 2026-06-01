@@ -354,5 +354,87 @@ export const correctSentiment = createServerFn({ method: "POST" })
       ai_processed_at: new Date().toISOString(), // Marca como processado
     }).eq("id", data.commentId);
 
+
     return { ok: true };
+  });
+
+// -----------------------------------------------------------------------------
+// GENERATE REPLY: sugere resposta com IA baseada no comentário e orientação
+// -----------------------------------------------------------------------------
+export const generateSocialReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      commentId: z.string().uuid(),
+      orientation: z.string().max(500).optional(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // 1. Busca comentário + post
+    const { data: comment } = await supabase
+      .from("social_comments")
+      .select(`
+        text, author_name, sentiment, emotion, topics,
+        post_external_id,
+        social_posts_cache!inner (caption)
+      `)
+      .eq("id", data.commentId)
+      .single();
+
+    if (!comment) throw new Error("Comentário não encontrado");
+
+    // 2. Busca informações do candidato para dar contexto à IA
+    const { data: profile } = await supabase
+      .from("candidate_profiles")
+      .select("full_name")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const postCaption = (comment.social_posts_cache as any)?.caption || "N/A";
+    const author = comment.author_name || "um usuário";
+
+    const systemPrompt = `Você é um assistente de comunicação social experiente em política brasileira.
+Seu objetivo é redigir uma resposta para um comentário em rede social (Instagram/Facebook).
+
+CONTEXTO DO CANDIDATO:
+Nome: ${profile?.full_name || 'Candidato'}
+
+CONTEXTO DO POST:
+Legenda: "${postCaption.slice(0, 500)}"
+
+DADOS DO COMENTÁRIO:
+Autor: ${author}
+Texto: "${comment.text}"
+Sentimento: ${comment.sentiment || 'Desconhecido'}
+Emoção: ${comment.emotion || 'N/A'}
+
+REGRAS DE OURO:
+1. Seja sempre educado e cordial, mesmo com haters (neutralize-os com elegância).
+2. Se o sentimento for positivo, agradeça o apoio e reforce o compromisso.
+3. Se o sentimento for negativo, responda com foco em propostas ou esclarecimentos, sem bater boca.
+4. Use um tom humano, evite frases excessivamente robotizadas.
+5. Resposta curta (máximo 300 caracteres).
+6. Use "Você" ou "A gente" conforme o tom do candidato.
+${data.orientation ? `ORIENTAÇÃO ESPECÍFICA DO USUÁRIO: "${data.orientation}"` : ""}
+
+Sua resposta deve ser apenas o texto que o candidato postaria.`;
+
+    try {
+      const { content } = await chatCompletion({
+        userId: userId,
+        model: "google/gemini-2.0-flash-lite", 
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: "Gere a resposta para este comentário agora." }
+        ],
+        temperature: 0.7,
+      });
+
+      return { reply: content?.trim() || "" };
+    } catch (e) {
+      console.error("Generate reply error", e);
+      throw new Error(e instanceof Error ? e.message : "Erro ao gerar resposta");
+    }
   });
