@@ -94,7 +94,7 @@ function DisparosPage() {
   const { data: missions } = useQuery({
     queryKey: ["active-missions", clientId],
     queryFn: async () => {
-      const { data } = await supabase.from("portal_missions").select("*").eq("client_id", clientId).eq("is_active", true);
+      const { data } = await supabase.from("portal_missions").select("*").eq("client_id", clientId!).eq("is_active", true);
       return data || [];
     },
     enabled: !!clientId
@@ -103,7 +103,7 @@ function DisparosPage() {
   const { data: history } = useQuery({
     queryKey: ["dispatches-history", clientId],
     queryFn: async () => {
-      const { data } = await supabase.from("whatsapp_dispatches").select("*").eq("client_id", clientId).order("created_at", { ascending: false });
+      const { data } = await supabase.from("whatsapp_dispatches").select("*").eq("client_id", clientId!).order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!clientId
