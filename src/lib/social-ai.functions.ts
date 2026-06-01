@@ -372,18 +372,30 @@ export const generateSocialReply = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // 1. Busca comentário + post
-    const { data: comment } = await supabase
+    // 1. Busca comentário e tenta carregar o post associado
+    // Se o inner join falhar, buscamos apenas o comentário para evitar o erro de 'não encontrado'
+    const { data: comment, error: commentError } = await supabase
       .from("social_comments")
       .select(`
         text, author_name, sentiment, emotion, topics,
         post_external_id,
-        social_posts_cache!inner (caption)
+        connection_id
       `)
       .eq("id", data.commentId)
       .single();
 
-    if (!comment) throw new Error("Comentário não encontrado");
+    if (commentError || !comment) {
+      console.error("Comment not found in DB:", data.commentId, commentError);
+      throw new Error("Comentário não encontrado no banco de dados.");
+    }
+
+    // 1b. Busca o post separadamente para garantir que não falhe se o cache estiver incompleto
+    const { data: post } = await supabase
+      .from("social_posts_cache")
+      .select("caption")
+      .eq("external_id", comment.post_external_id)
+      .eq("connection_id", comment.connection_id)
+      .maybeSingle();
 
     // 2. Busca informações do candidato para dar contexto à IA
     const { data: profile } = await supabase
@@ -392,7 +404,7 @@ export const generateSocialReply = createServerFn({ method: "POST" })
       .eq("id", userId)
       .maybeSingle();
 
-    const postCaption = (comment.social_posts_cache as any)?.caption || "N/A";
+    const postCaption = post?.caption || "N/A (Contexto do post não disponível)";
     const author = comment.author_name || "um usuário";
 
     const systemPrompt = `Você é um assistente de comunicação social experiente em política brasileira.
@@ -401,33 +413,33 @@ Seu objetivo é redigir uma resposta para um comentário em rede social (Instagr
 CONTEXTO DO CANDIDATO:
 Nome: ${profile?.full_name || 'Candidato'}
 
-CONTEXTO DO POST:
-Legenda: "${postCaption.slice(0, 500)}"
+CONTEXTO DO POST (O que foi postado/Legenda do vídeo):
+"${postCaption.slice(0, 1000)}"
 
-DADOS DO COMENTÁRIO:
+DADOS DO COMENTÁRIO (O que a pessoa escreveu):
 Autor: ${author}
 Texto: "${comment.text}"
 Sentimento: ${comment.sentiment || 'Desconhecido'}
 Emoção: ${comment.emotion || 'N/A'}
 
 REGRAS DE OURO:
-1. Seja sempre educado e cordial, mesmo com haters (neutralize-os com elegância).
-2. Se o sentimento for positivo, agradeça o apoio e reforce o compromisso.
-3. Se o sentimento for negativo, responda com foco em propostas ou esclarecimentos, sem bater boca.
-4. Use um tom humano, evite frases excessivamente robotizadas.
-5. Resposta curta (máximo 300 caracteres).
-6. Use "Você" ou "A gente" conforme o tom do candidato.
-${data.orientation ? `ORIENTAÇÃO ESPECÍFICA DO USUÁRIO: "${data.orientation}"` : ""}
+1. Analise o contexto do post e o que o usuário comentou para criar uma resposta relevante.
+2. Seja sempre educado e cordial.
+3. Se o sentimento for positivo, agradeça o apoio.
+4. Se o sentimento for negativo ou crítico, responda com foco em propostas ou esclarecimentos, sem bater boca.
+5. Use um tom humano e direto.
+6. Resposta curta (máximo 300 caracteres).
+${data.orientation ? `ORIENTAÇÃO ESPECÍFICA DO USUÁRIO (Siga rigorosamente): "${data.orientation}"` : ""}
 
-Sua resposta deve ser apenas o texto que o candidato postaria.`;
+Sua resposta deve ser apenas o texto final da resposta.`;
 
     try {
       const { content } = await chatCompletion({
         userId: userId,
-        model: "google/gemini-2.0-flash-lite", 
+        // Usamos a função chatCompletion que já gerencia a LLM configurada pelo usuário!
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: "Gere a resposta para este comentário agora." }
+          { role: "user", content: "Com base no contexto do post e no comentário acima, gere a melhor resposta." }
         ],
         temperature: 0.7,
       });
@@ -435,6 +447,6 @@ Sua resposta deve ser apenas o texto que o candidato postaria.`;
       return { reply: content?.trim() || "" };
     } catch (e) {
       console.error("Generate reply error", e);
-      throw new Error(e instanceof Error ? e.message : "Erro ao gerar resposta");
+      throw new Error(e instanceof Error ? e.message : "Erro ao gerar resposta na IA");
     }
   });
