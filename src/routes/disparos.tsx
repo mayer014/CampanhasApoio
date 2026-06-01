@@ -271,13 +271,18 @@ function DisparosPage() {
 
               <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  <Eye className="h-3 w-3" /> Pré-visualização da Mensagem
+                  <Eye className="h-3 w-3" /> Pré-visualização e Edição Rápida
                 </div>
-                <div className="bg-white dark:bg-zinc-950 rounded border p-3 text-sm whitespace-pre-wrap font-sans shadow-sm">
+                <div className="bg-white dark:bg-zinc-950 rounded border p-3 text-sm font-sans shadow-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring">
                   {mediaUrl && (
                     <img src={mediaUrl} className="w-full h-32 object-cover rounded mb-2 border" />
                   )}
-                  {message || <span className="text-muted-foreground italic">Nenhuma mensagem escrita...</span>}
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Nenhuma mensagem escrita..."
+                    className="w-full bg-transparent border-none focus:outline-none resize-none min-h-[100px] text-sm"
+                  />
                 </div>
                 <p className="text-[10px] text-muted-foreground italic">
                   * Variáveis como nome do eleitor serão preenchidas automaticamente no envio.
