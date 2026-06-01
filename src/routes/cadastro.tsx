@@ -93,7 +93,7 @@ function CadastroPage() {
         navigate({ to: "/login" });
         return;
       }
-      toast.success("Bem-vindo! Você ganhou 5 fotos grátis 🎉");
+      toast.success("Bem-vindo à Minha Campanha! 🎉");
       navigate({ to: "/painel" });
     } catch (err: any) {
       toast.error(err?.message ?? "Erro inesperado");
@@ -108,7 +108,7 @@ function CadastroPage() {
           <Rocket className="h-6 w-6 text-primary" />
           <span className="text-lg font-bold">Minha Campanha</span>
         </Link>
-        <h1 className="text-2xl font-bold">Cadastre-se grátis</h1>
+        <h1 className="text-2xl font-bold">Criar conta</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Crie sua conta em menos de 1 minuto.
         </p>
@@ -162,7 +162,7 @@ function CadastroPage() {
             <Input id="password" type="password" required minLength={8} maxLength={200} value={form.password} onChange={update("password")} />
           </div>
           <Button type="submit" className="w-full" size="lg" disabled={submitting}>
-            {submitting ? "Criando conta..." : "Criar conta grátis"}
+            {submitting ? "Criando conta..." : "Criar conta"}
           </Button>
         </form>
 

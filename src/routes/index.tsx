@@ -113,7 +113,7 @@ function Index() {
             >
               <Link to="/cadastro">
                 <Button size="lg" className="text-base shadow-xl shadow-primary/25 hover-scale">
-                  Iniciar teste gratuito <ArrowRight className="ml-2 h-4 w-4" />
+                  Criar conta <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/login">
@@ -239,7 +239,7 @@ function Index() {
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link to="/cadastro">
                   <Button size="lg" className="text-base shadow-xl shadow-primary/30 hover-scale">
-                    Começar agora gratuitamente <ArrowRight className="ml-2 h-4 w-4" />
+                    Criar conta agora <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
               </div>
