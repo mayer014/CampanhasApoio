@@ -11,8 +11,11 @@ import {
   Users, Trophy, Target, MessageSquare, 
   TrendingUp, Star, Filter, Search,
   ArrowRight, Heart, Share2, Award,
-  Clock, AlertCircle, Instagram, Facebook
+  Clock, AlertCircle, Instagram, Facebook,
+  RefreshCw, Sparkles, Loader2
 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { syncMilitants, generateAIMissions } from "@/lib/social-ai.functions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/painel/militancia")({
@@ -45,6 +48,11 @@ function MilitanciaPage() {
   const [loading, setLoading] = useState(true);
   const [militants, setMilitants] = useState<Militant[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  
+  const syncFn = useServerFn(syncMilitants);
+  const generateMissionsFn = useServerFn(generateAIMissions);
 
   useEffect(() => {
     if (user?.id) load();
@@ -76,6 +84,32 @@ function MilitanciaPage() {
     else setMissions(missionsRes.data || []);
 
     setLoading(false);
+  }
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      await syncFn();
+      toast.success("Militantes atualizados com sucesso!");
+      load();
+    } catch (e) {
+      toast.error("Falha ao sincronizar militantes.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleGenerateMissions() {
+    setGenerating(true);
+    try {
+      const res = await generateMissionsFn();
+      toast.success(`${res.count} novas missões geradas!`);
+      load();
+    } catch (e) {
+      toast.error("Falha ao gerar missões.");
+    } finally {
+      setGenerating(false);
+    }
   }
 
   return (
@@ -112,9 +146,15 @@ function MilitanciaPage() {
                 <CardTitle className="text-lg">Ranking de Engajamento</CardTitle>
                 <CardDescription>Apoiadores identificados via IA nos comentários</CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter className="h-4 w-4" /> Filtrar
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleSync} disabled={syncing}>
+                  {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  Sincronizar Dados
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Filter className="h-4 w-4" /> Filtrar
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -211,8 +251,15 @@ function MilitanciaPage() {
                 <p className="text-xs opacity-80 leading-relaxed">
                   Sua militância está reagindo bem aos posts de educação. Foque em gerar 50 novos comentários positivos até sexta.
                 </p>
-                <Button variant="secondary" size="sm" className="w-full bg-white text-indigo-700 hover:bg-white/90">
-                  Gerar Missão com IA
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="w-full bg-white text-indigo-700 hover:bg-white/90 gap-2"
+                  onClick={handleGenerateMissions}
+                  disabled={generating}
+                >
+                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  Gerar Missões com IA
                 </Button>
               </div>
             </CardContent>
