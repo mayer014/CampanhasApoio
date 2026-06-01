@@ -251,8 +251,15 @@ function MilitanciaPage() {
                 <p className="text-xs opacity-80 leading-relaxed">
                   Sua militância está reagindo bem aos posts de educação. Foque em gerar 50 novos comentários positivos até sexta.
                 </p>
-                <Button variant="secondary" size="sm" className="w-full bg-white text-indigo-700 hover:bg-white/90">
-                  Gerar Missão com IA
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="w-full bg-white text-indigo-700 hover:bg-white/90 gap-2"
+                  onClick={handleGenerateMissions}
+                  disabled={generating}
+                >
+                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  Gerar Missões com IA
                 </Button>
               </div>
             </CardContent>
