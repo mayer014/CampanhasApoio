@@ -27,7 +27,8 @@ import {
   Pause,
   Play,
   Trash2,
-  FileText
+  FileText,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
