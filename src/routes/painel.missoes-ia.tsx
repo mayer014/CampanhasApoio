@@ -7,7 +7,7 @@ import { AIMissionsPanel } from "@/components/social/AIMissionsPanel";
 import { PortalMissionsPanel } from "@/components/social/PortalMissionsPanel";
 import { Sparkles, LayoutList } from "lucide-react";
 
-export const Route = createFileRoute("/missoes-ia")({
+export const Route = createFileRoute("/painel/missoes-ia")({
   component: MissoesIA,
 });
 
