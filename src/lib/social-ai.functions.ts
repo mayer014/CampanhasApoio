@@ -136,6 +136,7 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
       try {
         const { toolArgs } = await chatCompletion({
           userId: userId,
+          supabaseClient: supabase,
           messages: [
             {
               role: "system",
@@ -279,6 +280,7 @@ export const getSentimentSummary = createServerFn({ method: "POST" })
       try {
         const { toolArgs } = await chatCompletion({
           userId: userId,
+          supabaseClient: supabase,
           model: "google/gemini-2.5-flash",
           messages: [
             {
@@ -436,6 +438,7 @@ Sua resposta deve ser apenas o texto final da resposta.`;
     try {
       const { content } = await chatCompletion({
         userId: userId,
+        supabaseClient: supabase,
         // Usamos a função chatCompletion que já gerencia a LLM configurada pelo usuário!
         messages: [
           { role: "system", content: systemPrompt },
