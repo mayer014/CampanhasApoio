@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Camera, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu, MessageCircle, Share2 } from "lucide-react";
+import { Rocket, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu, MessageCircle, Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/painel")({
   component: PainelLayout,
@@ -66,8 +66,8 @@ function PainelLayout() {
     <div className="flex h-screen overflow-hidden bg-background">
       <aside className="hidden w-64 flex-col bg-sidebar text-sidebar-foreground md:flex">
         <div className="flex items-center gap-2 px-6 py-6">
-          <Camera className="h-6 w-6 text-sidebar-primary" />
-          <span className="font-bold">Foto de Campanha</span>
+          <Rocket className="h-6 w-6 text-sidebar-primary" />
+          <span className="font-bold">Minha Campanha</span>
         </div>
         
         <div className="px-3 pb-3">
@@ -84,8 +84,8 @@ function PainelLayout() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b bg-background/95 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex items-center gap-2">
-            <Camera className="h-5 w-5 text-primary" />
-            <span className="text-sm font-bold">Foto de Campanha</span>
+            <Rocket className="h-5 w-5 text-primary" />
+            <span className="text-sm font-bold">Minha Campanha</span>
           </div>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -95,8 +95,8 @@ function PainelLayout() {
             </SheetTrigger>
             <SheetContent side="left" className="w-72 bg-sidebar p-0 text-sidebar-foreground">
               <div className="flex items-center gap-2 px-6 py-6">
-                <Camera className="h-6 w-6 text-sidebar-primary" />
-                <span className="font-bold">Foto de Campanha</span>
+                <Rocket className="h-6 w-6 text-sidebar-primary" />
+                <span className="font-bold">Minha Campanha</span>
               </div>
               <nav className="flex-1 space-y-1 px-3">
                 <NavLinks onClick={() => setMobileOpen(false)} />

@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Camera } from "lucide-react";
+import { Rocket } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Entrar — Foto de Campanha" }] }),
+  head: () => ({ meta: [{ title: "Entrar — Minha Campanha" }] }),
   component: LoginPage,
 });
 
@@ -58,8 +58,8 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md p-8">
         <Link to="/" className="mb-8 flex items-center gap-2">
-          <Camera className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold">Foto de Campanha</span>
+          <Rocket className="h-6 w-6 text-primary" />
+          <span className="text-lg font-bold">Minha Campanha</span>
         </Link>
         <h1 className="text-2xl font-bold">Entrar</h1>
         <p className="mt-1 text-sm text-muted-foreground">

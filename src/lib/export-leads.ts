@@ -16,7 +16,7 @@ export async function exportLeadsXLSX(leads: ExportLead[], profileName: string) 
   }
   const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Foto de Campanha";
+  wb.creator = "Minha Campanha";
   wb.created = new Date();
 
   const ws = wb.addWorksheet("Eleitores", {

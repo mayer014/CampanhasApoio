@@ -5,16 +5,16 @@ import { PublicHeader, PublicFooter } from "./politica-de-privacidade";
 export const Route = createFileRoute("/termos-de-uso")({
   head: () => ({
     meta: [
-      { title: "Termos de Uso — Foto de Campanha" },
+      { title: "Termos de Uso — Minha Campanha" },
       {
         name: "description",
         content:
-          "Termos de Uso do Foto de Campanha: regras de uso da plataforma, integrações com Meta e responsabilidades do usuário.",
+          "Termos de Uso do Minha Campanha: regras de uso da plataforma, inteligência artificial, gestão de militância e responsabilidades.",
       },
-      { property: "og:title", content: "Termos de Uso — Foto de Campanha" },
+      { property: "og:title", content: "Termos de Uso — Minha Campanha" },
       {
         property: "og:description",
-        content: "Leia os Termos de Serviço do Foto de Campanha.",
+        content: "Leia os Termos de Serviço da plataforma Minha Campanha.",
       },
     ],
     links: [
@@ -49,7 +49,7 @@ function TermsPage() {
         <article className="space-y-8 text-[15px] leading-relaxed text-foreground">
           <Section title="1. Aceitação dos termos">
             <p>
-              Ao acessar ou utilizar o <strong>Foto de Campanha</strong> ("plataforma"),
+              Ao acessar ou utilizar o <strong>Minha Campanha</strong> ("plataforma"),
               você concorda com estes Termos de Uso e com nossa{" "}
               <a href="/politica-de-privacidade" className="text-primary underline">
                 Política de Privacidade
@@ -60,10 +60,9 @@ function TermsPage() {
 
           <Section title="2. Descrição do serviço">
             <p>
-              O Foto de Campanha é uma plataforma SaaS que permite criar fotos de perfil
-              personalizadas, engajar apoiadores via WhatsApp e conectar contas
-              oficiais de Facebook e Instagram para análise de métricas, leitura de
-              comentários e automações autorizadas.
+              A Minha Campanha é uma plataforma SaaS que oferece ferramentas de inteligência 
+              política, gestão de militância digital, análise de sentimento em redes sociais 
+              e automação de comunicação via WhatsApp.
             </p>
           </Section>
 
@@ -78,7 +77,7 @@ function TermsPage() {
           <Section title="4. Integrações com a Meta">
             <p>
               Ao conectar suas contas via Facebook Login for Business e Instagram Graph
-              API, você autoriza o Foto de Campanha a acessar dados das páginas e
+              API, você autoriza a Minha Campanha a acessar dados das páginas e
               contas Instagram Business indicadas, no escopo das permissões aprovadas.
               Você pode revogar o acesso a qualquer momento nas configurações da Meta
               ou solicitando exclusão pelo nosso suporte.
@@ -98,7 +97,7 @@ function TermsPage() {
           <Section title="6. Propriedade intelectual">
             <p>
               Todo o software, marca, layout e conteúdo da plataforma são de
-              propriedade do Foto de Campanha / EasyChain. O conteúdo que você cria
+              propriedade da Minha Campanha / EasyChain. O conteúdo que você cria
               continua sendo seu, e você nos concede licença para hospedá-lo e exibi-lo
               conforme necessário para prestar o serviço.
             </p>

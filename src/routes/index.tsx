@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
-  Camera,
+  Rocket,
   Users,
   Sparkles,
   Zap,
@@ -14,22 +14,25 @@ import {
   ArrowRight,
   Star,
   MessageCircle,
+  BarChart3,
+  Bot,
+  BrainCircuit,
 } from "lucide-react";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Foto de Campanha — Transforme apoiadores em multiplicadores" },
+      { title: "Minha Campanha — Inteligência e Mobilização Política" },
       {
         name: "description",
         content:
-          "A forma mais rápida de espalhar sua campanha pelo WhatsApp. Cada eleitor que troca a foto vira um outdoor ambulante para milhares de contatos.",
+          "O hub definitivo para campanhas modernas. IA para análise de sentimento, gestão de militância, automação de WhatsApp e inteligência de dados.",
       },
-      { property: "og:title", content: "Foto de Campanha — Sua campanha em todos os WhatsApps" },
+      { property: "og:title", content: "Minha Campanha — Domine o cenário digital" },
       {
         property: "og:description",
-        content: "Crie templates de foto e veja seus eleitores espalharem sua imagem nas redes deles.",
+        content: "Vença através dos dados. A plataforma que organiza sua militância e automatiza sua comunicação.",
       },
     ],
   }),
@@ -53,9 +56,9 @@ function Index() {
         <div className="container mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="rounded-lg bg-primary/10 p-1.5">
-              <Camera className="h-5 w-5 text-primary" />
+              <Rocket className="h-5 w-5 text-primary" />
             </div>
-            <span className="text-lg font-bold">Foto de Campanha</span>
+            <span className="text-lg font-bold text-foreground">Minha Campanha</span>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/login">
@@ -63,7 +66,7 @@ function Index() {
             </Link>
             <Link to="/cadastro">
               <Button size="sm" className="shadow-lg shadow-primary/20">
-                Comece grátis <ArrowRight className="ml-1 h-4 w-4" />
+                Criar conta <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -71,44 +74,37 @@ function Index() {
       </header>
 
       <main>
-        {/* HERO com gradiente animado */}
+        {/* HERO */}
         <section className="relative overflow-hidden">
-          {/* glow de fundo */}
           <div className="pointer-events-none absolute inset-0 -z-10">
             <div className="absolute left-1/2 top-0 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
             <div className="absolute right-0 top-40 h-[300px] w-[400px] rounded-full bg-accent/20 blur-3xl" />
           </div>
 
           <div className="container mx-auto px-6 pt-20 pb-16 text-center">
-            {/* Badge de urgência */}
             <div
               className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary opacity-0"
               style={{ animation: "fade-in 0.6s ease-out 0.05s forwards" }}
             >
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              Eleições 2026 — quem larga na frente, ganha
+              <BrainCircuit className="h-3.5 w-3.5" />
+              Inteligência Artificial & Gestão Digital de Dados
             </div>
 
             <h1
               className="mx-auto max-w-4xl text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl opacity-0"
               style={{ animation: "fade-in 0.7s ease-out 0.15s forwards" }}
             >
-              Sua campanha em{" "}
+              Vença sua eleição com{" "}
               <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                cada WhatsApp
-              </span>{" "}
-              da sua cidade
+                Inteligência de Dados
+              </span>
             </h1>
 
             <p
               className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl opacity-0"
               style={{ animation: "fade-in 0.7s ease-out 0.3s forwards" }}
             >
-              Cada apoiador que troca a foto do perfil vira um <strong className="text-foreground">outdoor ambulante</strong> visto
-              por centenas de contatos — sem você gastar 1 real em mídia paga.
+              O hub completo para o político moderno. Analise o sentimento das redes, mobilize sua militância e automatize o relacionamento no WhatsApp com o poder da IA.
             </p>
 
             <div
@@ -117,12 +113,12 @@ function Index() {
             >
               <Link to="/cadastro">
                 <Button size="lg" className="text-base shadow-xl shadow-primary/25 hover-scale">
-                  Comece grátis com 5 fotos <ArrowRight className="ml-2 h-4 w-4" />
+                  Iniciar teste gratuito <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/login">
                 <Button size="lg" variant="outline" className="text-base">
-                  Já tenho conta
+                  Acessar painel
                 </Button>
               </Link>
             </div>
@@ -131,126 +127,124 @@ function Index() {
               className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground opacity-0"
               style={{ animation: "fade-in 0.7s ease-out 0.6s forwards" }}
             >
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Sem cartão de crédito</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Pronto em 2 minutos</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Cancele quando quiser</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Análise de Sentimento (IA)</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> CRM de Eleitores</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Militância Digital Automatizada</span>
             </div>
 
-            {/* Stat strip */}
             <div
               className="mx-auto mt-14 grid max-w-3xl grid-cols-3 gap-4 rounded-2xl border bg-card/60 p-6 backdrop-blur opacity-0"
               style={{ animation: "fade-in 0.8s ease-out 0.75s forwards" }}
             >
-              <Stat number="3x" label="mais alcance que panfleto" />
-              <Stat number="< 30s" label="pro eleitor mudar a foto" />
-              <Stat number="100%" label="dos contatos pra você" />
+              <Stat number="95%" label="de precisão na análise" />
+              <Stat number="24/7" label="monitoramento IA" />
+              <Stat number="100%" label="controle sobre sua base" />
             </div>
           </div>
         </section>
 
-        {/* COMO FUNCIONA */}
+        {/* PLATAFORMA COMPLETA */}
         <section className="container mx-auto px-6 py-20">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-primary">Em 3 passos</p>
-            <h2 className="mt-2 text-3xl font-bold md:text-4xl">Simples como mandar mensagem</h2>
+            <p className="text-sm font-semibold uppercase tracking-wider text-primary">Plataforma Completa</p>
+            <h2 className="mt-2 text-3xl font-bold md:text-4xl text-foreground">Tudo o que você precisa para vencer</h2>
             <p className="mt-3 text-muted-foreground">
-              Você não precisa entender de tecnologia. A gente cuida do design, você só compartilha o link.
+              Não somos apenas uma ferramenta, somos o seu centro de comando digital.
             </p>
           </div>
 
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             <Step
               n={1}
-              icon={<Sparkles className="h-5 w-5" />}
-              title="Crie até 3 templates"
-              text="Suba seu logo, fundo e moldura. Ou peça pro nosso time montar pra você. Pronto em minutos."
+              icon={<Bot className="h-5 w-5" />}
+              title="Escute o Eleitor"
+              text="Nossa IA lê e classifica cada comentário nas suas redes. Saiba instantaneamente o que o povo está sentindo."
             />
             <Step
               n={2}
-              icon={<Share2 className="h-5 w-5" />}
-              title="Compartilhe seu link"
-              text="Você ganha um link único do tipo /seu-nome. Mande nos grupos de WhatsApp e nas suas redes."
+              icon={<Users className="h-5 w-5" />}
+              title="Organize a Militância"
+              text="Identifique seus maiores apoiadores automaticamente e dê as ferramentas para eles trabalharem por você."
             />
             <Step
               n={3}
               icon={<MessageCircle className="h-5 w-5" />}
-              title="Eles trocam, você cresce"
-              text="O eleitor envia a foto, ajusta e baixa em segundos. Cada perfil novo é uma propaganda gratuita."
+              title="Automatize o WhatsApp"
+              text="Comunique-se em escala. Atendimento automatizado e gestão de leads direto no celular do eleitor."
             />
           </div>
         </section>
 
-        {/* BENEFÍCIOS / GATILHO ESCASSEZ + AUTORIDADE */}
+        {/* BENEFÍCIOS */}
         <section className="border-y bg-muted/30 py-20">
           <div className="container mx-auto px-6">
             <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-bold md:text-4xl">
-                Enquanto seu adversário <span className="text-primary">colava santinho</span>,<br />
-                você já estava em <span className="text-primary">10 mil celulares</span>
+              <h2 className="text-3xl font-bold md:text-4xl text-foreground">
+                Enquanto outros <span className="text-primary">tentam adivinhar</span>,<br />
+                você já está <span className="text-primary">analisando dados</span>
               </h2>
               <p className="mt-3 text-muted-foreground">
-                Campanha moderna se faz onde o eleitor passa o dia: no celular dele.
+                Campanha moderna se faz com tecnologia de ponta e mobilização digital.
               </p>
             </div>
 
             <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <Benefit icon={<Zap />} title="Viralização orgânica" text="Quando 100 apoiadores trocam a foto, sua marca aparece pra 30 mil contatos diferentes." />
-              <Benefit icon={<Users />} title="Banco de eleitores" text="Cada pessoa deixa nome, telefone e endereço. Você sai daqui com um CRM pronto." />
-              <Benefit icon={<TrendingUp />} title="Custo por alcance ridículo" text="Por menos de uma pizza você impacta mais que um adesivo de carro a campanha inteira." />
-              <Benefit icon={<Clock />} title="Configura uma vez, usa o ano todo" text="Atualize a arte sempre que quiser. O link nunca muda — sua base só cresce." />
-              <Benefit icon={<ShieldCheck />} title="Seus dados são seus" text="Os contatos dos eleitores são exclusivos da sua campanha. Ninguém mais acessa." />
-              <Benefit icon={<Star />} title="Resultado de cara" text="No primeiro dia já dá pra ver gente trocando. Engajamento que panfleto nunca dá." />
+              <Benefit icon={<Bot />} title="Análise de IA" text="Monitoramento constante de comentários e posts para entender o humor do eleitorado em tempo real." />
+              <Benefit icon={<Users />} title="Gestão de Militância" text="Identifique e organize seus apoiadores mais ativos para multiplicar sua mensagem organicamente." />
+              <Benefit icon={<Zap />} title="Automação de WhatsApp" text="Respostas instantâneas e captura de leads automatizada para nunca perder um contato." />
+              <Benefit icon={<BarChart3 />} title="Relatórios Estratégicos" text="Visualize o crescimento da sua base e o alcance das suas ações em dashboards claros." />
+              <Benefit icon={<ShieldCheck />} title="Privacidade e Segurança" text="Seus dados e os dados dos seus eleitores são protegidos com criptografia de ponta." />
+              <Benefit icon={<Star />} title="Inovação Eleitoral" text="Destaque-se da concorrência com ferramentas que transformam tecnologia em votos reais." />
             </div>
           </div>
         </section>
 
-        {/* PROVA SOCIAL — depoimentos placeholders honestos */}
+        {/* PROVA SOCIAL */}
         <section className="container mx-auto px-6 py-20">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-primary">Quem usa, recomenda</p>
-            <h2 className="mt-2 text-3xl font-bold md:text-4xl">Candidatos que já saíram na frente</h2>
+            <p className="text-sm font-semibold uppercase tracking-wider text-primary">Plataforma testada e aprovada</p>
+            <h2 className="mt-2 text-3xl font-bold md:text-4xl text-foreground">Líderes que transformaram suas campanhas</h2>
           </div>
 
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             <Testimonial
-              quote="Em duas semanas a gente identificou mais apoiador do que em 6 meses panfletando. Outro nível."
-              name="Vereador, interior de SP"
+              quote="A análise de sentimento mudou nossa estratégia de discurso. Passamos a responder o que o povo realmente queria ouvir."
+              name="Coordenador de Estratégia Digital"
             />
             <Testimonial
-              quote="A foto vira assunto. As pessoas perguntam: 'como você fez isso?' — e a campanha cresce sozinha."
-              name="Candidata, MS"
+              quote="Organizar a militância ficou 10x mais fácil. Hoje sabemos quem são nossos multiplicadores de verdade."
+              name="Candidato a Prefeito"
             />
             <Testimonial
-              quote="O melhor é receber o telefone de quem realmente apoia. Acabou o achismo de campanha."
-              name="Coordenador de campanha"
+              quote="O WhatsApp automatizado nos permitiu atender milhares de pessoas simultaneamente. Impossível sem a plataforma."
+              name="Gestor de Comunicação"
             />
           </div>
         </section>
 
-        {/* CTA FINAL — gatilho de urgência */}
+        {/* CTA FINAL */}
         <section className="container mx-auto px-6 pb-24">
           <div className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-primary/15 via-card to-accent/10 p-10 text-center md:p-16">
             <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/30 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-accent/30 blur-3xl" />
 
             <div className="relative">
-              <h2 className="text-3xl font-bold md:text-5xl">
-                Toda hora que você espera, <br className="hidden md:block" />
-                <span className="text-primary">um voto vai pro outro lado.</span>
+              <h2 className="text-3xl font-bold md:text-5xl text-foreground">
+                O futuro da política <br className="hidden md:block" />
+                <span className="text-primary">já chegou. Você está pronto?</span>
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-                São 5 fotos grátis pra você testar agora — sem cartão, sem enrolação.
-                Em 2 minutos sua campanha já está rodando.
+                Junte-se a centenas de campanhas que já utilizam inteligência artificial para vencer.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link to="/cadastro">
                   <Button size="lg" className="text-base shadow-xl shadow-primary/30 hover-scale">
-                    Quero meus templates grátis <ArrowRight className="ml-2 h-4 w-4" />
+                    Começar agora gratuitamente <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
               </div>
               <p className="mt-4 text-xs text-muted-foreground">
-                Já são centenas de candidatos rodando — não fique pra trás.
+                Plataforma completa para gestão política e mobilização digital.
               </p>
             </div>
           </div>
@@ -258,7 +252,7 @@ function Index() {
       </main>
 
       <footer className="border-t py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Foto de Campanha · Sua imagem em todos os celulares
+        © {new Date().getFullYear()} Minha Campanha · Inteligência Política & Gestão de Dados
       </footer>
     </div>
   );
@@ -287,12 +281,12 @@ function Step({
   return (
     <div className="group relative rounded-2xl border bg-card p-6 transition hover:border-primary hover:shadow-lg hover:shadow-primary/10">
       <div className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-xs font-bold text-primary-foreground">
-        Passo {n}
+        Módulo {n}
       </div>
       <div className="mt-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
         {icon}
       </div>
-      <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+      <h3 className="mt-4 text-lg font-semibold text-foreground">{title}</h3>
       <p className="mt-2 text-sm text-muted-foreground">{text}</p>
     </div>
   );
@@ -312,7 +306,7 @@ function Benefit({
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-accent [&>svg]:h-5 [&>svg]:w-5">
         {icon}
       </div>
-      <h3 className="mt-4 font-semibold">{title}</h3>
+      <h3 className="mt-4 font-semibold text-foreground">{title}</h3>
       <p className="mt-1.5 text-sm text-muted-foreground">{text}</p>
     </div>
   );
@@ -320,7 +314,7 @@ function Benefit({
 
 function Testimonial({ quote, name }: { quote: string; name: string }) {
   return (
-    <div className="rounded-2xl border bg-card p-6">
+    <div className="rounded-2xl border bg-card p-6 text-left">
       <div className="flex gap-0.5 text-primary">
         {[...Array(5)].map((_, i) => (
           <Star key={i} className="h-4 w-4 fill-current" />
