@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Users, Calendar, Copy, MessageCircle, Sparkles } from "lucide-react";
+import { Image as ImageIcon, Users, Calendar, Copy, MessageCircle, Sparkles, Share2 } from "lucide-react";
+import { MetricsPanel } from "@/components/social/MetricsPanel";
 import { toast } from "sonner";
 import {
   ResponsiveContainer,
