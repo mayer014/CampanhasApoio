@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { BrainCircuit, Save, Trash2, CheckCircle2, AlertTriangle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { BrainCircuit, Save, Trash2, CheckCircle2, AlertTriangle, Eye, EyeOff, Loader2, Info } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 type AIProvider = 'lovable' | 'openrouter' | 'openai' | 'anthropic' | 'groq';
