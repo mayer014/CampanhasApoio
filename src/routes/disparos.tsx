@@ -161,7 +161,12 @@ function DisparosPage() {
   const fillMissionTemplate = (m: any) => {
     const template = `🚀 Apoiador(a), temos uma nova missão para você!\n\n*${m.title}*\n${m.description || ""}\n\n👉 ${m.post_url}\n\nSua interação faz diferença. Vamos juntos!`;
     setMessage(template);
-    toast.info("Template de missão carregado");
+    setRecipientType("tags"); // Default for missions as requested
+    toast.info("Template de missão carregado e destinatários definidos como 'Por Tags'");
+    
+    // Focus textarea
+    const textarea = document.getElementById('message') as HTMLTextAreaElement;
+    if (textarea) textarea.focus();
   };
 
   if (loading) return <div className="p-8 text-center">Carregando...</div>;
