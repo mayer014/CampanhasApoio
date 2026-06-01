@@ -94,7 +94,16 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
     if (error) {
       toast.error("Erro ao carregar configurações de IA: " + error.message);
     } else {
-      setSettings((data as unknown as AISetting[]) || []);
+      const rows = (data as unknown as AISetting[]) || [];
+      setSettings(rows);
+      const active = rows.find(s => s.is_active);
+      if (active) {
+        setSystemInstruction(active.system_instruction || "");
+      } else {
+        // Se não tiver nenhum ativo, mas tiver algum registro (ex: Lovable padrão), tenta pegar dele
+        const lovable = rows.find(s => s.provider === 'lovable');
+        if (lovable) setSystemInstruction(lovable.system_instruction || "");
+      }
     }
     setLoading(false);
   }
