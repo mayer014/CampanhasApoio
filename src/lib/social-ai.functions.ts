@@ -438,6 +438,7 @@ Sua resposta deve ser apenas o texto final da resposta.`;
     try {
       const { content } = await chatCompletion({
         userId: userId,
+        supabaseClient: supabase,
         // Usamos a função chatCompletion que já gerencia a LLM configurada pelo usuário!
         messages: [
           { role: "system", content: systemPrompt },
