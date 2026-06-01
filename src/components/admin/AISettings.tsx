@@ -57,7 +57,7 @@ export function AISettings() {
     if (error) {
       toast.error("Erro ao carregar configurações de IA: " + error.message);
     } else {
-      setSettings(data || []);
+      setSettings((data as unknown as AISetting[]) || []);
     }
     setLoading(false);
   }
