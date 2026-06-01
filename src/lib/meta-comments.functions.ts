@@ -241,16 +241,21 @@ export const listSocialComments = createServerFn({ method: "POST" })
     let q = supabase
       .from("social_comments")
       .select(
-        "id, platform, post_external_id, comment_external_id, parent_comment_external_id, author_name, text, posted_at, status, reply_text, replied_at, sentiment, emotion, topics",
+        "id, platform, post_external_id, comment_external_id, parent_comment_external_id, author_name, author_id, text, posted_at, status, reply_text, replied_at, sentiment, emotion, topics, is_ignored, sentiment_source, sentiment_confidence, sentiment_reason, needs_review",
       )
       .eq("user_id", userId)
       .in("connection_id", activeIds)
       .order("posted_at", { ascending: false, nullsFirst: false })
       .limit(data.limit);
+
     if (data.platform) q = q.eq("platform", data.platform);
     if (data.status) q = q.eq("status", data.status);
     if (data.sentiment) q = q.eq("sentiment", data.sentiment);
     if (data.postExternalId) q = q.eq("post_external_id", data.postExternalId);
+    if (!data.showIgnored) q = q.eq("is_ignored", false);
+    if (!data.showReplied) q = q.neq("status", "replied");
+    if (data.search) q = q.ilike("text", `%${data.search}%`);
+
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
