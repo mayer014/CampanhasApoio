@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Camera, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu, MessageCircle, Share2 } from "lucide-react";
+import { Rocket, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu, MessageCircle, Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/painel")({
   component: PainelLayout,
