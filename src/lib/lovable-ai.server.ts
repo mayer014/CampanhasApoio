@@ -3,29 +3,32 @@
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-async function getActiveAISetting(userId: string) {
-  // Nota: como este arquivo é usado apenas em Server Functions,
-  // process.env está disponível, mas aqui usaremos o admin client
-  // para buscar a configuração ativa do banco.
-  // Importação dinâmica para evitar ciclos se houver.
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+async function getActiveAISetting(userId: string, supabaseClient?: any) {
+  try {
+    const supabase = supabaseClient || (async () => {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) return null;
+      return createClient(supabaseUrl, supabaseKey);
+    })();
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new LovableAIError("Configuração do Supabase ausente no servidor.", 500);
+    const client = await supabase;
+    if (!client) return null;
+
+    const { data } = await client
+      .from('ai_settings')
+      .select('provider, model_name, api_key')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    return data;
+  } catch (e) {
+    console.error("Error fetching AI settings:", e);
+    return null;
   }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const { data } = await supabase
-    .from('ai_settings')
-    .select('provider, model_name, api_key')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .maybeSingle();
-
-  return data;
 }
 
 const PROVIDER_URLS: Record<string, string> = {
