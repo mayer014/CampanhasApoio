@@ -237,6 +237,7 @@ export const getSentimentSummary = createServerFn({ method: "POST" })
         .filter((x) => x.t.length > 0);
       try {
         const { toolArgs } = await chatCompletion({
+          userId: userId,
           model: "google/gemini-2.5-flash",
           messages: [
             {
