@@ -435,6 +435,60 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_missions: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          platform: string
+          post_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          platform: string
+          post_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          platform?: string
+          post_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_missions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_missions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_candidate_basics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quick_contacts: {
         Row: {
           author_name: string | null
@@ -1242,6 +1296,131 @@ export type Database = {
           push_name?: string | null
         }
         Relationships: []
+      }
+      whatsapp_dispatch_items: {
+        Row: {
+          contact_name: string | null
+          contact_phone: string
+          created_at: string
+          dispatch_id: string
+          error_message: string | null
+          id: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          contact_name?: string | null
+          contact_phone: string
+          created_at?: string
+          dispatch_id: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          contact_name?: string | null
+          contact_phone?: string
+          created_at?: string
+          dispatch_id?: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_dispatch_items_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_dispatches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_dispatches: {
+        Row: {
+          batch_pause: number
+          batch_size: number
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          delay_max: number
+          delay_min: number
+          error_count: number
+          filters: Json | null
+          id: string
+          media_url: string | null
+          message: string
+          pause_reason: string | null
+          sent_count: number
+          started_at: string | null
+          status: string
+          title: string | null
+          total_count: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          batch_pause?: number
+          batch_size?: number
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          delay_max?: number
+          delay_min?: number
+          error_count?: number
+          filters?: Json | null
+          id?: string
+          media_url?: string | null
+          message: string
+          pause_reason?: string | null
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          title?: string | null
+          total_count?: number
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          batch_pause?: number
+          batch_size?: number
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          delay_max?: number
+          delay_min?: number
+          error_count?: number
+          filters?: Json | null
+          id?: string
+          media_url?: string | null
+          message?: string
+          pause_reason?: string | null
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          title?: string | null
+          total_count?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_dispatches_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_dispatches_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_candidate_basics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_groups: {
         Row: {
