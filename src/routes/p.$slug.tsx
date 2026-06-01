@@ -10,7 +10,7 @@ import { TemplateCanvas } from "@/components/template-canvas";
 import { downloadCanvas, renderTemplate, type PhotoState, type TemplateData } from "@/lib/template-renderer";
 import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
-import { Rocket, Download, Upload } from "lucide-react";
+import { Rocket, Download, Upload, Facebook, Instagram, ExternalLink, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/p/$slug")({
   component: PublicPage,
