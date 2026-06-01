@@ -21,6 +21,7 @@ import { Route as PainelIndexRouteImport } from './routes/painel.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PainelWhatsappRouteImport } from './routes/painel.whatsapp'
 import { Route as PainelRedesSociaisRouteImport } from './routes/painel.redes-sociais'
+import { Route as PainelMilitanciaRouteImport } from './routes/painel.militancia'
 import { Route as PainelLinkRouteImport } from './routes/painel.link'
 import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
@@ -95,6 +96,11 @@ const PainelWhatsappRoute = PainelWhatsappRouteImport.update({
 const PainelRedesSociaisRoute = PainelRedesSociaisRouteImport.update({
   id: '/redes-sociais',
   path: '/redes-sociais',
+  getParentRoute: () => PainelRoute,
+} as any)
+const PainelMilitanciaRoute = PainelMilitanciaRouteImport.update({
+  id: '/militancia',
+  path: '/militancia',
   getParentRoute: () => PainelRoute,
 } as any)
 const PainelLinkRoute = PainelLinkRouteImport.update({
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
+  '/painel/militancia': typeof PainelMilitanciaRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
+  '/painel/militancia': typeof PainelMilitanciaRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin': typeof AdminIndexRoute
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/p/$slug': typeof PSlugRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
+  '/painel/militancia': typeof PainelMilitanciaRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
@@ -279,6 +288,7 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/painel/leads'
     | '/painel/link'
+    | '/painel/militancia'
     | '/painel/redes-sociais'
     | '/painel/whatsapp'
     | '/admin/'
@@ -306,6 +316,7 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/painel/leads'
     | '/painel/link'
+    | '/painel/militancia'
     | '/painel/redes-sociais'
     | '/painel/whatsapp'
     | '/admin'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/painel/leads'
     | '/painel/link'
+    | '/painel/militancia'
     | '/painel/redes-sociais'
     | '/painel/whatsapp'
     | '/admin/'
@@ -451,6 +463,13 @@ declare module '@tanstack/react-router' {
       path: '/redes-sociais'
       fullPath: '/painel/redes-sociais'
       preLoaderRoute: typeof PainelRedesSociaisRouteImport
+      parentRoute: typeof PainelRoute
+    }
+    '/painel/militancia': {
+      id: '/painel/militancia'
+      path: '/militancia'
+      fullPath: '/painel/militancia'
+      preLoaderRoute: typeof PainelMilitanciaRouteImport
       parentRoute: typeof PainelRoute
     }
     '/painel/link': {
@@ -584,6 +603,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 interface PainelRouteChildren {
   PainelLeadsRoute: typeof PainelLeadsRoute
   PainelLinkRoute: typeof PainelLinkRoute
+  PainelMilitanciaRoute: typeof PainelMilitanciaRoute
   PainelRedesSociaisRoute: typeof PainelRedesSociaisRoute
   PainelWhatsappRoute: typeof PainelWhatsappRoute
   PainelIndexRoute: typeof PainelIndexRoute
@@ -595,6 +615,7 @@ interface PainelRouteChildren {
 const PainelRouteChildren: PainelRouteChildren = {
   PainelLeadsRoute: PainelLeadsRoute,
   PainelLinkRoute: PainelLinkRoute,
+  PainelMilitanciaRoute: PainelMilitanciaRoute,
   PainelRedesSociaisRoute: PainelRedesSociaisRoute,
   PainelWhatsappRoute: PainelWhatsappRoute,
   PainelIndexRoute: PainelIndexRoute,

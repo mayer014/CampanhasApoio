@@ -11,7 +11,7 @@ import {
   Users, Trophy, Target, MessageSquare, 
   TrendingUp, Star, Filter, Search,
   ArrowRight, Heart, Share2, Award,
-  Clock, AlertCircle
+  Clock, AlertCircle, Instagram, Facebook
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/painel/militancia")({
 
 type Militant = {
   id: string;
-  author_name: string;
+  author_name: string | null;
   platform: string;
   avatar_url: string | null;
   total_comments: number;
@@ -35,8 +35,8 @@ type Mission = {
   id: string;
   title: string;
   description: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'active' | 'completed';
+  priority: string | null;
+  status: string | null;
   created_at: string;
 };
 
@@ -47,22 +47,23 @@ function MilitanciaPage() {
   const [missions, setMissions] = useState<Mission[]>([]);
 
   useEffect(() => {
-    if (user) load();
-  }, [user]);
+    if (user?.id) load();
+  }, [user?.id]);
 
   async function load() {
+    if (!user?.id) return;
     setLoading(true);
     const [militantsRes, missionsRes] = await Promise.all([
       supabase
         .from("social_militants")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("user_id", user.id)
         .order("total_positive", { ascending: false })
         .limit(10),
       supabase
         .from("missions")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("user_id", user.id)
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(5)
