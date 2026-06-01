@@ -101,6 +101,9 @@ function CandidateDetail() {
           <TabsTrigger value="templates">Templates ({tpls.length})</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="leads">Eleitores ({leads.length})</TabsTrigger>
+          <TabsTrigger value="ia">
+            <BrainCircuit className="mr-1.5 h-3.5 w-3.5" /> IA
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados">
