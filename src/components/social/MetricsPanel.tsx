@@ -60,8 +60,8 @@ function KpiCard({
 
 function SeriesChart({
   data, color, label,
-}: { data: Array<{ date: string; value: number }>; color: string; label: string }) {
-  if (data.length === 0) {
+}: { data: Array<{ date: string; value: number }> | undefined | null; color: string; label: string }) {
+  if (!data || data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-xs text-muted-foreground">
         Sem dados de {label} no período.
