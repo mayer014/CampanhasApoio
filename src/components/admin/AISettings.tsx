@@ -21,6 +21,14 @@ type AISetting = {
   user_id: string;
 };
 
+const PROVIDERS: { value: AIProvider; label: string; description: string }[] = [
+  { value: 'lovable', label: 'Lovable Gateway', description: 'Google Gemini via Lovable Cloud' },
+  { value: 'openai', label: 'OpenAI', description: 'Modelos GPT-4o, GPT-4o-mini' },
+  { value: 'anthropic', label: 'Anthropic', description: 'Modelos Claude 3.5 Sonnet/Haiku' },
+  { value: 'openrouter', label: 'OpenRouter', description: 'Acesso a centenas de modelos em um só lugar' },
+  { value: 'groq', label: 'Groq Cloud', description: 'Llama 3 e Mixtral em alta velocidade (grátis/barato)' },
+];
+
 const MODELS: Record<AIProvider, { label: string; value: string }[]> = {
   lovable: [
     { label: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite' },
