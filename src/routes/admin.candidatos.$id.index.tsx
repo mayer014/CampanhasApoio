@@ -187,6 +187,10 @@ function CandidateDetail() {
             </div>
           </Card>
         </TabsContent>
+
+        <TabsContent value="ia">
+          <AISettings targetUserId={id} />
+        </TabsContent>
       </Tabs>
 
       <AlertDialog open={!!deletingTpl} onOpenChange={(v) => !v && setDeletingTpl(null)}>
