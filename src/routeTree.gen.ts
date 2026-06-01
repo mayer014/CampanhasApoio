@@ -12,9 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
 import { Route as PainelRouteImport } from './routes/painel'
-import { Route as MissoesIaRouteImport } from './routes/missoes-ia'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as DisparosRouteImport } from './routes/disparos'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as BootstrapRouteImport } from './routes/bootstrap'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -23,9 +21,11 @@ import { Route as PainelIndexRouteImport } from './routes/painel.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PainelWhatsappRouteImport } from './routes/painel.whatsapp'
 import { Route as PainelRedesSociaisRouteImport } from './routes/painel.redes-sociais'
+import { Route as PainelMissoesIaRouteImport } from './routes/painel.missoes-ia'
 import { Route as PainelMilitanciaRouteImport } from './routes/painel.militancia'
 import { Route as PainelLinkRouteImport } from './routes/painel.link'
 import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
+import { Route as PainelDisparosRouteImport } from './routes/painel.disparos'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AdminWhatsappRouteImport } from './routes/admin.whatsapp'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
@@ -55,19 +55,9 @@ const PainelRoute = PainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MissoesIaRoute = MissoesIaRouteImport.update({
-  id: '/missoes-ia',
-  path: '/missoes-ia',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DisparosRoute = DisparosRouteImport.update({
-  id: '/disparos',
-  path: '/disparos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CadastroRoute = CadastroRouteImport.update({
@@ -110,6 +100,11 @@ const PainelRedesSociaisRoute = PainelRedesSociaisRouteImport.update({
   path: '/redes-sociais',
   getParentRoute: () => PainelRoute,
 } as any)
+const PainelMissoesIaRoute = PainelMissoesIaRouteImport.update({
+  id: '/missoes-ia',
+  path: '/missoes-ia',
+  getParentRoute: () => PainelRoute,
+} as any)
 const PainelMilitanciaRoute = PainelMilitanciaRouteImport.update({
   id: '/militancia',
   path: '/militancia',
@@ -123,6 +118,11 @@ const PainelLinkRoute = PainelLinkRouteImport.update({
 const PainelLeadsRoute = PainelLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
+  getParentRoute: () => PainelRoute,
+} as any)
+const PainelDisparosRoute = PainelDisparosRouteImport.update({
+  id: '/disparos',
+  path: '/disparos',
   getParentRoute: () => PainelRoute,
 } as any)
 const PSlugRoute = PSlugRouteImport.update({
@@ -200,18 +200,18 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/bootstrap': typeof BootstrapRoute
   '/cadastro': typeof CadastroRoute
-  '/disparos': typeof DisparosRoute
   '/login': typeof LoginRoute
-  '/missoes-ia': typeof MissoesIaRoute
   '/painel': typeof PainelRouteWithChildren
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
+  '/painel/disparos': typeof PainelDisparosRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
   '/painel/militancia': typeof PainelMilitanciaRoute
+  '/painel/missoes-ia': typeof PainelMissoesIaRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
@@ -231,17 +231,17 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bootstrap': typeof BootstrapRoute
   '/cadastro': typeof CadastroRoute
-  '/disparos': typeof DisparosRoute
   '/login': typeof LoginRoute
-  '/missoes-ia': typeof MissoesIaRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
+  '/painel/disparos': typeof PainelDisparosRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
   '/painel/militancia': typeof PainelMilitanciaRoute
+  '/painel/missoes-ia': typeof PainelMissoesIaRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin': typeof AdminIndexRoute
@@ -263,18 +263,18 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/bootstrap': typeof BootstrapRoute
   '/cadastro': typeof CadastroRoute
-  '/disparos': typeof DisparosRoute
   '/login': typeof LoginRoute
-  '/missoes-ia': typeof MissoesIaRoute
   '/painel': typeof PainelRouteWithChildren
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
+  '/painel/disparos': typeof PainelDisparosRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
   '/painel/militancia': typeof PainelMilitanciaRoute
+  '/painel/missoes-ia': typeof PainelMissoesIaRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
   '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
@@ -297,18 +297,18 @@ export interface FileRouteTypes {
     | '/admin'
     | '/bootstrap'
     | '/cadastro'
-    | '/disparos'
     | '/login'
-    | '/missoes-ia'
     | '/painel'
     | '/politica-de-privacidade'
     | '/termos-de-uso'
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
+    | '/painel/disparos'
     | '/painel/leads'
     | '/painel/link'
     | '/painel/militancia'
+    | '/painel/missoes-ia'
     | '/painel/redes-sociais'
     | '/painel/whatsapp'
     | '/admin/'
@@ -328,17 +328,17 @@ export interface FileRouteTypes {
     | '/'
     | '/bootstrap'
     | '/cadastro'
-    | '/disparos'
     | '/login'
-    | '/missoes-ia'
     | '/politica-de-privacidade'
     | '/termos-de-uso'
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
+    | '/painel/disparos'
     | '/painel/leads'
     | '/painel/link'
     | '/painel/militancia'
+    | '/painel/missoes-ia'
     | '/painel/redes-sociais'
     | '/painel/whatsapp'
     | '/admin'
@@ -359,18 +359,18 @@ export interface FileRouteTypes {
     | '/admin'
     | '/bootstrap'
     | '/cadastro'
-    | '/disparos'
     | '/login'
-    | '/missoes-ia'
     | '/painel'
     | '/politica-de-privacidade'
     | '/termos-de-uso'
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
+    | '/painel/disparos'
     | '/painel/leads'
     | '/painel/link'
     | '/painel/militancia'
+    | '/painel/missoes-ia'
     | '/painel/redes-sociais'
     | '/painel/whatsapp'
     | '/admin/'
@@ -392,9 +392,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   BootstrapRoute: typeof BootstrapRoute
   CadastroRoute: typeof CadastroRoute
-  DisparosRoute: typeof DisparosRoute
   LoginRoute: typeof LoginRoute
-  MissoesIaRoute: typeof MissoesIaRoute
   PainelRoute: typeof PainelRouteWithChildren
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
@@ -428,25 +426,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/missoes-ia': {
-      id: '/missoes-ia'
-      path: '/missoes-ia'
-      fullPath: '/missoes-ia'
-      preLoaderRoute: typeof MissoesIaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/disparos': {
-      id: '/disparos'
-      path: '/disparos'
-      fullPath: '/disparos'
-      preLoaderRoute: typeof DisparosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cadastro': {
@@ -505,6 +489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelRedesSociaisRouteImport
       parentRoute: typeof PainelRoute
     }
+    '/painel/missoes-ia': {
+      id: '/painel/missoes-ia'
+      path: '/missoes-ia'
+      fullPath: '/painel/missoes-ia'
+      preLoaderRoute: typeof PainelMissoesIaRouteImport
+      parentRoute: typeof PainelRoute
+    }
     '/painel/militancia': {
       id: '/painel/militancia'
       path: '/militancia'
@@ -524,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/leads'
       fullPath: '/painel/leads'
       preLoaderRoute: typeof PainelLeadsRouteImport
+      parentRoute: typeof PainelRoute
+    }
+    '/painel/disparos': {
+      id: '/painel/disparos'
+      path: '/disparos'
+      fullPath: '/painel/disparos'
+      preLoaderRoute: typeof PainelDisparosRouteImport
       parentRoute: typeof PainelRoute
     }
     '/p/$slug': {
@@ -641,9 +639,11 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PainelRouteChildren {
+  PainelDisparosRoute: typeof PainelDisparosRoute
   PainelLeadsRoute: typeof PainelLeadsRoute
   PainelLinkRoute: typeof PainelLinkRoute
   PainelMilitanciaRoute: typeof PainelMilitanciaRoute
+  PainelMissoesIaRoute: typeof PainelMissoesIaRoute
   PainelRedesSociaisRoute: typeof PainelRedesSociaisRoute
   PainelWhatsappRoute: typeof PainelWhatsappRoute
   PainelIndexRoute: typeof PainelIndexRoute
@@ -653,9 +653,11 @@ interface PainelRouteChildren {
 }
 
 const PainelRouteChildren: PainelRouteChildren = {
+  PainelDisparosRoute: PainelDisparosRoute,
   PainelLeadsRoute: PainelLeadsRoute,
   PainelLinkRoute: PainelLinkRoute,
   PainelMilitanciaRoute: PainelMilitanciaRoute,
+  PainelMissoesIaRoute: PainelMissoesIaRoute,
   PainelRedesSociaisRoute: PainelRedesSociaisRoute,
   PainelWhatsappRoute: PainelWhatsappRoute,
   PainelIndexRoute: PainelIndexRoute,
@@ -672,9 +674,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   BootstrapRoute: BootstrapRoute,
   CadastroRoute: CadastroRoute,
-  DisparosRoute: DisparosRoute,
   LoginRoute: LoginRoute,
-  MissoesIaRoute: MissoesIaRoute,
   PainelRoute: PainelRouteWithChildren,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,

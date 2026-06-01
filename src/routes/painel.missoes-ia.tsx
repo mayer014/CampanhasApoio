@@ -5,9 +5,10 @@ import { resolveClientId } from "@/lib/resolve-client-id";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIMissionsPanel } from "@/components/social/AIMissionsPanel";
 import { PortalMissionsPanel } from "@/components/social/PortalMissionsPanel";
-import { Sparkles, LayoutList } from "lucide-react";
+import { Sparkles, LayoutList, ChevronLeft } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/missoes-ia")({
+export const Route = createFileRoute("/painel/missoes-ia")({
   component: MissoesIA,
 });
 
@@ -28,6 +29,9 @@ function MissoesIA() {
   return (
     <div className="container mx-auto max-w-5xl px-4 py-8">
       <div className="mb-8">
+        <Link to="/painel" className="text-xs text-muted-foreground flex items-center gap-1 mb-4 hover:text-primary transition-colors">
+          <ChevronLeft className="h-3 w-3" /> Voltar para o início
+        </Link>
         <div className="flex items-center gap-3 mb-2">
           <div className="bg-primary/10 p-2 rounded-lg">
             <Sparkles className="h-6 w-6 text-primary" />
