@@ -66,6 +66,7 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
+  const [systemInstruction, setSystemInstruction] = useState("");
 
   const [form, setForm] = useState<{
     provider: AIProvider;
