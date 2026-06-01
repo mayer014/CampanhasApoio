@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
-  Camera,
+  Rocket,
   Users,
   Sparkles,
   Zap,
@@ -14,22 +14,25 @@ import {
   ArrowRight,
   Star,
   MessageCircle,
+  BarChart3,
+  Bot,
+  BrainCircuit,
 } from "lucide-react";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Foto de Campanha — Transforme apoiadores em multiplicadores" },
+      { title: "Minha Campanha — Inteligência e Mobilização Política" },
       {
         name: "description",
         content:
-          "A forma mais rápida de espalhar sua campanha pelo WhatsApp. Cada eleitor que troca a foto vira um outdoor ambulante para milhares de contatos.",
+          "O hub definitivo para campanhas modernas. IA para análise de sentimento, gestão de militância, automação de WhatsApp e inteligência de dados.",
       },
-      { property: "og:title", content: "Foto de Campanha — Sua campanha em todos os WhatsApps" },
+      { property: "og:title", content: "Minha Campanha — Domine o cenário digital" },
       {
         property: "og:description",
-        content: "Crie templates de foto e veja seus eleitores espalharem sua imagem nas redes deles.",
+        content: "Vença através dos dados. A plataforma que organiza sua militância e automatiza sua comunicação.",
       },
     ],
   }),
