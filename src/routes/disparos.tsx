@@ -134,9 +134,31 @@ function DisparosPage() {
     }
   };
 
+  const validateMessage = () => {
+    const missing = [];
+    
+    // Check for common variables
+    if (!message.includes("{nome}") && !message.includes("Apoiador(a)")) {
+      // For mission templates, we use "Apoiador(a)" by default, but let's notify if it's missing personal variables
+    }
+    
+    // Check if it's a mission dispatch but missing the URL
+    if (message.toLowerCase().includes("missão") && !message.includes("http")) {
+      missing.push("Link do post (URL)");
+    }
+
+    return missing;
+  };
+
   const startDispatch = async () => {
     if (!message) return toast.error("Mensagem é obrigatória");
     if (bridgeStatus !== 'connected') return toast.error("WhatsApp desconectado");
+
+    const missingVariables = validateMessage();
+    if (missingVariables.length > 0) {
+      toast.warning(`Atenção: ${missingVariables.join(", ")} ausente na mensagem.`);
+      // We don't block, just warn as it might be intentional
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("send-whatsapp-dispatch", {
