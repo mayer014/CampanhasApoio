@@ -294,7 +294,7 @@ function DisparosPage() {
                       <Progress value={(d.sent_count / (d.total_count || 1)) * 100} className="h-1.5" />
                     </div>
                     <div className="flex justify-end gap-2 mt-3">
-                      <Button variant="ghost" size="sm" className="h-8 text-xs">Ver Logs</Button>
+                      <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setSelectedDispatchId(d.id)}>Ver Logs</Button>
                       {['pendente', 'enfileirado', 'enviando'].includes(d.status) && (
                         <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive">Cancelar</Button>
                       )}
