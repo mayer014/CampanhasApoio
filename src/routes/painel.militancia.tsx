@@ -86,6 +86,32 @@ function MilitanciaPage() {
     setLoading(false);
   }
 
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      await syncFn();
+      toast.success("Militantes atualizados com sucesso!");
+      load();
+    } catch (e) {
+      toast.error("Falha ao sincronizar militantes.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleGenerateMissions() {
+    setGenerating(true);
+    try {
+      const res = await generateMissionsFn();
+      toast.success(`${res.count} novas missões geradas!`);
+      load();
+    } catch (e) {
+      toast.error("Falha ao gerar missões.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Header Estilizado */}
