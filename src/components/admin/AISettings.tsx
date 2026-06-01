@@ -20,6 +20,7 @@ type AISetting = {
   api_key: string;
   is_active: boolean;
   user_id: string;
+  system_instruction?: string;
 };
 
 const PROVIDERS: { value: AIProvider; label: string; description: string }[] = [
