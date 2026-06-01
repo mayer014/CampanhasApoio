@@ -237,7 +237,7 @@ function PainelHome() {
         </Card>
 
         <Card className="p-4 sm:p-6">
-          <h3 className="font-semibold">Fotos geradas por template</h3>
+          <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">Fotos geradas por template</h3>
           <div className="mt-4 h-64">
             {tplData.length === 0 ? (
               <EmptyChart />
