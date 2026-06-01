@@ -379,7 +379,7 @@ export const syncMilitants = createServerFn({ method: "POST" })
     // 1. Agrega dados de social_comments para identificar padrões de apoio
     const { data: stats, error } = await supabase
       .from("social_comments")
-      .select("author_id, author_name, sentiment, platform")
+      .select("author_id, author_name, sentiment, platform, raw")
       .eq("user_id", userId)
       .not("sentiment", "is", null);
 
@@ -388,13 +388,16 @@ export const syncMilitants = createServerFn({ method: "POST" })
     const militantMap = new Map<string, any>();
 
     for (const comment of stats) {
-      const key = `${comment.platform}:${comment.author_id}`;
+      const authorId = comment.author_id || (comment.raw as any)?.from?.id;
+      if (!authorId) continue;
+
+      const key = `${comment.platform}:${authorId}`;
       if (!militantMap.has(key)) {
         militantMap.set(key, {
           user_id: userId,
           platform: comment.platform,
-          platform_user_id: comment.author_id,
-          author_name: comment.author_name,
+          platform_user_id: authorId,
+          author_name: comment.author_name || (comment.raw as any)?.from?.username || (comment.raw as any)?.from?.name || "Usuário",
           total_comments: 0,
           total_positive: 0,
           total_negative: 0,
