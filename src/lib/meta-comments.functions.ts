@@ -207,6 +207,9 @@ export const listSocialComments = createServerFn({ method: "POST" })
       status: StatusEnum.optional(),
       sentiment: z.enum(["positive", "neutral", "negative"]).optional(),
       postExternalId: z.string().optional(),
+      showIgnored: z.boolean().optional().default(false),
+      showReplied: z.boolean().optional().default(true),
+      search: z.string().optional(),
       limit: z.number().min(1).max(200).optional().default(100),
     }).parse(input ?? {}),
   )
