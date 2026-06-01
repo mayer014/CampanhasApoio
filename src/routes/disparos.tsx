@@ -113,30 +113,30 @@ function DisparosPage() {
     enabled: !!clientId
   });
 
-  const uploadMedia = async (file: File) => {
-    if (!clientId) return;
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Imagem muito grande (máx 8MB)");
-      return;
+  const validateMessage = () => {
+    const missing = [];
+    if (!message.includes("{nome}") && !message.includes("Apoiador(a)")) {
+      // {nome} is a common variable, but "Apoiador(a)" is our static fallback in the mission template
+      // Let's just check if it's very short
+      if (message.length < 10) missing.push("mensagem muito curta");
     }
-    setIsUploading(true);
-    try {
-      const ext = file.name.split('.').pop();
-      const path = `${clientId}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("whatsapp-media").upload(path, file);
-      if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from("whatsapp-media").getPublicUrl(path);
-      setMediaUrl(publicUrl);
-    } catch (error) {
-      toast.error("Erro no upload");
-    } finally {
-      setIsUploading(false);
+    
+    // Check if it's a mission dispatch but missing the URL
+    if (message.includes("missão") && !message.includes("http")) {
+      missing.push("Link do post (URL)");
     }
+
+    return missing;
   };
 
   const startDispatch = async () => {
     if (!message) return toast.error("Mensagem é obrigatória");
     if (bridgeStatus !== 'connected') return toast.error("WhatsApp desconectado");
+
+    const missingVariables = validateMessage();
+    if (missingVariables.length > 0) {
+      toast.warning(`Atenção: ${missingVariables.join(", ")} ausente na mensagem.`);
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("send-whatsapp-dispatch", {
