@@ -146,9 +146,28 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
               if (!sm) return null;
               const Icon = sm.icon;
               return (
-                <Badge variant="outline" className={`gap-1 text-[10px] ${sm.cls}`}>
-                  <Icon className="h-3 w-3" /> {sm.label}
-                </Badge>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Badge 
+                        variant="outline" 
+                        className={`gap-1 text-[10px] cursor-help ${sm.cls} ${c.needs_review ? 'ring-1 ring-amber-500' : ''}`}
+                      >
+                        <Icon className="h-3 w-3" /> {sm.label}
+                        {c.sentiment_source === 'ai' ? <Sparkles className="h-2 w-2 ml-0.5 opacity-70" /> : <Ghost className="h-2 w-2 ml-0.5 opacity-70" />}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs p-3">
+                      <p className="text-xs font-bold mb-1">Análise da IA ({Math.round((c.sentiment_confidence || 0) * 100)}% confiança)</p>
+                      <p className="text-[10px] italic">{c.sentiment_reason || "Sem detalhes adicionais."}</p>
+                      <div className="mt-2 flex gap-1 border-t pt-2">
+                        <button onClick={() => correctMut.mutate('positive')} className="hover:text-emerald-500 transition-colors"><Smile className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => correctMut.mutate('neutral')} className="hover:text-amber-500 transition-colors"><Meh className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => correctMut.mutate('negative')} className="hover:text-rose-500 transition-colors"><Frown className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               );
             })()}
             {c.emotion && (
