@@ -11,7 +11,17 @@ import { toast } from "sonner";
 import {
   MessageSquare, Instagram, Facebook, RefreshCw, Send, EyeOff, Check,
   ExternalLink, AlertTriangle, Filter, Reply, RotateCcw, Smile, Meh, Frown,
+  Trash2, UserMinus, ShieldAlert, Sparkles, Ghost, Info
 } from "lucide-react";
+import { MilitancyBadge } from "./MilitancyBadge";
+import { correctSentiment } from "@/lib/social-ai.functions";
+import { toggleIgnoreComment } from "@/lib/meta-comments.functions";
+import { 
+  Tooltip as UITooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 import {
   listSocialComments,
   syncMetaComments,
