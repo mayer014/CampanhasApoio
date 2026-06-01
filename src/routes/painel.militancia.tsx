@@ -146,9 +146,15 @@ function MilitanciaPage() {
                 <CardTitle className="text-lg">Ranking de Engajamento</CardTitle>
                 <CardDescription>Apoiadores identificados via IA nos comentários</CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter className="h-4 w-4" /> Filtrar
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleSync} disabled={syncing}>
+                  {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  Sincronizar Dados
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Filter className="h-4 w-4" /> Filtrar
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
