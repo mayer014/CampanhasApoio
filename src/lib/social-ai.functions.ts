@@ -400,11 +400,10 @@ export const generateSocialReply = createServerFn({ method: "POST" })
       .maybeSingle();
 
     // 2. Busca informações do candidato para dar contexto à IA
-    const { data: profile } = await supabase
-      .from("candidate_profiles")
-      .select("full_name")
-      .eq("id", userId)
-      .maybeSingle();
+    const [ { data: profile }, { data: aiSetting } ] = await Promise.all([
+      supabase.from("candidate_profiles").select("full_name").eq("id", userId).maybeSingle(),
+      supabase.from("ai_settings").select("system_instruction").eq("user_id", userId).eq("is_active", true).maybeSingle()
+    ]);
 
     const postCaption = post?.caption || "N/A (Contexto do post não disponível)";
     const author = comment.author_name || "um usuário";
