@@ -36,10 +36,8 @@ function PainelLayout() {
     { to: "/painel/templates", label: "Meus templates", icon: ImageIcon },
     { to: "/painel/link", label: "Link público", icon: Link2 },
     { to: "/painel/leads", label: "Eleitores", icon: Users },
-    { to: "/painel/whatsapp", label: "WhatsApp", icon: MessageCircle },
+    { to: "/painel/central-whatsapp", label: "Central WhatsApp", icon: MessageCircle },
     { to: "/painel/redes-sociais", label: "Redes Sociais", icon: Share2 },
-    { to: "/missoes-ia", label: "Missões IA", icon: Sparkles },
-    { to: "/painel/disparos", label: "Disparos WhatsApp", icon: Send },
     { to: "/painel/militancia", label: "Militância Digital", icon: Users },
   ];
 
