@@ -19,19 +19,24 @@ const ANALYZE_TOOL: ToolDef = {
           items: {
             type: "object",
             properties: {
-              id: { type: "string", description: "ID interno do comentário (vem na entrada)" },
-              sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
+              id: { type: "string", description: "ID interno do comentário" },
+              post_stance: { type: "string", enum: ["denuncia", "conquista", "convite", "opiniao", "neutro"], description: "Postura do post" },
+              target: { type: "string", enum: ["candidato", "fato_do_post", "terceiro", "ambiguo"], description: "Alvo do comentário" },
+              alignment: { type: "string", enum: ["concorda", "discorda", "neutro"], description: "Alinhamento com o post" },
+              sentiment: { type: "string", enum: ["positive", "neutral", "negative"], description: "Sentimento final" },
+              confidence: { type: "number", description: "Confiança 0-1" },
+              reason: { type: "string", description: "Razão da análise" },
               emotion: {
                 type: "string",
-                description: "Emoção predominante em uma palavra (ex: alegria, raiva, dúvida, apoio, crítica, ironia, elogio).",
+                description: "Emoção predominante em uma palavra.",
               },
               topics: {
                 type: "array",
                 items: { type: "string" },
-                description: "1 a 3 tópicos curtos (substantivos) presentes no comentário.",
+                description: "1 a 3 tópicos curtos.",
               },
             },
-            required: ["id", "sentiment", "emotion", "topics"],
+            required: ["id", "sentiment", "post_stance", "target", "alignment", "confidence", "reason", "emotion", "topics"],
             additionalProperties: false,
           },
         },
@@ -85,22 +90,42 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
     let batches = 0;
     const errors: string[] = [];
 
+    // Busca correções humanas para few-shot
+    const { data: corrections } = await supabase
+      .from("sentiment_corrections")
+      .select("comment_text, post_message, sentiment_human")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const fewShotExamples = (corrections ?? []).map(c => 
+      `Comentário: "${c.comment_text}" | Post: "${c.post_message ?? ''}" -> Sentimento: ${c.sentiment_human}`
+    ).join("\n");
+
     for (let i = 0; i < data.maxBatches; i++) {
       const { data: rows, error } = await supabase
         .from("social_comments")
-        .select("id, text")
+        .select(`
+          id, text, post_external_id, 
+          social_posts_cache!inner (caption)
+        `)
         .eq("user_id", userId)
         .is("ai_processed_at", null)
         .not("text", "is", null)
         .limit(data.batchSize);
+      
       if (error) throw new Error(error.message);
       if (!rows || rows.length === 0) break;
 
       const items = rows
         .filter((r) => (r.text ?? "").trim().length > 0)
-        .map((r) => ({ id: r.id as string, text: (r.text as string).slice(0, 500) }));
+        .map((r) => ({ 
+          id: r.id as string, 
+          text: (r.text as string).slice(0, 500),
+          post_caption: (r.social_posts_cache as any)?.caption ?? ''
+        }));
+
       if (items.length === 0) {
-        // marca como processados mesmo sem texto
         await supabase
           .from("social_comments")
           .update({ ai_processed_at: new Date().toISOString() })
@@ -111,26 +136,38 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
       try {
         const { toolArgs } = await chatCompletion({
           userId: userId,
-          model: "google/gemini-2.5-flash-lite",
           messages: [
             {
               role: "system",
-              content:
-                "Você é um analista de mídias sociais brasileiro. Classifique cada comentário com sentimento (positive/neutral/negative), emoção predominante (1 palavra) e até 3 tópicos curtos. Considere ironia, gírias e regionalismos do português do Brasil.",
+              content: `Você é um analista de mídias sociais brasileiro especializado em política. 
+Sua tarefa é classificar comentários. 
+
+REGRAS CRÍTICAS:
+- post_stance: postura do post (denuncia | conquista | convite | opiniao | neutro).
+- target: alvo do comentário (candidato | fato_do_post | terceiro | ambiguo).
+- alignment: concorda | discorda | neutro em relação ao post.
+- Se o post é uma DENÚNCIA e o comentário concorda com a denúncia usando palavras fortes ("absurdo", "vergonha"), o sentimento é POSITIVO (apoio ao candidato que denunciou).
+
+EXEMPLOS DE CORREÇÕES HUMANAS:
+${fewShotExamples || "Nenhum exemplo disponível."}
+
+Responda SEMPRE via a função classify_comments.`,
             },
             {
               role: "user",
-              content: `Classifique os comentários abaixo. Retorne via a função classify_comments.\n\n${JSON.stringify(items)}`,
+              content: `Classifique os comentários abaixo:\n\n${JSON.stringify(items)}`,
             },
           ],
           tools: [ANALYZE_TOOL],
           toolChoice: { type: "function", function: { name: "classify_comments" } },
-          temperature: 0.2,
+          temperature: 0.1,
         });
 
         const results = (toolArgs?.results as Array<{
           id: string;
           sentiment: Sentiment;
+          confidence: number;
+          reason: string;
           emotion: string;
           topics: string[];
         }> | undefined) ?? [];
@@ -141,8 +178,12 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
             .from("social_comments")
             .update({
               sentiment: r.sentiment,
+              sentiment_source: 'ai',
+              sentiment_confidence: r.confidence,
+              sentiment_reason: r.reason,
+              needs_review: r.confidence < 0.7,
               emotion: r.emotion?.slice(0, 50) ?? null,
-              topics: (r.topics ?? []).slice(0, 5).map((t) => t.slice(0, 50)),
+              topics: (r.topics ?? []).slice(0, 5).map((t: string) => t.slice(0, 50)),
               ai_processed_at: now,
             })
             .eq("id", r.id)
@@ -268,4 +309,50 @@ export const getSentimentSummary = createServerFn({ method: "POST" })
     }
 
     return { stats, topTopics, topEmotions, executive, days: data.days };
+  });
+
+export const correctSentiment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      commentId: z.string().uuid(),
+      humanSentiment: z.enum(["positive", "neutral", "negative"]),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Busca o comentário original para logar o que o humano corrigiu
+    const { data: c } = await supabase
+      .from("social_comments")
+      .select("text, sentiment, post_external_id")
+      .eq("id", data.commentId)
+      .single();
+
+    if (!c) throw new Error("Comentário não encontrado");
+
+    // Busca o post para contexto
+    const { data: post } = await supabase
+      .from("social_posts_cache")
+      .select("caption")
+      .eq("external_id", c.post_external_id)
+      .maybeSingle();
+
+    // Registra a correção para o few-shot
+    await supabase.from("sentiment_corrections").insert({
+      user_id: userId,
+      comment_text: c.text ?? '',
+      post_message: post?.caption,
+      sentiment_ai: c.sentiment,
+      sentiment_human: data.humanSentiment,
+    });
+
+    // Atualiza o comentário
+    await supabase.from("social_comments").update({
+      sentiment: data.humanSentiment,
+      sentiment_source: 'human',
+      ai_processed_at: new Date().toISOString(), // Marca como processado
+    }).eq("id", data.commentId);
+
+    return { ok: true };
   });

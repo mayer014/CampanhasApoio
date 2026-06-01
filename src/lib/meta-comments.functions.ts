@@ -141,6 +141,19 @@ export const syncMetaComments = createServerFn({ method: "POST" })
 
     async function processPost(platform: CommentPlatform, m: RawMedia) {
       await upsertPost(platform, m);
+      // Stub comment entry to ensure post is visible in lists even with 0 comments
+      const stubId = `post_stub_${m.id}`;
+      await supabase.from("social_comments").upsert({
+        user_id: userId,
+        connection_id: conn.id,
+        platform,
+        post_external_id: m.id,
+        comment_external_id: stubId,
+        text: null,
+        status: 'handled',
+        is_ignored: true
+      }, { onConflict: "connection_id,platform,comment_external_id" });
+
       try {
         const cs = platform === "instagram"
           ? await fetchInstagramComments(m.id, conn.access_token)
@@ -194,6 +207,9 @@ export const listSocialComments = createServerFn({ method: "POST" })
       status: StatusEnum.optional(),
       sentiment: z.enum(["positive", "neutral", "negative"]).optional(),
       postExternalId: z.string().optional(),
+      showIgnored: z.boolean().optional().default(false),
+      showReplied: z.boolean().optional().default(true),
+      search: z.string().optional(),
       limit: z.number().min(1).max(200).optional().default(100),
     }).parse(input ?? {}),
   )
@@ -225,16 +241,21 @@ export const listSocialComments = createServerFn({ method: "POST" })
     let q = supabase
       .from("social_comments")
       .select(
-        "id, platform, post_external_id, comment_external_id, parent_comment_external_id, author_name, text, posted_at, status, reply_text, replied_at, sentiment, emotion, topics",
+        "id, platform, post_external_id, comment_external_id, parent_comment_external_id, author_name, author_id, text, posted_at, status, reply_text, replied_at, sentiment, emotion, topics, is_ignored, sentiment_source, sentiment_confidence, sentiment_reason, needs_review",
       )
       .eq("user_id", userId)
       .in("connection_id", activeIds)
       .order("posted_at", { ascending: false, nullsFirst: false })
       .limit(data.limit);
+
     if (data.platform) q = q.eq("platform", data.platform);
     if (data.status) q = q.eq("status", data.status);
     if (data.sentiment) q = q.eq("sentiment", data.sentiment);
     if (data.postExternalId) q = q.eq("post_external_id", data.postExternalId);
+    if (!data.showIgnored) q = q.eq("is_ignored", false);
+    if (!data.showReplied) q = q.neq("status", "replied");
+    if (data.search) q = q.ilike("text", `%${data.search}%`);
+
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
@@ -361,5 +382,24 @@ export const updateCommentStatus = createServerFn({ method: "POST" })
       .update({ status: data.status })
       .eq("id", c.id);
     if (updErr) throw new Error(updErr.message);
+    return { ok: true };
+  });
+
+export const toggleIgnoreComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      commentId: z.string().uuid(),
+      isIgnored: z.boolean(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("social_comments")
+      .update({ is_ignored: data.isIgnored })
+      .eq("id", data.commentId)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
