@@ -192,7 +192,7 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
               <Label>Provedor</Label>
               <Select
                 value={form.provider}
-                onValueChange={(v) => setForm({ ...form, provider: v as AIProvider })}
+                onValueChange={(v) => handleProviderChange(v as AIProvider)}
               >
                 <SelectTrigger>
                   <SelectValue />
