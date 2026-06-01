@@ -374,12 +374,23 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="desc">Descrição (opcional)</Label>
+        <Label htmlFor="desc">Descrição no Portal (opcional)</Label>
         <Input 
           id="desc" 
           value={form.description} 
           onChange={e => setForm({...form, description: e.target.value})} 
-          placeholder="Instruções adicionais para o apoiador" 
+          placeholder="Ex: Curta e deixe seu comentário de apoio!" 
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="wa_template">Mensagem para WhatsApp (Autogerada)</Label>
+        <Textarea 
+          id="wa_template" 
+          value={form.whatsapp_template} 
+          onChange={e => setForm({...form, whatsapp_template: e.target.value})} 
+          placeholder="Gera automaticamente ao salvar se vazio"
+          className="h-24 text-xs font-sans"
         />
       </div>
 
