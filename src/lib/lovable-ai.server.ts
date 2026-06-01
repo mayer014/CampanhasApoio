@@ -68,6 +68,7 @@ export async function chatCompletion(opts: {
   tools?: ToolDef[];
   toolChoice?: { type: "function"; function: { name: string } };
   temperature?: number;
+  supabaseClient?: any;
 }): Promise<{
   content: string | null;
   toolArgs: Record<string, unknown> | null;
@@ -75,7 +76,7 @@ export async function chatCompletion(opts: {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new LovableAIError("LOVABLE_API_KEY não configurada", 500);
 
-  const activeSetting = await getActiveAISetting(opts.userId);
+  const activeSetting = await getActiveAISetting(opts.userId, opts.supabaseClient);
   
   let url = GATEWAY_URL;
   let authHeader = `Bearer ${process.env.LOVABLE_API_KEY}`;
