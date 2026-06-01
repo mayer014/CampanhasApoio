@@ -10,7 +10,7 @@ import { TemplateCanvas } from "@/components/template-canvas";
 import { downloadCanvas, renderTemplate, type PhotoState, type TemplateData } from "@/lib/template-renderer";
 import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
-import { Rocket, Download, Upload } from "lucide-react";
+import { Rocket, Download, Upload, Facebook, Instagram, ExternalLink, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/p/$slug")({
   component: PublicPage,
@@ -115,41 +115,133 @@ function PublicPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
+      <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur shadow-sm">
         <div className="container mx-auto flex items-center gap-2 px-6 py-4">
           <Rocket className="h-5 w-5 text-primary" />
           <span className="font-semibold">{candidate.full_name}</span>
         </div>
       </header>
-      <main className="container mx-auto max-w-5xl px-6 py-10">
-        {templates.length === 0 ? (
-          <Card className="p-10 text-center text-muted-foreground">O candidato ainda não disponibilizou nenhum template.</Card>
-        ) : step === "intro" ? (
-          <Intro candidate={candidate} template={previewTemplate!} alreadyRegistered={alreadyRegistered} onStart={handleStart} />
-        ) : step === "form" ? (
-          <FormStep
-            candidateId={candidate.id}
-            templateId={(previewTemplate ?? templates[0]).id}
-            onDone={handleFormDone}
-          />
-        ) : step === "pick" ? (
-          <TemplatePicker templates={templates} onPick={(t) => { setTemplate(t); setStep("edit"); }} />
-        ) : step === "edit" && template ? (
-          <div>
-            {templates.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setStep("pick")}
-                className="mb-4 text-sm text-primary underline-offset-4 hover:underline"
-              >
-                ← Escolher outra arte
-              </button>
-            )}
-            <EditorStep template={template} candidateName={candidate.full_name} />
+      
+      <main className="container mx-auto max-w-5xl px-4 py-8 space-y-12">
+        {/* Missions Section - Prioritize engagement */}
+        <MissionsSection clientId={candidate.id} />
+
+        <Separator />
+
+        {/* Photo Section */}
+        <section id="photo-support">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" /> Foto de Apoio
+            </h2>
+            <p className="text-muted-foreground text-sm">Personalize sua foto de perfil para o WhatsApp.</p>
           </div>
-        ) : null}
+          
+          {templates.length === 0 ? (
+            <Card className="p-10 text-center text-muted-foreground">O candidato ainda não disponibilizou nenhum template.</Card>
+          ) : step === "intro" ? (
+            <Intro candidate={candidate} template={previewTemplate!} alreadyRegistered={alreadyRegistered} onStart={handleStart} />
+          ) : step === "form" ? (
+            <FormStep
+              candidateId={candidate.id}
+              templateId={(previewTemplate ?? templates[0]).id}
+              onDone={handleFormDone}
+            />
+          ) : step === "pick" ? (
+            <TemplatePicker templates={templates} onPick={(t) => { setTemplate(t); setStep("edit"); }} />
+          ) : step === "edit" && template ? (
+            <div>
+              {templates.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStep("pick")}
+                  className="mb-4 text-sm text-primary underline-offset-4 hover:underline"
+                >
+                  ← Escolher outra arte
+                </button>
+              )}
+              <EditorStep template={template} candidateName={candidate.full_name} />
+            </div>
+          ) : null}
+        </section>
       </main>
+      
+      <footer className="py-12 border-t mt-12 bg-muted/20 text-center">
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Minha Campanha · Mobilização Digital</p>
+      </footer>
     </div>
+  );
+}
+
+function Separator() {
+  return <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800" />;
+}
+
+function MissionsSection({ clientId }: { clientId: string }) {
+  const [missions, setMissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("portal_missions")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      setMissions(data || []);
+      setLoading(false);
+    })();
+  }, [clientId]);
+
+  if (loading) return null;
+  if (missions.length === 0) return null;
+
+  return (
+    <section>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Rocket className="h-5 w-5 text-primary" /> Missões de Engajamento
+        </h2>
+        <p className="text-muted-foreground text-sm">Ajude nossa campanha a crescer nas redes sociais!</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {missions.map((m) => (
+          <Card key={m.id} className="p-5 flex flex-col gap-4 hover:shadow-md transition-shadow border-primary/20 bg-primary/5">
+            <div>
+              <h3 className="font-bold text-lg">{m.title}</h3>
+              {m.description && <p className="text-sm text-muted-foreground mt-1">{m.description}</p>}
+            </div>
+            
+            <div className="flex flex-wrap gap-2 mt-auto">
+              {(m.fb_post_url || m.post_url) && (
+                <Button 
+                  variant="outline" 
+                  className="flex-1 gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none h-11" 
+                  asChild
+                >
+                  <a href={m.fb_post_url || m.post_url} target="_blank" rel="noopener noreferrer">
+                    <Facebook className="h-4 w-4" /> Facebook
+                  </a>
+                </Button>
+              )}
+              {m.ig_post_url && (
+                <Button 
+                  variant="outline" 
+                  className="flex-1 gap-2 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white hover:opacity-90 border-none h-11" 
+                  asChild
+                >
+                  <a href={m.ig_post_url} target="_blank" rel="noopener noreferrer">
+                    <Instagram className="h-4 w-4" /> Instagram
+                  </a>
+                </Button>
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </section>
   );
 }
 

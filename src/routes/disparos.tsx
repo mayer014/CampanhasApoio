@@ -182,7 +182,7 @@ function DisparosPage() {
   };
 
   const fillMissionTemplate = (m: any) => {
-    const template = `🚀 Apoiador(a), temos uma nova missão para você!\n\n*${m.title}*\n${m.description || ""}\n\n👉 ${m.post_url}\n\nSua interação faz diferença. Vamos juntos!`;
+    const template = m.whatsapp_template || `🚀 Apoiador(a), temos uma nova missão para você!\n\n*${m.title}*\n${m.description || ""}\n\n👉 ${m.post_url || m.fb_post_url || m.ig_post_url}\n\nSua interação faz diferença. Vamos juntos!`;
     setMessage(template);
     setRecipientType("tags"); // Default for missions as requested
     toast.info("Template de missão carregado e destinatários definidos como 'Por Tags'");

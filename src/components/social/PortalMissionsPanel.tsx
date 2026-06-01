@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -25,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2, ExternalLink, GripVertical, Facebook, Instagram, Search } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, GripVertical, Facebook, Instagram, Search, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface Mission {
@@ -33,7 +34,10 @@ interface Mission {
   title: string;
   description: string;
   platform: string;
-  post_url: string;
+  post_url: string | null;
+  fb_post_url: string | null;
+  ig_post_url: string | null;
+  whatsapp_template: string | null;
   is_active: boolean;
   display_order: number;
 }
@@ -73,7 +77,10 @@ export function PortalMissionsPanel({ clientId }: { clientId: string }) {
             client_id: clientId,
             title: payload.title!,
             platform: payload.platform!,
-            post_url: payload.post_url!,
+            post_url: payload.post_url,
+            fb_post_url: payload.fb_post_url,
+            ig_post_url: payload.ig_post_url,
+            whatsapp_template: payload.whatsapp_template,
             description: payload.description,
             is_active: payload.is_active,
             display_order: payload.display_order ?? 0
@@ -211,52 +218,71 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
     title: mission?.title || "",
     description: mission?.description || "",
     post_url: mission?.post_url || "",
-    platform: mission?.platform || "facebook",
+    fb_post_url: mission?.fb_post_url || "",
+    ig_post_url: mission?.ig_post_url || "",
+    whatsapp_template: mission?.whatsapp_template || "",
+    platform: mission?.platform || "ambos",
     is_active: mission?.is_active ?? true
   });
-  const [selectionMode, setSelectionMode] = useState<'url' | 'select'>(mission?.post_url ? 'url' : 'select');
+  const [selectionMode, setSelectionMode] = useState<'url' | 'select'>(mission?.id ? 'url' : 'select');
 
   const { data: recentPosts, isLoading: isLoadingPosts } = useQuery({
-    queryKey: ["recent-posts-for-missions", clientId],
+    queryKey: ["recent-posts-for-missions-thumbs", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("social_posts_cache")
-        .select("id, caption, permalink, platform")
+        .select("id, caption, permalink, platform, thumbnail_url")
         .eq("user_id", clientId)
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .order("posted_at", { ascending: false })
+        .limit(40);
       if (error) throw error;
       return data || [];
     },
     enabled: selectionMode === 'select'
   });
 
+  const generateWATemplate = (f: typeof form) => {
+    let links = "";
+    if (f.fb_post_url) links += `\n🔵 Facebook: ${f.fb_post_url}`;
+    if (f.ig_post_url) links += `\n💖 Instagram: ${f.ig_post_url}`;
+    if (!f.fb_post_url && !f.ig_post_url && f.post_url) links += `\n👉 Link: ${f.post_url}`;
+
+    return `🚀 Apoiador(a), temos uma nova missão para você!\n\n*${f.title}*\n${f.description || ""}\n${links}\n\nSua interação faz diferença. Vamos juntos!`;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.post_url) {
-      toast.error("Preencha título e selecione ou cole a URL do post");
+    if (!form.title || (!form.post_url && !form.fb_post_url && !form.ig_post_url)) {
+      toast.error("Preencha título e selecione ao menos um post");
       return;
     }
     
-    // Auto detect platform from URL
-    let platform = form.platform;
-    if (form.post_url.includes("facebook.com") || form.post_url.includes("fb.com") || form.post_url.includes("fb.watch")) {
-      platform = "facebook";
-    } else if (form.post_url.includes("instagram.com")) {
-      platform = "instagram";
-    }
+    // Auto detect platform
+    let platform = "ambos";
+    if (form.fb_post_url && !form.ig_post_url) platform = "facebook";
+    if (form.ig_post_url && !form.fb_post_url) platform = "instagram";
+    
+    const finalTemplate = form.whatsapp_template || generateWATemplate(form);
 
-    onSave({ ...form, platform });
+    onSave({ ...form, platform, whatsapp_template: finalTemplate });
   };
 
-  const handlePostSelect = (post: any) => {
-    setForm({
+  const togglePost = (post: any) => {
+    const isFB = post.platform === 'facebook';
+    const currentUrl = isFB ? form.fb_post_url : form.ig_post_url;
+    
+    const newForm = {
       ...form,
-      title: form.title || post.caption?.slice(0, 50) || "Nova Missão",
-      post_url: post.permalink,
-      platform: post.platform
-    });
-    setSelectionMode('url'); // Switch back to see the result or let user edit
+      [isFB ? 'fb_post_url' : 'ig_post_url']: currentUrl === post.permalink ? "" : post.permalink,
+      title: form.title || post.caption?.slice(0, 50) || "Nova Missão"
+    };
+
+    // Auto-update WA template if not manually edited yet
+    if (!form.whatsapp_template) {
+      // It will be generated on save if empty
+    }
+
+    setForm(newForm);
   };
 
   return (
@@ -284,55 +310,88 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
           </TabsList>
           
           <TabsContent value="select" className="space-y-2 mt-2">
-            <div className="max-h-[250px] overflow-y-auto border rounded-md p-1 space-y-1 bg-muted/20">
+            <div className="max-h-[350px] overflow-y-auto border rounded-md p-1 space-y-1 bg-muted/20">
               {isLoadingPosts ? (
                 <div className="p-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-                  <Search className="h-3 w-3 animate-spin" /> Carregando posts recentes...
+                  <Search className="h-3 w-3 animate-spin" /> Carregando posts...
                 </div>
               ) : recentPosts?.length === 0 ? (
                 <div className="p-4 text-center text-xs text-muted-foreground italic">
-                  Nenhum post encontrado nas suas redes conectadas.
+                  Nenhum post encontrado.
                 </div>
               ) : (
-                recentPosts?.map((post) => (
-                  <button
-                    key={post.id}
-                    type="button"
-                    onClick={() => handlePostSelect(post)}
-                    className={`w-full text-left p-2 rounded hover:bg-accent transition-colors text-xs flex gap-2 items-start border ${form.post_url === post.permalink ? 'border-primary bg-primary/5' : 'border-transparent'}`}
-                  >
-                    <div className="mt-0.5 shrink-0">
-                      {post.platform === 'facebook' ? <Facebook className="h-3 w-3 text-blue-600" /> : <Instagram className="h-3 w-3 text-pink-600" />}
-                    </div>
-                    <span className="line-clamp-2">{post.caption || "(Sem legenda)"}</span>
-                  </button>
-                ))
+                <div className="grid grid-cols-2 gap-2 p-1">
+                  {recentPosts?.map((post) => {
+                    const isSelected = form.fb_post_url === post.permalink || form.ig_post_url === post.permalink;
+                    return (
+                      <button
+                        key={post.id}
+                        type="button"
+                        onClick={() => togglePost(post)}
+                        className={`text-left p-1 rounded transition-colors flex flex-col border h-full ${isSelected ? 'border-primary bg-primary/10' : 'border-transparent bg-background hover:bg-accent'}`}
+                      >
+                        <div className="relative aspect-square w-full mb-1 rounded overflow-hidden bg-zinc-100">
+                          {post.thumbnail_url ? (
+                            <img src={post.thumbnail_url} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                              <ImageIcon className="h-6 w-6" />
+                            </div>
+                          )}
+                          <div className="absolute top-1 right-1">
+                            {post.platform === 'facebook' ? <Facebook className="h-4 w-4 text-blue-600 bg-white rounded-full p-0.5" /> : <Instagram className="h-4 w-4 text-pink-600 bg-white rounded-full p-0.5" />}
+                          </div>
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <div className="bg-primary text-white rounded-full p-1"><Plus className="h-4 w-4 rotate-45" /></div>
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[10px] line-clamp-2 px-1 pb-1">{post.caption || "(Sem legenda)"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
             <p className="text-[10px] text-muted-foreground italic text-center">
-              Mostrando os últimos 20 posts sincronizados.
+              Selecione um post do Facebook e um do Instagram para uma missão dupla.
             </p>
           </TabsContent>
 
           <TabsContent value="url" className="space-y-2 mt-2">
-            <Label htmlFor="url" className="text-xs">URL do Post (Facebook ou Instagram)</Label>
-            <Input 
-              id="url" 
-              value={form.post_url} 
-              onChange={e => setForm({...form, post_url: e.target.value})} 
-              placeholder="https://facebook.com/..." 
-            />
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="fb_url" className="text-xs">URL Facebook</Label>
+                <Input id="fb_url" value={form.fb_post_url} onChange={e => setForm({...form, fb_post_url: e.target.value})} placeholder="https://facebook.com/..." className="h-8 text-xs" />
+              </div>
+              <div>
+                <Label htmlFor="ig_url" className="text-xs">URL Instagram</Label>
+                <Input id="ig_url" value={form.ig_post_url} onChange={e => setForm({...form, ig_post_url: e.target.value})} placeholder="https://instagram.com/..." className="h-8 text-xs" />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="desc">Descrição (opcional)</Label>
+        <Label htmlFor="desc">Descrição no Portal (opcional)</Label>
         <Input 
           id="desc" 
           value={form.description} 
           onChange={e => setForm({...form, description: e.target.value})} 
-          placeholder="Instruções adicionais para o apoiador" 
+          placeholder="Ex: Curta e deixe seu comentário de apoio!" 
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="wa_template">Mensagem para WhatsApp (Autogerada)</Label>
+        <Textarea 
+          id="wa_template" 
+          value={form.whatsapp_template} 
+          onChange={e => setForm({...form, whatsapp_template: e.target.value})} 
+          placeholder="Gera automaticamente ao salvar se vazio"
+          className="h-24 text-xs font-sans"
         />
       </div>
 
