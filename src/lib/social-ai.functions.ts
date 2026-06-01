@@ -310,3 +310,49 @@ export const getSentimentSummary = createServerFn({ method: "POST" })
 
     return { stats, topTopics, topEmotions, executive, days: data.days };
   });
+
+export const correctSentiment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      commentId: z.string().uuid(),
+      humanSentiment: z.enum(["positive", "neutral", "negative"]),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Busca o comentário original para logar o que o humano corrigiu
+    const { data: c } = await supabase
+      .from("social_comments")
+      .select("text, sentiment, post_external_id")
+      .eq("id", data.commentId)
+      .single();
+
+    if (!c) throw new Error("Comentário não encontrado");
+
+    // Busca o post para contexto
+    const { data: post } = await supabase
+      .from("social_posts_cache")
+      .select("caption")
+      .eq("external_id", c.post_external_id)
+      .maybeSingle();
+
+    // Registra a correção para o few-shot
+    await supabase.from("sentiment_corrections").insert({
+      user_id: userId,
+      comment_text: c.text,
+      post_message: post?.caption,
+      sentiment_ai: c.sentiment,
+      sentiment_human: data.humanSentiment,
+    });
+
+    // Atualiza o comentário
+    await supabase.from("social_comments").update({
+      sentiment: data.humanSentiment,
+      sentiment_source: 'human',
+      ai_processed_at: new Date().toISOString(), // Marca como processado
+    }).eq("id", data.commentId);
+
+    return { ok: true };
+  });
