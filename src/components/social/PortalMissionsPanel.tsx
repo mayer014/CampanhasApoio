@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Dialog, 
   DialogContent, 
@@ -214,16 +214,31 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
     platform: mission?.platform || "facebook",
     is_active: mission?.is_active ?? true
   });
-  const [isUrlMode, setIsUrlMode] = useState(!mission?.post_url || !!mission?.post_url);
+  const [selectionMode, setSelectionMode] = useState<'url' | 'select'>(mission?.post_url ? 'url' : 'select');
+
+  const { data: recentPosts, isLoading: isLoadingPosts } = useQuery({
+    queryKey: ["recent-posts-for-missions", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("social_posts_cache")
+        .select("id, caption, permalink, platform")
+        .eq("user_id", clientId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: selectionMode === 'select'
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.post_url) {
-      toast.error("Preencha título e URL do post");
+      toast.error("Preencha título e selecione ou cole a URL do post");
       return;
     }
     
-    // Auto detect platform
+    // Auto detect platform from URL
     let platform = form.platform;
     if (form.post_url.includes("facebook.com") || form.post_url.includes("fb.com") || form.post_url.includes("fb.watch")) {
       platform = "facebook";
@@ -232,6 +247,16 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
     }
 
     onSave({ ...form, platform });
+  };
+
+  const handlePostSelect = (post: any) => {
+    setForm({
+      ...form,
+      title: form.title || post.caption?.slice(0, 50) || "Nova Missão",
+      post_url: post.permalink,
+      platform: post.platform
+    });
+    setSelectionMode('url'); // Switch back to see the result or let user edit
   };
 
   return (
@@ -250,16 +275,55 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="url">URL do Post (Facebook ou Instagram)</Label>
-        <div className="flex gap-2">
-          <Input 
-            id="url" 
-            value={form.post_url} 
-            onChange={e => setForm({...form, post_url: e.target.value})} 
-            placeholder="https://facebook.com/..." 
-          />
-        </div>
+      <div className="space-y-3">
+        <Label>Origem do Post</Label>
+        <Tabs value={selectionMode} onValueChange={(v: any) => setSelectionMode(v)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="select" className="text-xs">Selecionar Post</TabsTrigger>
+            <TabsTrigger value="url" className="text-xs">Colar Link Manual</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="select" className="space-y-2 mt-2">
+            <div className="max-h-[250px] overflow-y-auto border rounded-md p-1 space-y-1 bg-muted/20">
+              {isLoadingPosts ? (
+                <div className="p-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                  <Search className="h-3 w-3 animate-spin" /> Carregando posts recentes...
+                </div>
+              ) : recentPosts?.length === 0 ? (
+                <div className="p-4 text-center text-xs text-muted-foreground italic">
+                  Nenhum post encontrado nas suas redes conectadas.
+                </div>
+              ) : (
+                recentPosts?.map((post) => (
+                  <button
+                    key={post.id}
+                    type="button"
+                    onClick={() => handlePostSelect(post)}
+                    className={`w-full text-left p-2 rounded hover:bg-accent transition-colors text-xs flex gap-2 items-start border ${form.post_url === post.permalink ? 'border-primary bg-primary/5' : 'border-transparent'}`}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {post.platform === 'facebook' ? <Facebook className="h-3 w-3 text-blue-600" /> : <Instagram className="h-3 w-3 text-pink-600" />}
+                    </div>
+                    <span className="line-clamp-2">{post.caption || "(Sem legenda)"}</span>
+                  </button>
+                ))
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground italic text-center">
+              Mostrando os últimos 20 posts sincronizados.
+            </p>
+          </TabsContent>
+
+          <TabsContent value="url" className="space-y-2 mt-2">
+            <Label htmlFor="url" className="text-xs">URL do Post (Facebook ou Instagram)</Label>
+            <Input 
+              id="url" 
+              value={form.post_url} 
+              onChange={e => setForm({...form, post_url: e.target.value})} 
+              placeholder="https://facebook.com/..." 
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <div className="space-y-2">
@@ -272,7 +336,7 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
         />
       </div>
 
-      <div className="flex items-center gap-2 py-2">
+      <div className="flex items-center gap-2 py-1">
         <Switch 
           id="active-form" 
           checked={form.is_active} 
@@ -282,7 +346,7 @@ function MissionForm({ mission, onSave, isSubmitting, clientId }: { mission?: Mi
       </div>
 
       <DialogFooter>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting ? "Salvando..." : "Salvar Missão"}
         </Button>
       </DialogFooter>
