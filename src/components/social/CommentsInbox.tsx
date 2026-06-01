@@ -65,6 +65,10 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
   const [draft, setDraft] = useState("");
   const reply = useServerFn(replySocialComment);
   const updateStatus = useServerFn(updateCommentStatus);
+  const correct = useServerFn(correctSentiment);
+  const toggleIgnore = useServerFn(toggleIgnoreComment);
+
+  const qc = useQueryClient();
 
   const replyMut = useMutation({
     mutationFn: () => reply({ data: { commentId: c.id, message: draft.trim() } }),
