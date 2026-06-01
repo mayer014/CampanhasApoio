@@ -3,7 +3,7 @@
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-async function getActiveAISetting() {
+async function getActiveAISetting(userId: string) {
   // Nota: como este arquivo é usado apenas em Server Functions,
   // process.env está disponível, mas aqui usaremos o admin client
   // para buscar a configuração ativa do banco.
