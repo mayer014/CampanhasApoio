@@ -90,13 +90,21 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
     let batches = 0;
     const errors: string[] = [];
 
-    // Busca correções humanas para few-shot
-    const { data: corrections } = await supabase
-      .from("sentiment_corrections")
-      .select("comment_text, post_message, sentiment_human")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(10);
+    // Busca correções humanas para few-shot e orientações da página
+    const [ { data: corrections }, { data: aiSetting } ] = await Promise.all([
+      supabase
+        .from("sentiment_corrections")
+        .select("comment_text, post_message, sentiment_human")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase
+        .from("ai_settings")
+        .select("system_instruction")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .maybeSingle()
+    ]);
 
     const fewShotExamples = (corrections ?? []).map(c => 
       `Comentário: "${c.comment_text}" | Post: "${c.post_message ?? ''}" -> Sentimento: ${c.sentiment_human}`
