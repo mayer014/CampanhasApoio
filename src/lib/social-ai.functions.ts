@@ -280,6 +280,7 @@ export const getSentimentSummary = createServerFn({ method: "POST" })
       try {
         const { toolArgs } = await chatCompletion({
           userId: userId,
+          supabaseClient: supabase,
           model: "google/gemini-2.5-flash",
           messages: [
             {
