@@ -3,6 +3,34 @@
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
+async function getActiveAISetting() {
+  // Nota: como este arquivo é usado apenas em Server Functions,
+  // process.env está disponível, mas aqui usaremos o admin client
+  // para buscar a configuração ativa do banco.
+  // Importação dinâmica para evitar ciclos se houver.
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data } = await supabase
+    .from('ai_settings')
+    .select('provider, model_name, api_key')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  return data;
+}
+
+const PROVIDER_URLS: Record<string, string> = {
+  openai: "https://api.openai.com/v1/chat/completions",
+  anthropic: "https://api.anthropic.com/v1/messages", // Nota: Anthropic tem formato diferente, requer adapter
+  groq: "https://api.groq.com/openai/v1/chat/completions",
+  openrouter: "https://openrouter.ai/api/v1/chat/completions",
+  lovable: GATEWAY_URL
+};
+
 export class LovableAIError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -38,19 +66,36 @@ export async function chatCompletion(opts: {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new LovableAIError("LOVABLE_API_KEY não configurada", 500);
 
+  const activeSetting = await getActiveAISetting();
+  
+  let url = GATEWAY_URL;
+  let authHeader = `Bearer ${process.env.LOVABLE_API_KEY}`;
+  let model = opts.model ?? "google/gemini-2.5-flash-lite";
+
+  if (activeSetting) {
+    url = PROVIDER_URLS[activeSetting.provider] || GATEWAY_URL;
+    authHeader = `Bearer ${activeSetting.api_key}`;
+    model = opts.model || activeSetting.model_name;
+  }
+
   const body: Record<string, unknown> = {
-    model: opts.model ?? "google/gemini-2.5-flash-lite",
+    model: model,
     messages: opts.messages,
   };
+  
   if (opts.tools) body.tools = opts.tools;
   if (opts.toolChoice) body.tool_choice = opts.toolChoice;
   if (opts.temperature !== undefined) body.temperature = opts.temperature;
 
-  const res = await fetch(GATEWAY_URL, {
+  const res = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${key}`,
+      Authorization: authHeader,
       "Content-Type": "application/json",
+      ...(activeSetting?.provider === 'openrouter' ? {
+        "HTTP-Referer": "https://fotodeapoio.easychain.com.br",
+        "X-Title": "Foto de Apoio"
+      } : {})
     },
     body: JSON.stringify(body),
   });
@@ -63,17 +108,10 @@ export async function chatCompletion(opts: {
     if (res.status === 402) {
       throw new LovableAIError("Créditos da IA esgotados. Adicione créditos no workspace.", 402);
     }
-    throw new LovableAIError(`AI gateway erro ${res.status}: ${text.slice(0, 200)}`, res.status);
+    throw new LovableAIError(`AI (${activeSetting?.provider || 'gateway'}) erro ${res.status}: ${text.slice(0, 200)}`, res.status);
   }
 
-  const json = (await res.json()) as {
-    choices?: Array<{
-      message?: {
-        content?: string | null;
-        tool_calls?: Array<{ function?: { arguments?: string } }>;
-      };
-    }>;
-  };
+  const json = (await res.json()) as any;
   const msg = json.choices?.[0]?.message;
   const tc = msg?.tool_calls?.[0]?.function?.arguments;
   let toolArgs: Record<string, unknown> | null = null;
