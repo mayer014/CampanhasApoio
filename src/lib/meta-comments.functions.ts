@@ -141,6 +141,19 @@ export const syncMetaComments = createServerFn({ method: "POST" })
 
     async function processPost(platform: CommentPlatform, m: RawMedia) {
       await upsertPost(platform, m);
+      // Stub comment entry to ensure post is visible in lists even with 0 comments
+      const stubId = `post_stub_${m.id}`;
+      await supabase.from("social_comments").upsert({
+        user_id: userId,
+        connection_id: conn.id,
+        platform,
+        post_external_id: m.id,
+        comment_external_id: stubId,
+        text: null,
+        status: 'handled',
+        is_ignored: true
+      }, { onConflict: "connection_id,platform,comment_external_id" });
+
       try {
         const cs = platform === "instagram"
           ? await fetchInstagramComments(m.id, conn.access_token)
