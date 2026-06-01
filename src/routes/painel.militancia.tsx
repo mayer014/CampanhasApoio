@@ -24,9 +24,9 @@ type Militant = {
   author_name: string | null;
   platform: string;
   avatar_url: string | null;
-  total_comments: number;
-  total_positive: number;
-  total_negative: number;
+  total_comments: number | null;
+  total_positive: number | null;
+  total_negative: number | null;
   current_badge: string | null;
   last_seen_at: string;
 };
