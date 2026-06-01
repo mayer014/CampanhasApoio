@@ -476,22 +476,6 @@ function RedesSociaisPage() {
             <MetricsPanel />
           )}
 
-          {/* Placeholders */}
-          <div>
-            <h2 className="mb-4 text-lg font-semibold">Em breve</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <PlaceholderCard
-                icon={<MessageSquare className="h-5 w-5" />}
-                title="Central de comentários"
-                description="Responda comentários do Instagram e Facebook direto do painel, com sugestões prontas."
-              />
-              <PlaceholderCard
-                icon={<Sparkles className="h-5 w-5" />}
-                title="Sentimento com IA"
-                description="Classificação automática de comentários em positivo, neutro e negativo — com resumo executivo."
-              />
-            </div>
-          </div>
         </TabsContent>
 
         <TabsContent value="config">
