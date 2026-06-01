@@ -10,7 +10,7 @@ import { TemplateCanvas } from "@/components/template-canvas";
 import { downloadCanvas, renderTemplate, type PhotoState, type TemplateData } from "@/lib/template-renderer";
 import { compressImage } from "@/lib/image-compress";
 import { toast } from "sonner";
-import { Camera, Download, Upload } from "lucide-react";
+import { Rocket, Download, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/p/$slug")({
   component: PublicPage,
@@ -117,7 +117,7 @@ function PublicPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto flex items-center gap-2 px-6 py-4">
-          <Camera className="h-5 w-5 text-primary" />
+          <Rocket className="h-5 w-5 text-primary" />
           <span className="font-semibold">{candidate.full_name}</span>
         </div>
       </header>
@@ -160,8 +160,8 @@ function Intro({ candidate, template, onStart, alreadyRegistered }: { candidate:
         <h1 className="text-4xl font-bold">Apoie {candidate.full_name}</h1>
         <p className="mt-3 text-lg text-muted-foreground">
           {alreadyRegistered
-            ? "Bem-vindo de volta! Você já está cadastrado. Escolha uma nova foto e atualize seu WhatsApp."
-            : "Coloque a foto da campanha no seu WhatsApp em segundos. É grátis e leva 30 segundos."}
+            ? "Bem-vindo de volta! Você já está cadastrado. Escolha uma nova foto e apoie a campanha."
+            : "Mostre seu apoio! Personalize sua foto e compartilhe nas redes."}
         </p>
         <Button size="lg" className="mt-6" onClick={onStart}>
           {alreadyRegistered ? "Trocar minha foto" : "Quero minha foto"}
