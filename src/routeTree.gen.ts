@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
 import { Route as PainelRouteImport } from './routes/painel'
+import { Route as MissoesIaRouteImport } from './routes/missoes-ia'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DisparosRouteImport } from './routes/disparos'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as BootstrapRouteImport } from './routes/bootstrap'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -53,9 +55,19 @@ const PainelRoute = PainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MissoesIaRoute = MissoesIaRouteImport.update({
+  id: '/missoes-ia',
+  path: '/missoes-ia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DisparosRoute = DisparosRouteImport.update({
+  id: '/disparos',
+  path: '/disparos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CadastroRoute = CadastroRouteImport.update({
@@ -188,7 +200,9 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/bootstrap': typeof BootstrapRoute
   '/cadastro': typeof CadastroRoute
+  '/disparos': typeof DisparosRoute
   '/login': typeof LoginRoute
+  '/missoes-ia': typeof MissoesIaRoute
   '/painel': typeof PainelRouteWithChildren
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -217,7 +231,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bootstrap': typeof BootstrapRoute
   '/cadastro': typeof CadastroRoute
+  '/disparos': typeof DisparosRoute
   '/login': typeof LoginRoute
+  '/missoes-ia': typeof MissoesIaRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
@@ -247,7 +263,9 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/bootstrap': typeof BootstrapRoute
   '/cadastro': typeof CadastroRoute
+  '/disparos': typeof DisparosRoute
   '/login': typeof LoginRoute
+  '/missoes-ia': typeof MissoesIaRoute
   '/painel': typeof PainelRouteWithChildren
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -279,7 +297,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/bootstrap'
     | '/cadastro'
+    | '/disparos'
     | '/login'
+    | '/missoes-ia'
     | '/painel'
     | '/politica-de-privacidade'
     | '/termos-de-uso'
@@ -308,7 +328,9 @@ export interface FileRouteTypes {
     | '/'
     | '/bootstrap'
     | '/cadastro'
+    | '/disparos'
     | '/login'
+    | '/missoes-ia'
     | '/politica-de-privacidade'
     | '/termos-de-uso'
     | '/admin/configuracoes'
@@ -337,7 +359,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/bootstrap'
     | '/cadastro'
+    | '/disparos'
     | '/login'
+    | '/missoes-ia'
     | '/painel'
     | '/politica-de-privacidade'
     | '/termos-de-uso'
@@ -368,7 +392,9 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   BootstrapRoute: typeof BootstrapRoute
   CadastroRoute: typeof CadastroRoute
+  DisparosRoute: typeof DisparosRoute
   LoginRoute: typeof LoginRoute
+  MissoesIaRoute: typeof MissoesIaRoute
   PainelRoute: typeof PainelRouteWithChildren
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
@@ -402,11 +428,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/missoes-ia': {
+      id: '/missoes-ia'
+      path: '/missoes-ia'
+      fullPath: '/missoes-ia'
+      preLoaderRoute: typeof MissoesIaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/disparos': {
+      id: '/disparos'
+      path: '/disparos'
+      fullPath: '/disparos'
+      preLoaderRoute: typeof DisparosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cadastro': {
@@ -632,7 +672,9 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   BootstrapRoute: BootstrapRoute,
   CadastroRoute: CadastroRoute,
+  DisparosRoute: DisparosRoute,
   LoginRoute: LoginRoute,
+  MissoesIaRoute: MissoesIaRoute,
   PainelRoute: PainelRouteWithChildren,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,

@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Rocket, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu, MessageCircle, Share2 } from "lucide-react";
+import { Rocket, LayoutDashboard, Image as ImageIcon, Users, LogOut, Link2, Menu, MessageCircle, Share2, Sparkles, Send } from "lucide-react";
 
 export const Route = createFileRoute("/painel")({
   component: PainelLayout,
@@ -38,6 +38,8 @@ function PainelLayout() {
     { to: "/painel/leads", label: "Eleitores", icon: Users },
     { to: "/painel/whatsapp", label: "WhatsApp", icon: MessageCircle },
     { to: "/painel/redes-sociais", label: "Redes Sociais", icon: Share2 },
+    { to: "/missoes-ia", label: "Missões IA", icon: Sparkles },
+    { to: "/disparos", label: "Disparos WhatsApp", icon: Send },
     { to: "/painel/militancia", label: "Militância Digital", icon: Users },
   ];
 
