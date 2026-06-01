@@ -48,6 +48,11 @@ function MilitanciaPage() {
   const [loading, setLoading] = useState(true);
   const [militants, setMilitants] = useState<Militant[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  
+  const syncFn = useServerFn(syncMilitants);
+  const generateMissionsFn = useServerFn(generateAIMissions);
 
   useEffect(() => {
     if (user?.id) load();
