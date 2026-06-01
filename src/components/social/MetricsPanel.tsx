@@ -200,7 +200,7 @@ export function MetricsPanel() {
                   <AlertTriangle className="h-3.5 w-3.5" /> Alguns dados não puderam ser obtidos
                 </p>
                 <ul className="list-disc space-y-0.5 pl-5 text-muted-foreground">
-                  {query.data.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                  {(query.data.warnings || []).map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
               </div>
             )}
