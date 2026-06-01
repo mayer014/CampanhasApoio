@@ -113,16 +113,37 @@ function DisparosPage() {
     enabled: !!clientId
   });
 
+  const uploadMedia = async (file: File) => {
+    if (!clientId) return;
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx 8MB)");
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${clientId}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("whatsapp-media").upload(path, file);
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("whatsapp-media").getPublicUrl(path);
+      setMediaUrl(publicUrl);
+    } catch (error) {
+      toast.error("Erro no upload");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const validateMessage = () => {
     const missing = [];
+    
+    // Check for common variables
     if (!message.includes("{nome}") && !message.includes("Apoiador(a)")) {
-      // {nome} is a common variable, but "Apoiador(a)" is our static fallback in the mission template
-      // Let's just check if it's very short
-      if (message.length < 10) missing.push("mensagem muito curta");
+      // For mission templates, we use "Apoiador(a)" by default, but let's notify if it's missing personal variables
     }
     
     // Check if it's a mission dispatch but missing the URL
-    if (message.includes("missão") && !message.includes("http")) {
+    if (message.toLowerCase().includes("missão") && !message.includes("http")) {
       missing.push("Link do post (URL)");
     }
 
@@ -136,6 +157,7 @@ function DisparosPage() {
     const missingVariables = validateMessage();
     if (missingVariables.length > 0) {
       toast.warning(`Atenção: ${missingVariables.join(", ")} ausente na mensagem.`);
+      // We don't block, just warn as it might be intentional
     }
 
     try {
