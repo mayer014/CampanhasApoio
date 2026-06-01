@@ -233,7 +233,7 @@ export function MetricsPanel() {
                   <div>
                     <p className="mb-2 text-xs font-medium text-muted-foreground">Top 5 posts por engajamento</p>
                     <div className="grid gap-2">
-                      {query.data.instagram.top_posts.map((p) => <TopPostRow key={p.id} post={p} />)}
+                      {(query.data.instagram.top_posts || []).map((p) => <TopPostRow key={p.id} post={p} />)}
                     </div>
                   </div>
                 )}
