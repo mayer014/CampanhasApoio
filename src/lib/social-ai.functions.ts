@@ -341,7 +341,7 @@ export const correctSentiment = createServerFn({ method: "POST" })
     // Registra a correção para o few-shot
     await supabase.from("sentiment_corrections").insert({
       user_id: userId,
-      comment_text: c.text,
+      comment_text: c.text ?? '',
       post_message: post?.caption,
       sentiment_ai: c.sentiment,
       sentiment_human: data.humanSentiment,
