@@ -19,7 +19,7 @@ async function getActiveAISetting(userId: string, supabaseClient?: any) {
 
     const { data } = await client
       .from('ai_settings')
-      .select('provider, model_name, api_key')
+      .select('provider, model_name, api_key, system_instruction')
       .eq('user_id', userId)
       .eq('is_active', true)
       .maybeSingle();
