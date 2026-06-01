@@ -84,8 +84,8 @@ function PainelLayout() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b bg-background/95 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex items-center gap-2">
-            <Camera className="h-5 w-5 text-primary" />
-            <span className="text-sm font-bold">Foto de Campanha</span>
+            <Rocket className="h-5 w-5 text-primary" />
+            <span className="text-sm font-bold">Minha Campanha</span>
           </div>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
