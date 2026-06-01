@@ -183,8 +183,19 @@ function PainelHome() {
         </Card>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-xl font-bold">
+          <Share2 className="h-5 w-5 text-primary" />
+          <h2>Métricas Sociais</h2>
+        </div>
+        <MetricsPanel />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-xl font-bold">
+          <Users className="h-5 w-5 text-primary" />
+          <h2>Engajamento de Eleitores</h2>
+        </div>
         <Card className="p-4 sm:p-6">
           <h3 className="font-semibold">Eleitores por bairro</h3>
           <p className="text-xs text-muted-foreground">Top 8 bairros</p>
