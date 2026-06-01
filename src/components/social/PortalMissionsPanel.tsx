@@ -76,7 +76,10 @@ export function PortalMissionsPanel({ clientId }: { clientId: string }) {
             client_id: clientId,
             title: payload.title!,
             platform: payload.platform!,
-            post_url: payload.post_url!,
+            post_url: payload.post_url,
+            fb_post_url: payload.fb_post_url,
+            ig_post_url: payload.ig_post_url,
+            whatsapp_template: payload.whatsapp_template,
             description: payload.description,
             is_active: payload.is_active,
             display_order: payload.display_order ?? 0
