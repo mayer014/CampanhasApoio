@@ -338,8 +338,14 @@ function DisparosPage() {
               </Button>
             )}
           </Card>
-        </div>
       </div>
+
+      <DispatchLogDialog 
+        dispatchId={selectedDispatchId} 
+        open={!!selectedDispatchId} 
+        onOpenChange={(open) => !open && setSelectedDispatchId(null)} 
+      />
+    </div>
     </div>
   );
 }
