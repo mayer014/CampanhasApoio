@@ -387,7 +387,7 @@ function DisparosPage() {
             </div>
             {missions && missions.length > 0 && (
               <Button variant="ghost" className="w-full mt-4 text-xs h-8" asChild>
-                <a href="/missoes-ia">Gerenciar Missões</a>
+                <Link to="/painel/missoes-ia">Gerenciar Missões</Link>
               </Button>
             )}
           </Card>
