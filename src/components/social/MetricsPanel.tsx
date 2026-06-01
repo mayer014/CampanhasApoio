@@ -229,7 +229,7 @@ export function MetricsPanel() {
                     <SeriesChart data={query.data.instagram.impressions_series} color="#4f5bd5" label="Impressões" />
                   </div>
                 </div>
-                {query.data.instagram.top_posts.length > 0 && (
+                {(query.data.instagram.top_posts || []).length > 0 && (
                   <div>
                     <p className="mb-2 text-xs font-medium text-muted-foreground">Top 5 posts por engajamento</p>
                     <div className="grid gap-2">
