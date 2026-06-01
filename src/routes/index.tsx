@@ -56,9 +56,9 @@ function Index() {
         <div className="container mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="rounded-lg bg-primary/10 p-1.5">
-              <Camera className="h-5 w-5 text-primary" />
+              <Rocket className="h-5 w-5 text-primary" />
             </div>
-            <span className="text-lg font-bold">Foto de Campanha</span>
+            <span className="text-lg font-bold">Minha Campanha</span>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/login">
@@ -66,7 +66,7 @@ function Index() {
             </Link>
             <Link to="/cadastro">
               <Button size="sm" className="shadow-lg shadow-primary/20">
-                Comece grátis <ArrowRight className="ml-1 h-4 w-4" />
+                Criar conta <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -74,7 +74,7 @@ function Index() {
       </header>
 
       <main>
-        {/* HERO com gradiente animado */}
+        {/* HERO com foco em Inteligência */}
         <section className="relative overflow-hidden">
           {/* glow de fundo */}
           <div className="pointer-events-none absolute inset-0 -z-10">
@@ -83,35 +83,30 @@ function Index() {
           </div>
 
           <div className="container mx-auto px-6 pt-20 pb-16 text-center">
-            {/* Badge de urgência */}
+            {/* Badge de Inteligência */}
             <div
               className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary opacity-0"
               style={{ animation: "fade-in 0.6s ease-out 0.05s forwards" }}
             >
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              Eleições 2026 — quem larga na frente, ganha
+              <BrainCircuit className="h-3.5 w-3.5" />
+              Inteligência Artificial & Gestão Digital de Dados
             </div>
 
             <h1
               className="mx-auto max-w-4xl text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl opacity-0"
               style={{ animation: "fade-in 0.7s ease-out 0.15s forwards" }}
             >
-              Sua campanha em{" "}
+              Vença sua eleição com{" "}
               <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                cada WhatsApp
-              </span>{" "}
-              da sua cidade
+                Inteligência de Dados
+              </span>
             </h1>
 
             <p
               className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl opacity-0"
               style={{ animation: "fade-in 0.7s ease-out 0.3s forwards" }}
             >
-              Cada apoiador que troca a foto do perfil vira um <strong className="text-foreground">outdoor ambulante</strong> visto
-              por centenas de contatos — sem você gastar 1 real em mídia paga.
+              O hub completo para o político moderno. Analise o sentimento das redes, mobilize sua militância e automatize o relacionamento no WhatsApp com o poder da IA.
             </p>
 
             <div
