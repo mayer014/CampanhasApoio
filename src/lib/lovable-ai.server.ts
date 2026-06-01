@@ -55,6 +55,7 @@ export type ToolDef = {
 };
 
 export async function chatCompletion(opts: {
+  userId: string;
   messages: ChatMessage[];
   model?: string;
   tools?: ToolDef[];
