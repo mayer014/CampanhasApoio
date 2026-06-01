@@ -136,6 +136,7 @@ export const analyzeSocialComments = createServerFn({ method: "POST" })
       try {
         const { toolArgs } = await chatCompletion({
           userId: userId,
+          supabaseClient: supabase,
           messages: [
             {
               role: "system",
