@@ -74,6 +74,33 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_users: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          platform_user_id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform: string
+          platform_user_id: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          platform_user_id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       candidate_profiles: {
         Row: {
           city: string | null
@@ -122,6 +149,214 @@ export type Database = {
           trial_limit?: number
           unblocked_at?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      comment_actions_log: {
+        Row: {
+          action: string
+          comment_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          comment_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          comment_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_actions_log_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "social_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engagement_config: {
+        Row: {
+          comment_points: number | null
+          created_at: string
+          id: string
+          inactivity_days: number | null
+          like_points: number | null
+          reaction_points: number | null
+          share_points: number | null
+          user_id: string
+        }
+        Insert: {
+          comment_points?: number | null
+          created_at?: string
+          id?: string
+          inactivity_days?: number | null
+          like_points?: number | null
+          reaction_points?: number | null
+          share_points?: number | null
+          user_id: string
+        }
+        Update: {
+          comment_points?: number | null
+          created_at?: string
+          id?: string
+          inactivity_days?: number | null
+          like_points?: number | null
+          reaction_points?: number | null
+          share_points?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      engagement_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          external_id: string | null
+          id: string
+          platform: string
+          platform_user_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          external_id?: string | null
+          id?: string
+          platform: string
+          platform_user_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          external_id?: string | null
+          id?: string
+          platform?: string
+          platform_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      engagement_scores: {
+        Row: {
+          author_name: string | null
+          avatar_url: string | null
+          id: string
+          last_interaction_at: string | null
+          platform: string
+          platform_user_id: string
+          score: number | null
+          total_comments: number | null
+          total_likes: number | null
+          total_shares: number | null
+          user_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          avatar_url?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          platform: string
+          platform_user_id: string
+          score?: number | null
+          total_comments?: number | null
+          total_likes?: number | null
+          total_shares?: number | null
+          user_id: string
+        }
+        Update: {
+          author_name?: string | null
+          avatar_url?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          platform?: string
+          platform_user_id?: string
+          score?: number | null
+          total_comments?: number | null
+          total_likes?: number | null
+          total_shares?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mission_executions: {
+        Row: {
+          executed_at: string
+          id: string
+          mission_id: string | null
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          executed_at?: string
+          id?: string
+          mission_id?: string | null
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          executed_at?: string
+          id?: string
+          mission_id?: string | null
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_executions_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missions: {
+        Row: {
+          ai_reason: string | null
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          priority: string | null
+          status: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          ai_reason?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          status?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          ai_reason?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          status?: string | null
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -197,6 +432,90 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_contacts: {
+        Row: {
+          author_name: string | null
+          created_at: string
+          id: string
+          phone: string | null
+          platform: string
+          platform_handle: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          created_at?: string
+          id?: string
+          phone?: string | null
+          platform: string
+          platform_handle: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string | null
+          created_at?: string
+          id?: string
+          phone?: string | null
+          platform?: string
+          platform_handle?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quick_replies: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sentiment_corrections: {
+        Row: {
+          comment_text: string
+          created_at: string
+          id: string
+          post_message: string | null
+          sentiment_ai: Database["public"]["Enums"]["social_sentiment"] | null
+          sentiment_human: Database["public"]["Enums"]["social_sentiment"]
+          user_id: string
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string
+          id?: string
+          post_message?: string | null
+          sentiment_ai?: Database["public"]["Enums"]["social_sentiment"] | null
+          sentiment_human: Database["public"]["Enums"]["social_sentiment"]
+          user_id: string
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string
+          id?: string
+          post_message?: string | null
+          sentiment_ai?: Database["public"]["Enums"]["social_sentiment"] | null
+          sentiment_human?: Database["public"]["Enums"]["social_sentiment"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_comments: {
         Row: {
           ai_processed_at: string | null
@@ -207,6 +526,8 @@ export type Database = {
           created_at: string
           emotion: string | null
           id: string
+          is_ignored: boolean | null
+          needs_review: boolean | null
           parent_comment_external_id: string | null
           platform: string
           post_external_id: string
@@ -216,6 +537,9 @@ export type Database = {
           replied_external_id: string | null
           reply_text: string | null
           sentiment: Database["public"]["Enums"]["social_sentiment"] | null
+          sentiment_confidence: number | null
+          sentiment_reason: string | null
+          sentiment_source: string | null
           status: Database["public"]["Enums"]["social_comment_status"]
           text: string | null
           topics: string[]
@@ -231,6 +555,8 @@ export type Database = {
           created_at?: string
           emotion?: string | null
           id?: string
+          is_ignored?: boolean | null
+          needs_review?: boolean | null
           parent_comment_external_id?: string | null
           platform: string
           post_external_id: string
@@ -240,6 +566,9 @@ export type Database = {
           replied_external_id?: string | null
           reply_text?: string | null
           sentiment?: Database["public"]["Enums"]["social_sentiment"] | null
+          sentiment_confidence?: number | null
+          sentiment_reason?: string | null
+          sentiment_source?: string | null
           status?: Database["public"]["Enums"]["social_comment_status"]
           text?: string | null
           topics?: string[]
@@ -255,6 +584,8 @@ export type Database = {
           created_at?: string
           emotion?: string | null
           id?: string
+          is_ignored?: boolean | null
+          needs_review?: boolean | null
           parent_comment_external_id?: string | null
           platform?: string
           post_external_id?: string
@@ -264,6 +595,9 @@ export type Database = {
           replied_external_id?: string | null
           reply_text?: string | null
           sentiment?: Database["public"]["Enums"]["social_sentiment"] | null
+          sentiment_confidence?: number | null
+          sentiment_reason?: string | null
+          sentiment_source?: string | null
           status?: Database["public"]["Enums"]["social_comment_status"]
           text?: string | null
           topics?: string[]
@@ -366,6 +700,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      social_militants: {
+        Row: {
+          author_name: string | null
+          avatar_url: string | null
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          notes: string | null
+          platform: string
+          platform_user_id: string
+          promoted_to_supporter_id: string | null
+          total_30d_negative: number | null
+          total_30d_positive: number | null
+          total_comments: number | null
+          total_negative: number | null
+          total_neutral: number | null
+          total_positive: number | null
+          user_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          avatar_url?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          notes?: string | null
+          platform: string
+          platform_user_id: string
+          promoted_to_supporter_id?: string | null
+          total_30d_negative?: number | null
+          total_30d_positive?: number | null
+          total_comments?: number | null
+          total_negative?: number | null
+          total_neutral?: number | null
+          total_positive?: number | null
+          user_id: string
+        }
+        Update: {
+          author_name?: string | null
+          avatar_url?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          notes?: string | null
+          platform?: string
+          platform_user_id?: string
+          promoted_to_supporter_id?: string | null
+          total_30d_negative?: number | null
+          total_30d_positive?: number | null
+          total_comments?: number | null
+          total_negative?: number | null
+          total_neutral?: number | null
+          total_positive?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       social_posts_cache: {
         Row: {
