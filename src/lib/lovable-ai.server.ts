@@ -3,7 +3,7 @@
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-async function getActiveAISetting() {
+async function getActiveAISetting(userId: string) {
   // Nota: como este arquivo é usado apenas em Server Functions,
   // process.env está disponível, mas aqui usaremos o admin client
   // para buscar a configuração ativa do banco.
@@ -17,6 +17,7 @@ async function getActiveAISetting() {
   const { data } = await supabase
     .from('ai_settings')
     .select('provider, model_name, api_key')
+    .eq('user_id', userId)
     .eq('is_active', true)
     .maybeSingle();
 
@@ -54,6 +55,7 @@ export type ToolDef = {
 };
 
 export async function chatCompletion(opts: {
+  userId: string;
   messages: ChatMessage[];
   model?: string;
   tools?: ToolDef[];
@@ -66,7 +68,7 @@ export async function chatCompletion(opts: {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new LovableAIError("LOVABLE_API_KEY não configurada", 500);
 
-  const activeSetting = await getActiveAISetting();
+  const activeSetting = await getActiveAISetting(opts.userId);
   
   let url = GATEWAY_URL;
   let authHeader = `Bearer ${process.env.LOVABLE_API_KEY}`;

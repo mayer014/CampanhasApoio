@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { BrainCircuit, Save, Trash2, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { BrainCircuit, Save, Trash2, CheckCircle2, AlertTriangle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 type AIProvider = 'lovable' | 'openrouter' | 'openai' | 'anthropic' | 'groq';
 
@@ -17,6 +18,7 @@ type AISetting = {
   model_name: string;
   api_key: string;
   is_active: boolean;
+  user_id: string;
 };
 
 const PROVIDERS: { value: AIProvider; label: string; description: string }[] = [
@@ -27,7 +29,10 @@ const PROVIDERS: { value: AIProvider; label: string; description: string }[] = [
   { value: 'groq', label: 'Groq Cloud', description: 'Llama 3 e Mixtral em alta velocidade (grátis/barato)' },
 ];
 
-export function AISettings() {
+export function AISettings({ targetUserId }: { targetUserId?: string }) {
+  const { user: currentUser } = useAuth();
+  const effectiveUserId = targetUserId || currentUser?.id;
+
   const [settings, setSettings] = useState<AISetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -44,14 +49,16 @@ export function AISettings() {
   });
 
   useEffect(() => {
-    load();
-  }, []);
+    if (effectiveUserId) load();
+  }, [effectiveUserId]);
 
   async function load() {
+    if (!effectiveUserId) return;
     setLoading(true);
     const { data, error } = await supabase
-      .from('ai_settings' as any)
+      .from('ai_settings')
       .select('*')
+      .eq('user_id', effectiveUserId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -63,13 +70,15 @@ export function AISettings() {
   }
 
   async function handleAdd() {
+    if (!effectiveUserId) return;
     if (!form.model_name || !form.api_key) {
       toast.error("Preencha todos os campos");
       return;
     }
 
     setBusy(true);
-    const { error } = await supabase.from('ai_settings' as any).insert({
+    const { error } = await supabase.from('ai_settings').insert({
+      user_id: effectiveUserId,
       provider: form.provider,
       model_name: form.model_name,
       api_key: form.api_key,
@@ -87,13 +96,20 @@ export function AISettings() {
   }
 
   async function handleToggleActive(id: string, currentlyActive: boolean) {
-    if (currentlyActive) return; // já está ativo
+    if (currentlyActive || !effectiveUserId) return;
 
     setBusy(true);
-    // Primeiro desativa todos
-    await supabase.from('ai_settings' as any).update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+    // Primeiro desativa todos deste usuário
+    await supabase
+      .from('ai_settings')
+      .update({ is_active: false })
+      .eq('user_id', effectiveUserId);
+      
     // Depois ativa o escolhido
-    const { error } = await supabase.from('ai_settings' as any).update({ is_active: true }).eq('id', id);
+    const { error } = await supabase
+      .from('ai_settings')
+      .update({ is_active: true })
+      .eq('id', id);
 
     setBusy(false);
     if (error) toast.error(error.message);
@@ -106,13 +122,17 @@ export function AISettings() {
   async function handleDelete(id: string) {
     if (!confirm("Excluir esta configuração?")) return;
     setBusy(true);
-    const { error } = await supabase.from('ai_settings' as any).delete().eq('id', id);
+    const { error } = await supabase.from('ai_settings').delete().eq('id', id);
     setBusy(false);
     if (error) toast.error(error.message);
     else {
       toast.success("Removido");
       load();
     }
+  }
+
+  if (!effectiveUserId && !loading) {
+    return <div className="p-4 text-center text-muted-foreground">Usuário não identificado</div>;
   }
 
   return (
@@ -126,7 +146,7 @@ export function AISettings() {
             <div>
               <CardTitle>Configuração de LLM (IA)</CardTitle>
               <CardDescription>
-                Defina qual inteligência artificial o sistema deve usar para análise de sentimento, respostas automáticas e sugestões.
+                Defina qual inteligência artificial deve ser usada para análise de sentimento, respostas automáticas e sugestões.
               </CardDescription>
             </div>
           </div>
@@ -170,7 +190,8 @@ export function AISettings() {
             </div>
           </div>
           <Button onClick={handleAdd} disabled={busy} className="w-full sm:w-auto">
-            <Save className="mr-2 h-4 w-4" /> Adicionar Provedor
+            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Salvar Provedor
           </Button>
 
           <div className="mt-8 space-y-4">
@@ -201,7 +222,7 @@ export function AISettings() {
                         <div className="flex items-center gap-2">
                           <span className="font-bold uppercase">{s.provider}</span>
                           <Badge variant="outline">{s.model_name}</Badge>
-                          {s.is_active && <Badge className="bg-emerald-500 hover:bg-emerald-600">Ativo</Badge>}
+                          {s.is_active && <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Ativo</Badge>}
                         </div>
                         <div className="mt-1 flex items-center gap-2 font-mono text-xs text-muted-foreground">
                           {showKey[s.id] ? s.api_key : '••••••••••••••••'}
@@ -250,10 +271,10 @@ export function AISettings() {
             <div className="text-sm text-amber-800 dark:text-amber-200">
               <p className="font-bold">Dicas de uso:</p>
               <ul className="mt-2 list-inside list-disc space-y-1 opacity-90">
+                <li><strong>Configuração por Cliente:</strong> Cada candidato pode configurar sua própria chave. Se você é admin e está vendo esta tela no perfil de um cliente, você está configurando a IA <strong>para ele</strong>.</li>
                 <li><strong>Groq Cloud:</strong> Ideal para velocidade instantânea. Use os modelos <code>llama-3.1-70b-versatile</code> ou <code>mixtral-8x7b-32768</code>.</li>
-                <li><strong>OpenAI:</strong> O modelo <code>gpt-4o-mini</code> é extremamente barato e inteligente para a maioria das tarefas.</li>
-                <li><strong>Anthropic:</strong> Use o <code>claude-3-5-sonnet-20240620</code> para tarefas que exigem o máximo de qualidade gramatical e nuance.</li>
-                <li><strong>Fallback:</strong> Se nenhum provedor estiver ativo, o sistema tentará usar o <code>Lovable Gateway</code> (precisa de créditos no workspace).</li>
+                <li><strong>OpenAI:</strong> O modelo <code>gpt-4o-mini</code> é extremamente barato e inteligente.</li>
+                <li><strong>Fallback:</strong> Se nenhum provedor estiver ativo, o sistema usará o Lovable Gateway padrão.</li>
               </ul>
             </div>
           </div>

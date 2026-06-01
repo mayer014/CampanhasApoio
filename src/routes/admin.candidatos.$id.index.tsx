@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, BrainCircuit } from "lucide-react";
+import { AISettings } from "@/components/admin/AISettings";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -100,6 +101,9 @@ function CandidateDetail() {
           <TabsTrigger value="templates">Templates ({tpls.length})</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="leads">Eleitores ({leads.length})</TabsTrigger>
+          <TabsTrigger value="ia">
+            <BrainCircuit className="mr-1.5 h-3.5 w-3.5" /> IA
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados">
@@ -182,6 +186,10 @@ function CandidateDetail() {
               {leads.length === 0 && <div className="p-6 text-center text-muted-foreground">Nenhum eleitor ainda</div>}
             </div>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="ia">
+          <AISettings targetUserId={id} />
         </TabsContent>
       </Tabs>
 
