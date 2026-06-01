@@ -27,14 +27,21 @@ export type SocialCommentRow = {
   comment_external_id: string;
   parent_comment_external_id: string | null;
   author_name: string | null;
+  author_id: string | null;
   text: string | null;
   posted_at: string | null;
   status: CommentStatus;
   reply_text: string | null;
   replied_at: string | null;
   sentiment: "positive" | "neutral" | "negative" | null;
+  sentiment_source: 'ai' | 'human' | null;
+  sentiment_confidence: number | null;
+  sentiment_reason: string | null;
+  needs_review: boolean;
   emotion: string | null;
   topics: string[] | null;
+  is_ignored: boolean;
+  militant_badge?: string | null;
   post?: {
     caption: string | null;
     thumbnail_url: string | null;
