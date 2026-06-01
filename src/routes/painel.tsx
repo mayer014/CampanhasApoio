@@ -66,8 +66,8 @@ function PainelLayout() {
     <div className="flex h-screen overflow-hidden bg-background">
       <aside className="hidden w-64 flex-col bg-sidebar text-sidebar-foreground md:flex">
         <div className="flex items-center gap-2 px-6 py-6">
-          <Camera className="h-6 w-6 text-sidebar-primary" />
-          <span className="font-bold">Foto de Campanha</span>
+          <Rocket className="h-6 w-6 text-sidebar-primary" />
+          <span className="font-bold">Minha Campanha</span>
         </div>
         
         <div className="px-3 pb-3">
