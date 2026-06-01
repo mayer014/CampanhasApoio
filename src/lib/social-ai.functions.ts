@@ -425,6 +425,68 @@ export const syncMilitants = createServerFn({ method: "POST" })
     return { count: militantMap.size };
   });
 
+export const generateAIMissions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    // 1. Busca contexto: últimos sentimentos e top militantes
+    const [ { data: summary }, { data: militants } ] = await Promise.all([
+      supabase.from("social_comments").select("sentiment, text").eq("user_id", userId).limit(50),
+      supabase.from("social_militants").select("author_name, total_positive").eq("user_id", userId).order("total_positive", { ascending: false }).limit(5)
+    ]);
+
+    const sentimentCounts = {
+      positive: summary?.filter(s => s.sentiment === 'positive').length || 0,
+      negative: summary?.filter(s => s.sentiment === 'negative').length || 0,
+      neutral: summary?.filter(s => s.sentiment === 'neutral').length || 0
+    };
+
+    const systemPrompt = `Você é um estrategista digital político. Sua tarefa é criar MISSÕES para a militância digital.
+Baseie-se no clima atual dos comentários e nos principais apoiadores.
+
+ESTATÍSTICAS ATUAIS:
+- Apoios: ${sentimentCounts.positive}
+- Críticas: ${sentimentCounts.negative}
+- Neutros: ${sentimentCounts.neutral}
+
+TOP MILITANTES:
+${(militants || []).map(m => `- ${m.author_name} (${m.total_positive} interações positivas)`).join("\n")}
+
+Gere 3 missões estratégicas curtas.
+Responda APENAS um JSON no formato:
+[
+  { "title": "Título da Missão", "description": "O que deve ser feito", "priority": "high/medium/low" }
+]`;
+
+    try {
+      const { content } = await chatCompletion({
+        userId,
+        supabaseClient: supabase,
+        messages: [{ role: "system", content: systemPrompt }],
+        temperature: 0.8
+      });
+
+      const missions = JSON.parse(content || "[]");
+      
+      // Salva no banco
+      for (const m of missions) {
+        await supabase.from("missions").insert({
+          user_id: userId,
+          title: m.title,
+          description: m.description,
+          priority: m.priority,
+          status: 'active'
+        });
+      }
+
+      return { count: missions.length };
+    } catch (e) {
+      console.error("Mission generation error", e);
+      throw new Error("Falha ao gerar missões");
+    }
+  });
+
 // -----------------------------------------------------------------------------
 // GENERATE REPLY: sugere resposta com IA baseada no comentário e orientação
 // -----------------------------------------------------------------------------
