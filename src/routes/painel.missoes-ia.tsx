@@ -27,13 +27,13 @@ function MissoesIA() {
   if (!clientId) return <div className="p-8 text-center">Nenhum cliente vinculado.</div>;
 
   return (
+  return (
     <div className="container mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <Link to="/painel" className="text-xs text-muted-foreground flex items-center gap-1 mb-4 hover:text-primary transition-colors">
-            <ChevronLeft className="h-3 w-3" /> Voltar para o início
-          </Link>
-          <div className="flex items-center gap-3 mb-2">
+      <div className="mb-8">
+        <Link to="/painel" className="text-xs text-muted-foreground flex items-center gap-1 mb-4 hover:text-primary transition-colors">
+          <ChevronLeft className="h-3 w-3" /> Voltar para o início
+        </Link>
+        <div className="flex items-center gap-3 mb-2">
           <div className="bg-primary/10 p-2 rounded-lg">
             <Sparkles className="h-6 w-6 text-primary" />
           </div>
