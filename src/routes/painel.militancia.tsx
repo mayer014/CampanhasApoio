@@ -11,8 +11,11 @@ import {
   Users, Trophy, Target, MessageSquare, 
   TrendingUp, Star, Filter, Search,
   ArrowRight, Heart, Share2, Award,
-  Clock, AlertCircle, Instagram, Facebook
+  Clock, AlertCircle, Instagram, Facebook,
+  RefreshCw, Sparkles, Loader2
 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { syncMilitants, generateAIMissions } from "@/lib/social-ai.functions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/painel/militancia")({
