@@ -29,6 +29,33 @@ const PROVIDERS: { value: AIProvider; label: string; description: string }[] = [
   { value: 'groq', label: 'Groq Cloud', description: 'Llama 3 e Mixtral em alta velocidade (grátis/barato)' },
 ];
 
+const MODELS: Record<AIProvider, { label: string; value: string }[]> = {
+  lovable: [
+    { label: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite' },
+    { label: 'Gemini 2.5 Flash', value: 'google/gemini-2.5-flash' },
+  ],
+  openai: [
+    { label: 'GPT-4o Mini', value: 'gpt-4o-mini' },
+    { label: 'GPT-4o', value: 'gpt-4o' },
+    { label: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
+  ],
+  anthropic: [
+    { label: 'Claude 3.5 Sonnet', value: 'claude-3-5-sonnet-20240620' },
+    { label: 'Claude 3.5 Haiku', value: 'claude-3-5-haiku-20241022' },
+    { label: 'Claude 3 Opus', value: 'claude-3-opus-20240229' },
+  ],
+  groq: [
+    { label: 'Llama 3.1 70B', value: 'llama-3.1-70b-versatile' },
+    { label: 'Llama 3.1 8B', value: 'llama-3.1-8b-instant' },
+    { label: 'Mixtral 8x7B', value: 'mixtral-8x7b-32768' },
+  ],
+  openrouter: [
+    { label: 'Auto (Best for cost)', value: 'openrouter/auto' },
+    { label: 'Claude 3.5 Sonnet (via OR)', value: 'anthropic/claude-3.5-sonnet' },
+    { label: 'GPT-4o (via OR)', value: 'openai/gpt-4o' },
+  ],
+};
+
 export function AISettings({ targetUserId }: { targetUserId?: string }) {
   const { user: currentUser } = useAuth();
   const effectiveUserId = targetUserId || currentUser?.id;
@@ -131,6 +158,14 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
     }
   }
 
+  const handleProviderChange = (v: AIProvider) => {
+    setForm({
+      ...form,
+      provider: v,
+      model_name: MODELS[v][0]?.value || '',
+    });
+  };
+
   if (!effectiveUserId && !loading) {
     return <div className="p-4 text-center text-muted-foreground">Usuário não identificado</div>;
   }
@@ -157,7 +192,7 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
               <Label>Provedor</Label>
               <Select
                 value={form.provider}
-                onValueChange={(v) => setForm({ ...form, provider: v as AIProvider })}
+                onValueChange={(v) => handleProviderChange(v as AIProvider)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -173,11 +208,21 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
             </div>
             <div className="space-y-2">
               <Label>Nome do Modelo</Label>
-              <Input
-                placeholder="ex: gpt-4o-mini, claude-3-5-sonnet, llama-3-70b"
+              <Select
                 value={form.model_name}
-                onChange={(e) => setForm({ ...form, model_name: e.target.value })}
-              />
+                onValueChange={(v) => setForm({ ...form, model_name: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MODELS[form.provider].map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>API Key</Label>
