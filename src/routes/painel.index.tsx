@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Users, Calendar, Copy, MessageCircle, Sparkles } from "lucide-react";
+import { Image as ImageIcon, Users, Calendar, Copy, MessageCircle, Sparkles, Share2 } from "lucide-react";
+import { MetricsPanel } from "@/components/social/MetricsPanel";
 import { toast } from "sonner";
 import {
   ResponsiveContainer,
@@ -182,11 +183,22 @@ function PainelHome() {
         </Card>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-4 sm:p-6">
-          <h3 className="font-semibold">Eleitores por bairro</h3>
-          <p className="text-xs text-muted-foreground">Top 8 bairros</p>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-xl font-bold">
+          <Share2 className="h-5 w-5 text-primary" />
+          <h2>Métricas Sociais</h2>
+        </div>
+        <MetricsPanel />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-xl font-bold">
+          <Users className="h-5 w-5 text-primary" />
+          <h2>Engajamento de Eleitores</h2>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="p-4 sm:p-6">
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">Eleitores por bairro (Top 8)</h3>
           <div className="mt-4 h-64">
             {byNeighborhood.length === 0 ? (
               <EmptyChart />
@@ -207,7 +219,7 @@ function PainelHome() {
         </Card>
 
         <Card className="p-4 sm:p-6">
-          <h3 className="font-semibold">Cadastros nos últimos 14 dias</h3>
+          <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">Cadastros (Últimos 14 dias)</h3>
           <div className="mt-4 h-64">
             {leads.length === 0 ? (
               <EmptyChart />
@@ -226,7 +238,7 @@ function PainelHome() {
         </Card>
 
         <Card className="p-4 sm:p-6">
-          <h3 className="font-semibold">Fotos geradas por template</h3>
+          <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">Fotos geradas por template</h3>
           <div className="mt-4 h-64">
             {tplData.length === 0 ? (
               <EmptyChart />
@@ -245,7 +257,7 @@ function PainelHome() {
         </Card>
 
         <Card className="p-4 sm:p-6">
-          <h3 className="font-semibold">Top ruas</h3>
+          <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">Top ruas</h3>
           <div className="mt-4 h-64">
             {topStreets.length === 0 ? (
               <EmptyChart />
@@ -262,6 +274,7 @@ function PainelHome() {
             )}
           </div>
         </Card>
+        </div>
       </div>
     </div>
   );
