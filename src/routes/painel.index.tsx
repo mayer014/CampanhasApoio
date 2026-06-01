@@ -256,7 +256,7 @@ function PainelHome() {
         </Card>
 
         <Card className="p-4 sm:p-6">
-          <h3 className="font-semibold">Top ruas</h3>
+          <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">Top ruas</h3>
           <div className="mt-4 h-64">
             {topStreets.length === 0 ? (
               <EmptyChart />
