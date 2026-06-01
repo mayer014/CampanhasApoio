@@ -371,6 +371,60 @@ export const correctSentiment = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const syncMilitants = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    // 1. Agrega dados de social_comments para identificar padrões de apoio
+    const { data: stats, error } = await supabase
+      .from("social_comments")
+      .select("author_id, author_name, sentiment, platform")
+      .eq("user_id", userId)
+      .not("sentiment", "is", null);
+
+    if (error) throw new Error(error.message);
+
+    const militantMap = new Map<string, any>();
+
+    for (const comment of stats) {
+      const key = `${comment.platform}:${comment.author_id}`;
+      if (!militantMap.has(key)) {
+        militantMap.set(key, {
+          user_id: userId,
+          platform: comment.platform,
+          platform_user_id: comment.author_id,
+          author_name: comment.author_name,
+          total_comments: 0,
+          total_positive: 0,
+          total_negative: 0,
+          total_neutral: 0,
+          last_seen_at: new Date().toISOString()
+        });
+      }
+
+      const m = militantMap.get(key);
+      m.total_comments++;
+      if (comment.sentiment === 'positive') m.total_positive++;
+      if (comment.sentiment === 'negative') m.total_negative++;
+      if (comment.sentiment === 'neutral') m.total_neutral++;
+    }
+
+    // 2. Upsert no banco
+    for (const m of militantMap.values()) {
+      // Definir selos (badges) baseados em performance
+      if (m.total_positive >= 10) m.current_badge = "General Digital";
+      else if (m.total_positive >= 5) m.current_badge = "Defensor Ativo";
+      else if (m.total_positive >= 2) m.current_badge = "Apoiador";
+
+      await supabase
+        .from("social_militants")
+        .upsert(m, { onConflict: 'user_id,platform,platform_user_id' });
+    }
+
+    return { count: militantMap.size };
+  });
+
 // -----------------------------------------------------------------------------
 // GENERATE REPLY: sugere resposta com IA baseada no comentário e orientação
 // -----------------------------------------------------------------------------
