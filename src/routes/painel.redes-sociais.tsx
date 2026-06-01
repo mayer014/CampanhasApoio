@@ -534,38 +534,3 @@ function PlaceholderCard({ icon, title, description }: { icon: React.ReactNode; 
   );
 }
 
-    </div>
-  );
-}
-
-function InfoTile({ icon, label, value, hint, valueClass }: { icon: React.ReactNode; label: string; value: string; hint?: string; valueClass?: string }) {
-  return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon} {label}</div>
-      <p className={`mt-1 font-medium ${valueClass ?? ""}`}>{value}</p>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function PlaceholderCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
-  return (
-    <Card className="relative overflow-hidden border-dashed">
-      <div className="absolute right-3 top-3">
-        <Badge variant="outline" className="text-[10px] uppercase tracking-wider">Em breve</Badge>
-      </div>
-      <CardHeader>
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">{icon}</div>
-        <CardTitle className="mt-3 text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-4/5" />
-          <Skeleton className="h-3 w-3/5" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
