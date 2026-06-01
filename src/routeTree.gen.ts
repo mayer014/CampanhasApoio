@@ -19,13 +19,11 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PainelIndexRouteImport } from './routes/painel.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as PainelWhatsappRouteImport } from './routes/painel.whatsapp'
 import { Route as PainelRedesSociaisRouteImport } from './routes/painel.redes-sociais'
-import { Route as PainelMissoesIaRouteImport } from './routes/painel.missoes-ia'
 import { Route as PainelMilitanciaRouteImport } from './routes/painel.militancia'
 import { Route as PainelLinkRouteImport } from './routes/painel.link'
 import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
-import { Route as PainelDisparosRouteImport } from './routes/painel.disparos'
+import { Route as PainelCentralWhatsappRouteImport } from './routes/painel.central-whatsapp'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AdminWhatsappRouteImport } from './routes/admin.whatsapp'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
@@ -90,19 +88,9 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
-const PainelWhatsappRoute = PainelWhatsappRouteImport.update({
-  id: '/whatsapp',
-  path: '/whatsapp',
-  getParentRoute: () => PainelRoute,
-} as any)
 const PainelRedesSociaisRoute = PainelRedesSociaisRouteImport.update({
   id: '/redes-sociais',
   path: '/redes-sociais',
-  getParentRoute: () => PainelRoute,
-} as any)
-const PainelMissoesIaRoute = PainelMissoesIaRouteImport.update({
-  id: '/missoes-ia',
-  path: '/missoes-ia',
   getParentRoute: () => PainelRoute,
 } as any)
 const PainelMilitanciaRoute = PainelMilitanciaRouteImport.update({
@@ -120,9 +108,9 @@ const PainelLeadsRoute = PainelLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => PainelRoute,
 } as any)
-const PainelDisparosRoute = PainelDisparosRouteImport.update({
-  id: '/disparos',
-  path: '/disparos',
+const PainelCentralWhatsappRoute = PainelCentralWhatsappRouteImport.update({
+  id: '/central-whatsapp',
+  path: '/central-whatsapp',
   getParentRoute: () => PainelRoute,
 } as any)
 const PSlugRoute = PSlugRouteImport.update({
@@ -207,13 +195,11 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
-  '/painel/disparos': typeof PainelDisparosRoute
+  '/painel/central-whatsapp': typeof PainelCentralWhatsappRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
   '/painel/militancia': typeof PainelMilitanciaRoute
-  '/painel/missoes-ia': typeof PainelMissoesIaRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
-  '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
   '/auth/meta/callback': typeof AuthMetaCallbackRoute
@@ -237,13 +223,11 @@ export interface FileRoutesByTo {
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
-  '/painel/disparos': typeof PainelDisparosRoute
+  '/painel/central-whatsapp': typeof PainelCentralWhatsappRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
   '/painel/militancia': typeof PainelMilitanciaRoute
-  '/painel/missoes-ia': typeof PainelMissoesIaRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
-  '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin': typeof AdminIndexRoute
   '/painel': typeof PainelIndexRoute
   '/auth/meta/callback': typeof AuthMetaCallbackRoute
@@ -270,13 +254,11 @@ export interface FileRoutesById {
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
-  '/painel/disparos': typeof PainelDisparosRoute
+  '/painel/central-whatsapp': typeof PainelCentralWhatsappRoute
   '/painel/leads': typeof PainelLeadsRoute
   '/painel/link': typeof PainelLinkRoute
   '/painel/militancia': typeof PainelMilitanciaRoute
-  '/painel/missoes-ia': typeof PainelMissoesIaRoute
   '/painel/redes-sociais': typeof PainelRedesSociaisRoute
-  '/painel/whatsapp': typeof PainelWhatsappRoute
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
   '/auth/meta/callback': typeof AuthMetaCallbackRoute
@@ -304,13 +286,11 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
-    | '/painel/disparos'
+    | '/painel/central-whatsapp'
     | '/painel/leads'
     | '/painel/link'
     | '/painel/militancia'
-    | '/painel/missoes-ia'
     | '/painel/redes-sociais'
-    | '/painel/whatsapp'
     | '/admin/'
     | '/painel/'
     | '/auth/meta/callback'
@@ -334,13 +314,11 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
-    | '/painel/disparos'
+    | '/painel/central-whatsapp'
     | '/painel/leads'
     | '/painel/link'
     | '/painel/militancia'
-    | '/painel/missoes-ia'
     | '/painel/redes-sociais'
-    | '/painel/whatsapp'
     | '/admin'
     | '/painel'
     | '/auth/meta/callback'
@@ -366,13 +344,11 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/whatsapp'
     | '/p/$slug'
-    | '/painel/disparos'
+    | '/painel/central-whatsapp'
     | '/painel/leads'
     | '/painel/link'
     | '/painel/militancia'
-    | '/painel/missoes-ia'
     | '/painel/redes-sociais'
-    | '/painel/whatsapp'
     | '/admin/'
     | '/painel/'
     | '/auth/meta/callback'
@@ -475,25 +451,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/painel/whatsapp': {
-      id: '/painel/whatsapp'
-      path: '/whatsapp'
-      fullPath: '/painel/whatsapp'
-      preLoaderRoute: typeof PainelWhatsappRouteImport
-      parentRoute: typeof PainelRoute
-    }
     '/painel/redes-sociais': {
       id: '/painel/redes-sociais'
       path: '/redes-sociais'
       fullPath: '/painel/redes-sociais'
       preLoaderRoute: typeof PainelRedesSociaisRouteImport
-      parentRoute: typeof PainelRoute
-    }
-    '/painel/missoes-ia': {
-      id: '/painel/missoes-ia'
-      path: '/missoes-ia'
-      fullPath: '/painel/missoes-ia'
-      preLoaderRoute: typeof PainelMissoesIaRouteImport
       parentRoute: typeof PainelRoute
     }
     '/painel/militancia': {
@@ -517,11 +479,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelLeadsRouteImport
       parentRoute: typeof PainelRoute
     }
-    '/painel/disparos': {
-      id: '/painel/disparos'
-      path: '/disparos'
-      fullPath: '/painel/disparos'
-      preLoaderRoute: typeof PainelDisparosRouteImport
+    '/painel/central-whatsapp': {
+      id: '/painel/central-whatsapp'
+      path: '/central-whatsapp'
+      fullPath: '/painel/central-whatsapp'
+      preLoaderRoute: typeof PainelCentralWhatsappRouteImport
       parentRoute: typeof PainelRoute
     }
     '/p/$slug': {
@@ -639,13 +601,11 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PainelRouteChildren {
-  PainelDisparosRoute: typeof PainelDisparosRoute
+  PainelCentralWhatsappRoute: typeof PainelCentralWhatsappRoute
   PainelLeadsRoute: typeof PainelLeadsRoute
   PainelLinkRoute: typeof PainelLinkRoute
   PainelMilitanciaRoute: typeof PainelMilitanciaRoute
-  PainelMissoesIaRoute: typeof PainelMissoesIaRoute
   PainelRedesSociaisRoute: typeof PainelRedesSociaisRoute
-  PainelWhatsappRoute: typeof PainelWhatsappRoute
   PainelIndexRoute: typeof PainelIndexRoute
   PainelRedesSociaisComentariosRoute: typeof PainelRedesSociaisComentariosRoute
   PainelTemplatesTplIdRoute: typeof PainelTemplatesTplIdRoute
@@ -653,13 +613,11 @@ interface PainelRouteChildren {
 }
 
 const PainelRouteChildren: PainelRouteChildren = {
-  PainelDisparosRoute: PainelDisparosRoute,
+  PainelCentralWhatsappRoute: PainelCentralWhatsappRoute,
   PainelLeadsRoute: PainelLeadsRoute,
   PainelLinkRoute: PainelLinkRoute,
   PainelMilitanciaRoute: PainelMilitanciaRoute,
-  PainelMissoesIaRoute: PainelMissoesIaRoute,
   PainelRedesSociaisRoute: PainelRedesSociaisRoute,
-  PainelWhatsappRoute: PainelWhatsappRoute,
   PainelIndexRoute: PainelIndexRoute,
   PainelRedesSociaisComentariosRoute: PainelRedesSociaisComentariosRoute,
   PainelTemplatesTplIdRoute: PainelTemplatesTplIdRoute,
@@ -687,3 +645,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

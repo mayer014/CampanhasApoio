@@ -1,9 +1,7 @@
 
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveClientId } from "@/lib/resolve-client-id";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,7 +14,6 @@ import { Separator } from "@/components/ui/separator";
 import { 
   Send, 
   Image as ImageIcon, 
-  Users, 
   History, 
   Clock, 
   CheckCircle2, 
@@ -24,23 +21,13 @@ import {
   X, 
   Loader2, 
   MessageSquare,
-  Pause,
-  Play,
-  Trash2,
-  FileText,
   Sparkles,
-  Eye,
-  ChevronLeft
+  Eye
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DispatchLogDialog } from "@/components/social/DispatchLogDialog";
-
-export const Route = createFileRoute("/painel/disparos")({
-  component: DisparosPage,
-});
 
 const SENDING_POLICIES = {
   conservadora: { batch_size: 10, delay_min: 15, delay_max: 30, batch_pause: 120, label: "Conservadora (Mais seguro)" },
@@ -48,10 +35,8 @@ const SENDING_POLICIES = {
   agressiva: { batch_size: 50, delay_min: 3, delay_max: 8, batch_pause: 30, label: "Agressiva (Rápido)" },
 };
 
-function DisparosPage() {
+export default function DisparosTab({ clientId }: { clientId: string }) {
   const queryClient = useQueryClient();
-  const [clientId, setClientId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [bridgeStatus, setBridgeStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   const [selectedDispatchId, setSelectedDispatchId] = useState<string | null>(null);
   
@@ -65,12 +50,8 @@ function DisparosPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    resolveClientId().then(id => {
-      setClientId(id);
-      setLoading(false);
-      if (id) checkBridge(id);
-    });
-  }, []);
+    if (clientId) checkBridge(clientId);
+  }, [clientId]);
 
   // Realtime updates
   useEffect(() => {
@@ -82,7 +63,7 @@ function DisparosPage() {
       })
       .subscribe();
     return () => { channel.unsubscribe(); };
-  }, [clientId]);
+  }, [clientId, queryClient]);
 
   const checkBridge = async (id: string) => {
     try {
@@ -100,7 +81,7 @@ function DisparosPage() {
   const { data: missions } = useQuery({
     queryKey: ["active-missions", clientId],
     queryFn: async () => {
-      const { data } = await supabase.from("portal_missions").select("*").eq("client_id", clientId!).eq("is_active", true);
+      const { data } = await supabase.from("portal_missions").select("*").eq("client_id", clientId).eq("is_active", true);
       return data || [];
     },
     enabled: !!clientId
@@ -109,7 +90,7 @@ function DisparosPage() {
   const { data: history } = useQuery({
     queryKey: ["dispatches-history", clientId],
     queryFn: async () => {
-      const { data } = await supabase.from("whatsapp_dispatches").select("*").eq("client_id", clientId!).order("created_at", { ascending: false });
+      const { data } = await supabase.from("whatsapp_dispatches").select("*").eq("client_id", clientId).order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!clientId
@@ -138,17 +119,9 @@ function DisparosPage() {
 
   const validateMessage = () => {
     const missing = [];
-    
-    // Check for common variables
-    if (!message.includes("{nome}") && !message.includes("Apoiador(a)")) {
-      // For mission templates, we use "Apoiador(a)" by default, but let's notify if it's missing personal variables
-    }
-    
-    // Check if it's a mission dispatch but missing the URL
     if (message.toLowerCase().includes("missão") && !message.includes("http")) {
       missing.push("Link do post (URL)");
     }
-
     return missing;
   };
 
@@ -159,11 +132,10 @@ function DisparosPage() {
     const missingVariables = validateMessage();
     if (missingVariables.length > 0) {
       toast.warning(`Atenção: ${missingVariables.join(", ")} ausente na mensagem.`);
-      // We don't block, just warn as it might be intentional
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke("send-whatsapp-dispatch", {
+      const { error } = await supabase.functions.invoke("send-whatsapp-dispatch", {
         body: {
           client_id: clientId,
           titulo: title,
@@ -186,46 +158,29 @@ function DisparosPage() {
   const fillMissionTemplate = (m: any) => {
     const template = m.whatsapp_template || `🚀 Apoiador(a), temos uma nova missão para você!\n\n*${m.title}*\n${m.description || ""}\n\n👉 ${m.post_url || m.fb_post_url || m.ig_post_url}\n\nSua interação faz diferença. Vamos juntos!`;
     setMessage(template);
-    setRecipientType("tags"); // Default for missions as requested
-    toast.info("Template de missão carregado e destinatários definidos como 'Por Tags'");
-    
-    // Focus textarea
-    const textarea = document.getElementById('message') as HTMLTextAreaElement;
-    if (textarea) textarea.focus();
+    setRecipientType("tags");
+    toast.info("Template de missão carregado e público definido como 'Por Tags'");
   };
 
-  if (loading) return <div className="p-8 text-center">Carregando...</div>;
-  if (!clientId) return <div className="p-8 text-center">Nenhum cliente vinculado.</div>;
-
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
-      <Link to="/painel" className="text-xs text-muted-foreground flex items-center gap-1 mb-4 hover:text-primary transition-colors">
-        <ChevronLeft className="h-3 w-3" /> Voltar para o início
-      </Link>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Disparos WhatsApp</h1>
-          <p className="text-muted-foreground text-sm">Comunique-se em massa com seus eleitores e apoiadores.</p>
-        </div>
-        <Card className={`px-4 py-2 flex items-center gap-2 border-none shadow-sm ${bridgeStatus === 'connected' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <h2 className="text-xl font-semibold">Novo Disparo</h2>
+        <Card className={`px-4 py-1.5 flex items-center gap-2 border-none shadow-sm ${bridgeStatus === 'connected' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
           {bridgeStatus === 'checking' ? <Loader2 className="h-4 w-4 animate-spin" /> : 
            bridgeStatus === 'connected' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <span className="text-sm font-medium">
             Status: {bridgeStatus === 'checking' ? 'Verificando...' : bridgeStatus === 'connected' ? 'Conectado' : 'Desconectado'}
           </span>
-          <Button variant="ghost" size="icon" className="h-6 w-6 ml-2" onClick={() => checkBridge(clientId)}>
+          <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={() => checkBridge(clientId)}>
             <Clock className="h-3 w-3" />
           </Button>
         </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_350px]">
-        {/* Left Column: Composer */}
         <div className="space-y-6">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" /> Novo Disparo
-            </h2>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="title">Título do Disparo (Interno)</Label>
@@ -233,35 +188,30 @@ function DisparosPage() {
               </div>
 
               <div>
-                <Label htmlFor="message">Mensagem</Label>
+                <Label htmlFor="message">Mensagem Principal</Label>
                 <Textarea 
                   id="message" 
                   value={message} 
                   onChange={e => setMessage(e.target.value)} 
-                  placeholder="Escreva sua mensagem aqui..." 
-                  className="min-h-[150px] font-sans"
+                  placeholder="Escreva sua mensagem base aqui..." 
+                  className="min-h-[120px] font-sans"
                 />
               </div>
 
-              <div className="flex flex-wrap gap-4 items-end">
-                <div className="flex-1">
-                  <Label>Mídia (Opcional)</Label>
-                  <div className="mt-1 flex items-center gap-3">
-                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                      {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-2" />}
-                      Anexar Imagem
-                    </Button>
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && uploadMedia(e.target.files[0])} />
-                    {mediaUrl && (
-                      <div className="relative group">
-                        <img src={mediaUrl} className="h-10 w-10 object-cover rounded border" />
-                        <button className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5" onClick={() => setMediaUrl("")}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )}
+              <div className="flex items-center gap-3">
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-2" />}
+                  Anexar Imagem
+                </Button>
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && uploadMedia(e.target.files[0])} />
+                {mediaUrl && (
+                  <div className="relative group">
+                    <img src={mediaUrl} className="h-10 w-10 object-cover rounded border" alt="preview" />
+                    <button className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5" onClick={() => setMediaUrl("")}>
+                      <X className="h-3 w-3" />
+                    </button>
                   </div>
-                </div>
+                )}
               </div>
 
               <Separator />
@@ -302,7 +252,7 @@ function DisparosPage() {
                 </div>
                 <div className="bg-white dark:bg-zinc-950 rounded border p-3 text-sm font-sans shadow-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring">
                   {mediaUrl && (
-                    <img src={mediaUrl} className="w-full h-32 object-cover rounded mb-2 border" />
+                    <img src={mediaUrl} className="w-full h-32 object-cover rounded mb-2 border" alt="Final preview" />
                   )}
                   <textarea
                     value={message}
@@ -312,61 +262,57 @@ function DisparosPage() {
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground italic">
-                  * Variáveis como nome do eleitor serão preenchidas automaticamente no envio.
+                  * Variáveis como nome do eleitor serão preenchidas no envio.
                 </p>
               </div>
 
-              <Button className="w-full mt-4" size="lg" onClick={startDispatch} disabled={bridgeStatus !== 'connected' || !message}>
-                <Send className="h-4 w-4 mr-2" /> Iniciar Envio
+              <Button className="w-full" size="lg" onClick={startDispatch} disabled={bridgeStatus !== 'connected' || !message}>
+                <Send className="h-4 w-4 mr-2" /> Iniciar Envio em Massa
               </Button>
             </div>
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <History className="h-5 w-5 text-primary" /> Histórico e Fila
-            </h2>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" /> Histórico Recente
+            </h3>
             <div className="space-y-4">
               {history?.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">Nenhum disparo realizado.</p>
+                <p className="text-center py-8 text-muted-foreground text-sm">Nenhum disparo realizado.</p>
               ) : (
-                history?.map((d) => (
-                  <Card key={d.id} className="p-4 border-l-4" style={{ borderLeftColor: getStatusColor(d.status) }}>
+                history?.slice(0, 5).map((d) => (
+                  <div key={d.id} className="p-4 border rounded-lg bg-card border-l-4" style={{ borderLeftColor: getStatusColor(d.status) }}>
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="font-bold">{d.title || "Sem título"}</h3>
-                        <p className="text-xs text-muted-foreground">{format(new Date(d.created_at), "PPp", { locale: ptBR })}</p>
+                        <h4 className="font-bold text-sm">{d.title || "Sem título"}</h4>
+                        <p className="text-[10px] text-muted-foreground">{format(new Date(d.created_at), "PPp", { locale: ptBR })}</p>
                       </div>
-                      <Badge variant="outline" className="capitalize">{d.status.replace('_', ' ')}</Badge>
+                      <Badge variant="outline" className="text-[10px] uppercase">{d.status.replace('_', ' ')}</Badge>
                     </div>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
+                      <div className="flex justify-between text-[10px]">
                         <span>Progresso: {d.sent_count}/{d.total_count}</span>
                         <span>{Math.round((d.sent_count / (d.total_count || 1)) * 100)}%</span>
                       </div>
-                      <Progress value={(d.sent_count / (d.total_count || 1)) * 100} className="h-1.5" />
+                      <Progress value={(d.sent_count / (d.total_count || 1)) * 100} className="h-1" />
                     </div>
                     <div className="flex justify-end gap-2 mt-3">
-                      <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setSelectedDispatchId(d.id)}>Ver Logs</Button>
-                      {['pendente', 'enfileirado', 'enviando'].includes(d.status) && (
-                        <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive">Cancelar</Button>
-                      )}
+                      <Button variant="ghost" size="sm" className="h-7 text-[10px]" onClick={() => setSelectedDispatchId(d.id)}>Ver Logs</Button>
                     </div>
-                  </Card>
+                  </div>
                 ))
               )}
             </div>
           </Card>
         </div>
 
-        {/* Right Column: Missions */}
         <div className="space-y-6">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" /> Missões Ativas
-            </h2>
-            <p className="text-xs text-muted-foreground mb-4">Escolha uma missão para usar como template de mensagem.</p>
-            <div className="space-y-3">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" /> Ativar Missão
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">Selecione uma missão para carregar o template.</p>
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
               {missions?.length === 0 ? (
                 <p className="text-center py-4 text-xs text-muted-foreground">Nenhuma missão ativa.</p>
               ) : (
@@ -374,8 +320,8 @@ function DisparosPage() {
                   <Card key={m.id} className="p-3 bg-muted/50 border-none group hover:bg-muted transition-colors">
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold truncate">{m.title}</h4>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{m.post_url}</p>
+                        <h4 className="text-xs font-bold truncate">{m.title}</h4>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{m.fb_post_url || m.ig_post_url || m.post_url}</p>
                       </div>
                       <Button variant="secondary" size="icon" className="h-7 w-7 shrink-0" onClick={() => fillMissionTemplate(m)}>
                         <Send className="h-3 w-3" />
@@ -385,12 +331,8 @@ function DisparosPage() {
                 ))
               )}
             </div>
-            {missions && missions.length > 0 && (
-              <Button variant="ghost" className="w-full mt-4 text-xs h-8" asChild>
-                <Link to="/painel/missoes-ia">Gerenciar Missões</Link>
-              </Button>
-            )}
           </Card>
+        </div>
       </div>
 
       <DispatchLogDialog 
@@ -398,7 +340,6 @@ function DisparosPage() {
         open={!!selectedDispatchId} 
         onOpenChange={(open) => !open && setSelectedDispatchId(null)} 
       />
-    </div>
     </div>
   );
 }
