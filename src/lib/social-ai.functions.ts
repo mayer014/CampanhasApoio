@@ -372,7 +372,7 @@ export const generateSocialReply = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // 1. Busca comentário + post + perfil do candidato (se houver)
+    // 1. Busca comentário + post
     const { data: comment } = await supabase
       .from("social_comments")
       .select(`
@@ -380,17 +380,16 @@ export const generateSocialReply = createServerFn({ method: "POST" })
         post_external_id,
         social_posts_cache!inner (caption)
       `)
-      .eq("id", commentId)
+      .eq("id", data.commentId)
       .single();
 
     if (!comment) throw new Error("Comentário não encontrado");
 
-    // 2. Busca informações do candidato para dar contexto à IA (nome, cargo, etc)
-    // Assumindo que o userId é o dono/candidato ou operador.
+    // 2. Busca informações do candidato para dar contexto à IA
     const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name, bio")
-      .eq("user_id", userId)
+      .from("candidate_profiles")
+      .select("full_name")
+      .eq("id", userId)
       .maybeSingle();
 
     const postCaption = (comment.social_posts_cache as any)?.caption || "N/A";
@@ -400,8 +399,7 @@ export const generateSocialReply = createServerFn({ method: "POST" })
 Seu objetivo é redigir uma resposta para um comentário em rede social (Instagram/Facebook).
 
 CONTEXTO DO CANDIDATO:
-Nome: ${profile?.display_name || 'Candidato'}
-Bio/Perfil: ${profile?.bio || 'N/A'}
+Nome: ${profile?.full_name || 'Candidato'}
 
 CONTEXTO DO POST:
 Legenda: "${postCaption.slice(0, 500)}"
@@ -426,7 +424,7 @@ Sua resposta deve ser apenas o texto que o candidato postaria.`;
     try {
       const { content } = await chatCompletion({
         userId: userId,
-        model: "google/gemini-2.0-flash-lite", // Modelo rápido e barato para respostas simples
+        model: "google/gemini-2.0-flash-lite", 
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: "Gere a resposta para este comentário agora." }
