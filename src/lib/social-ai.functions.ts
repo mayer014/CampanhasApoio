@@ -176,8 +176,12 @@ Responda SEMPRE via a função classify_comments.`,
             .from("social_comments")
             .update({
               sentiment: r.sentiment,
+              sentiment_source: 'ai',
+              sentiment_confidence: r.confidence,
+              sentiment_reason: r.reason,
+              needs_review: r.confidence < 0.7,
               emotion: r.emotion?.slice(0, 50) ?? null,
-              topics: (r.topics ?? []).slice(0, 5).map((t) => t.slice(0, 50)),
+              topics: (r.topics ?? []).slice(0, 5).map((t: string) => t.slice(0, 50)),
               ai_processed_at: now,
             })
             .eq("id", r.id)
