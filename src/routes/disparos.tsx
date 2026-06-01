@@ -50,6 +50,7 @@ function DisparosPage() {
   const [clientId, setClientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [bridgeStatus, setBridgeStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
+  const [selectedDispatchId, setSelectedDispatchId] = useState<string | null>(null);
   
   // Composer state
   const [title, setTitle] = useState("");
