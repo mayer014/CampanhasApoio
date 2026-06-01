@@ -158,6 +158,14 @@ export function AISettings({ targetUserId }: { targetUserId?: string }) {
     }
   }
 
+  const handleProviderChange = (v: AIProvider) => {
+    setForm({
+      ...form,
+      provider: v,
+      model_name: MODELS[v][0]?.value || '',
+    });
+  };
+
   if (!effectiveUserId && !loading) {
     return <div className="p-4 text-center text-muted-foreground">Usuário não identificado</div>;
   }
