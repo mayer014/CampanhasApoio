@@ -152,7 +152,7 @@ function AdminHome() {
       map.set(k, { date: k, publico: 0, admin: 0 });
     }
     cands.forEach((c) => {
-      const k = c.created_at.slice(0, 10);
+      const k = (c.created_at || "").slice(0, 10);
       const slot = map.get(k);
       if (!slot) return;
       if (c.signup_source === "public") slot.publico += 1;
