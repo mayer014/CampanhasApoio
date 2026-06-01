@@ -95,8 +95,8 @@ function PainelLayout() {
             </SheetTrigger>
             <SheetContent side="left" className="w-72 bg-sidebar p-0 text-sidebar-foreground">
               <div className="flex items-center gap-2 px-6 py-6">
-                <Camera className="h-6 w-6 text-sidebar-primary" />
-                <span className="font-bold">Foto de Campanha</span>
+                <Rocket className="h-6 w-6 text-sidebar-primary" />
+                <span className="font-bold">Minha Campanha</span>
               </div>
               <nav className="flex-1 space-y-1 px-3">
                 <NavLinks onClick={() => setMobileOpen(false)} />
