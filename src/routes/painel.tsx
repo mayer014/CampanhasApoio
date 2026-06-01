@@ -63,23 +63,25 @@ function PainelLayout() {
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       <aside className="hidden w-64 flex-col bg-sidebar text-sidebar-foreground md:flex">
         <div className="flex items-center gap-2 px-6 py-6">
           <Camera className="h-6 w-6 text-sidebar-primary" />
           <span className="font-bold">Foto de Campanha</span>
         </div>
-        <nav className="flex-1 space-y-1 px-3">
-          <NavLinks />
-        </nav>
-        <div className="border-t border-sidebar-border p-3">
+        
+        <div className="px-3 pb-3">
           <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
             <LogOut className="mr-2 h-4 w-4" /> Sair
           </Button>
         </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+          <NavLinks />
+        </nav>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b bg-background/95 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex items-center gap-2">
             <Camera className="h-5 w-5 text-primary" />
@@ -108,7 +110,7 @@ function PainelLayout() {
           </Sheet>
         </header>
 
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-auto">
           <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
             <Outlet />
           </div>
