@@ -194,7 +194,7 @@ export function MetricsPanel() {
 
         {query.data && (
           <>
-            {query.data.warnings.length > 0 && (
+            {(query.data.warnings || []).length > 0 && (
               <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
                 <p className="mb-1 flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="h-3.5 w-3.5" /> Alguns dados não puderam ser obtidos
