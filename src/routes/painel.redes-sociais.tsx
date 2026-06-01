@@ -14,9 +14,11 @@ import { connectMetaAccount } from "@/lib/meta-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
-  Activity, Trash2, BarChart3,
+  Activity, Trash2, BarChart3, Settings,
 } from "lucide-react";
 import { MetricsPanel } from "@/components/social/MetricsPanel";
+import { AISettings } from "@/components/admin/AISettings";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 type DiagStep = {
