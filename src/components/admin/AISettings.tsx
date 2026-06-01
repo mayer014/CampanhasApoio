@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { BrainCircuit, Save, Trash2, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { BrainCircuit, Save, Trash2, CheckCircle2, AlertTriangle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 type AIProvider = 'lovable' | 'openrouter' | 'openai' | 'anthropic' | 'groq';
 
