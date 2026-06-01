@@ -9,10 +9,14 @@ async function getActiveAISetting(userId: string) {
   // para buscar a configuração ativa do banco.
   // Importação dinâmica para evitar ciclos se houver.
   const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new LovableAIError("Configuração do Supabase ausente no servidor.", 500);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const { data } = await supabase
     .from('ai_settings')
