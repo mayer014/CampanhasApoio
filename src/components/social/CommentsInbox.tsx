@@ -88,6 +88,24 @@ function CommentItem({ c, onChange }: { c: SocialCommentRow; onChange: () => voi
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
+  const correctMut = useMutation({
+    mutationFn: (s: "positive" | "neutral" | "negative") => correct({ data: { commentId: c.id, humanSentiment: s } }),
+    onSuccess: () => {
+      toast.success("Sentimento corrigido");
+      onChange();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao corrigir"),
+  });
+
+  const ignoreMut = useMutation({
+    mutationFn: (ignored: boolean) => toggleIgnore({ data: { commentId: c.id, isIgnored: ignored } }),
+    onSuccess: () => {
+      toast.success(c.is_ignored ? "Restaurado" : "Ignorado");
+      onChange();
+    },
+    onError: (e) => toast.error("Erro ao alterar status"),
+  });
+
   const PlatformIcon = c.platform === "instagram" ? Instagram : Facebook;
   const platformColor = c.platform === "instagram" ? "text-[#d62976]" : "text-[#1877F2]";
 
