@@ -112,7 +112,7 @@ export const getMetaAppInfo = createServerFn({ method: "POST" })
     } else {
       try {
         const appAccess = `${META_APP_ID}|${appSecret}`;
-        const r = await graphGet<{ data: NonNullable<typeof debug> }>(
+        const r = await graphGet<{ data: DebugTokenData }>(
           "debug_token",
           { input_token: token },
           appAccess,
