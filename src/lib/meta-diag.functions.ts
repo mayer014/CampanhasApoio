@@ -42,22 +42,35 @@ async function loadConn(supabase: SupabaseClient, connectionId: string) {
 export const listMetaConnectionsForDiag = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureAdmin(context.userId);
-    const { data, error } = await supabaseAdmin
+    const { supabase } = context;
+    await ensureAdmin(supabase, context.userId);
+    const { data, error } = await supabase
       .from("social_connections")
       .select("id, user_id, page_id, page_name, instagram_username, status, updated_at")
       .eq("platform", "meta")
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    const userIds = Array.from(new Set((data ?? []).map((d) => d.user_id)));
-    const { data: profiles } = await supabaseAdmin
+    const rows = (data ?? []) as Array<{
+      id: string;
+      user_id: string;
+      page_id: string | null;
+      page_name: string | null;
+      instagram_username: string | null;
+      status: string | null;
+      updated_at: string | null;
+    }>;
+    const userIds = Array.from(new Set(rows.map((d) => d.user_id)));
+    const { data: profiles } = await supabase
       .from("candidate_profiles")
       .select("id, full_name, email")
       .in("id", userIds);
-    const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+    const byId = new Map(
+      ((profiles ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>)
+        .map((p) => [p.id, p] as const),
+    );
 
-    return (data ?? []).map((d) => ({
+    return rows.map((d) => ({
       id: d.id,
       page_id: d.page_id,
       page_name: d.page_name,
