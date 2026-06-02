@@ -36,6 +36,7 @@ function AdminLayout() {
     { to: "/admin/candidatos", label: "Candidatos", icon: Users },
     { to: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
     { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
+    { to: "/admin/diag-meta", label: "Diagnóstico Meta", icon: Stethoscope },
   ];
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
