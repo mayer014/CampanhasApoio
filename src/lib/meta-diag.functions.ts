@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { graphGet, MetaGraphError } from "./meta-graph.server";
 import { META_APP_ID } from "./meta-oauth";
 import {
@@ -18,25 +18,23 @@ const CRITICAL_SCOPES = [
   "instagram_manage_insights",
 ];
 
-async function ensureAdmin(userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
+async function ensureAdmin(supabase: SupabaseClient, userId: string) {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Acesso negado: requer role admin.");
 }
 
-async function loadConn(connectionId: string) {
-  const { data, error } = await supabaseAdmin
+async function loadConn(supabase: SupabaseClient, connectionId: string) {
+  const { data, error } = await supabase
     .from("social_connections")
     .select("id, user_id, platform, access_token, page_id, page_name, instagram_business_id, instagram_username, status, expires_at")
     .eq("id", connectionId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Conexão não encontrada.");
+  if (!data) throw new Error("Conexão não encontrada (ou sem permissão RLS).");
   if (!data.access_token) throw new Error("Conexão sem token.");
   return data;
 }
@@ -44,22 +42,35 @@ async function loadConn(connectionId: string) {
 export const listMetaConnectionsForDiag = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureAdmin(context.userId);
-    const { data, error } = await supabaseAdmin
+    const { supabase } = context;
+    await ensureAdmin(supabase, context.userId);
+    const { data, error } = await supabase
       .from("social_connections")
       .select("id, user_id, page_id, page_name, instagram_username, status, updated_at")
       .eq("platform", "meta")
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    const userIds = Array.from(new Set((data ?? []).map((d) => d.user_id)));
-    const { data: profiles } = await supabaseAdmin
+    const rows = (data ?? []) as Array<{
+      id: string;
+      user_id: string;
+      page_id: string | null;
+      page_name: string | null;
+      instagram_username: string | null;
+      status: string | null;
+      updated_at: string | null;
+    }>;
+    const userIds = Array.from(new Set(rows.map((d) => d.user_id)));
+    const { data: profiles } = await supabase
       .from("candidate_profiles")
       .select("id, full_name, email")
       .in("id", userIds);
-    const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+    const byId = new Map(
+      ((profiles ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>)
+        .map((p) => [p.id, p] as const),
+    );
 
-    return (data ?? []).map((d) => ({
+    return rows.map((d) => ({
       id: d.id,
       page_id: d.page_id,
       page_name: d.page_name,
@@ -74,8 +85,8 @@ export const getMetaAppInfo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ connectionId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    await ensureAdmin(context.userId);
-    const conn = await loadConn(data.connectionId);
+    await ensureAdmin(context.supabase, context.userId);
+    const conn = await loadConn(context.supabase, data.connectionId);
     const token = conn.access_token!;
     const appSecret = process.env.META_APP_SECRET;
 
@@ -161,8 +172,8 @@ export const getMetaDiagSample = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await ensureAdmin(context.userId);
-    const conn = await loadConn(data.connectionId);
+    await ensureAdmin(context.supabase, context.userId);
+    const conn = await loadConn(context.supabase, data.connectionId);
     if (!conn.page_id) throw new Error("Conexão sem page_id.");
     const token = conn.access_token!;
 
