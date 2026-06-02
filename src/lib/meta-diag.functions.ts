@@ -85,8 +85,8 @@ export const getMetaAppInfo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ connectionId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    await ensureAdmin(context.userId);
-    const conn = await loadConn(data.connectionId);
+    await ensureAdmin(context.supabase, context.userId);
+    const conn = await loadConn(context.supabase, data.connectionId);
     const token = conn.access_token!;
     const appSecret = process.env.META_APP_SECRET;
 
