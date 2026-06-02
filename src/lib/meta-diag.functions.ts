@@ -92,7 +92,7 @@ export const getMetaAppInfo = createServerFn({ method: "POST" })
     }
 
     // debug_token: requer app access token (app_id|app_secret)
-    let debug: {
+    type DebugTokenData = {
       app_id?: string;
       type?: string;
       application?: string;
@@ -101,9 +101,10 @@ export const getMetaAppInfo = createServerFn({ method: "POST" })
       data_access_expires_at?: number;
       is_valid?: boolean;
       scopes?: string[];
-      profile_id?: string; // page id quando page token
+      profile_id?: string;
       issued_at?: number;
-    } | null = null;
+    };
+    let debug: DebugTokenData | null = null;
     let debugError: string | null = null;
 
     if (!appSecret) {
