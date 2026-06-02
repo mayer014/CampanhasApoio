@@ -172,8 +172,8 @@ export const getMetaDiagSample = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await ensureAdmin(context.userId);
-    const conn = await loadConn(data.connectionId);
+    await ensureAdmin(context.supabase, context.userId);
+    const conn = await loadConn(context.supabase, data.connectionId);
     if (!conn.page_id) throw new Error("Conexão sem page_id.");
     const token = conn.access_token!;
 
