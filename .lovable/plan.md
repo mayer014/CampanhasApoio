@@ -1,113 +1,71 @@
-## Plano B — Painel da própria conta Meta via Graph API oficial
+## Página temporária de diagnóstico Meta
 
-Objetivo: transformar os 3 cards "Em breve" da página `/painel/redes-sociais` em features funcionais usando o token Meta que já está salvo em `social_connections`. Tudo no stack atual (TanStack server fns + Supabase + Lovable AI Gateway). Sem crawler, sem VPS extra.
+Página oculta, acessível só para admin, para descobrir se o problema do `from.name` ausente em comentários do Facebook é **falta de permissão no App Review** ou **limitação oficial da Meta** (usuário com privacidade restrita / não autorizou o app).
 
-Entregue em 3 fases independentes, cada uma utilizável sozinha.
+Não aparece em menu nenhum, não é divulgada para clientes SaaS. Removemos depois que o diagnóstico estiver concluído.
 
----
+### Onde fica
 
-### Fase 1 — Métricas (Insights)
+Rota nova: `src/routes/admin.diag-meta.tsx` (já dentro do layout `admin.tsx`, que tem gate de `role = admin`). URL: `/admin/diag-meta`. Sem link no menu — acesso só digitando.
 
-Nova tab/seção "Métricas" abrindo por padrão quando a conta está conectada.
+### O que a página mostra
 
-**Instagram Business** (via `/{ig-user-id}/insights`):
-- Seguidores totais + variação 7/30 dias (`follower_count`)
-- Alcance e impressões agregados (`reach`, `impressions`) — gráfico de linha últimos 30 dias
-- Engajamento total (`engagement`, `profile_views`, `website_clicks`)
-- Top 5 posts recentes por engajamento — thumb + likes + comments + reach
+Seletor no topo: lista as conexões Meta ativas (de qualquer candidato) — admin escolhe qual diagnosticar.
 
-**Facebook Page** (via `/{page-id}/insights`):
-- Fãs da página + variação
-- Alcance de publicações
-- Engajamento total
+Para a conexão selecionada, três blocos:
 
-**UX**: cards KPI no topo (número + delta colorido), gráfico Recharts de série temporal, lista de top posts. Filtro de período (7/30/90 dias).
+**1. Status do App Meta**
+- App ID, modo (Development / Live), nome do App
+- Lê via `GET /{app-id}?fields=id,name,namespace,app_domains` usando o token
+- Avisa em vermelho se modo = Development (nesse caso só admins/testers do App veem `from.name`)
 
-**Backend**:
-- `getMetaInsights` serverFn (`requireSupabaseAuth`) que lê o token do usuário e bate na Graph API v23.0
-- Cache em tabela nova `social_insights_cache` (TTL 1h) para evitar bater na Meta a cada refresh
-- Tratamento de token expirado → marca `status='expired'` e UI pede reconectar
+**2. Token & Escopos**
+- Tipo de token (USER vs PAGE), validade, user_id/page_id
+- Lista todos os escopos concedidos via `GET /debug_token`
+- Marca em verde/vermelho a presença dos escopos críticos:
+  - `pages_read_user_content` ← chave para `from.name` em comentários
+  - `pages_manage_engagement`
+  - `pages_show_list`, `pages_read_engagement`
+  - `instagram_manage_comments`, `instagram_manage_insights`
 
----
+**3. Amostra real de comentários**
+- Puxa os 5 posts mais recentes da Página
+- Para cada post, busca até 10 comentários
+- Mostra tabela: `post_id | comment_id | autor_id | autor_nome | autor_username | mensagem (50 chars)`
+- KPI no topo da tabela: `X de Y comentários (Z%) vêm com from.name preenchido`
+- Botão "Re-hidratar individualmente" que tenta o `GET /{comment-id}` por comentário sem nome — útil pra confirmar que não é bug nosso, é a Meta omitindo mesmo
 
-### Fase 2 — Central de Comentários
+### Como interpretar o resultado (mostrado na própria página em um card de "Diagnóstico")
 
-Nova rota `/painel/redes-sociais/comentarios` com inbox unificado IG + FB.
+- **App em Development** → reaplicar para Live + App Review.
+- **App em Live + escopo `pages_read_user_content` AUSENTE** → submeter App Review pra esse escopo. Esse é o cenário mais provável.
+- **App em Live + escopo presente + ainda assim <50% com nome** → limitação da Meta (privacidade do usuário), não tem o que fazer. Plano B: mostrar "Usuário do Facebook" como fallback no inbox.
+- **App em Live + escopo presente + >90% com nome** → já está funcionando, problema era cache antigo; rodar resync.
 
-**Funcionalidades**:
-- Lista paginada de comentários recentes (IG: `/{ig-media-id}/comments`, FB: `/{post-id}/comments`)
-- Filtros: plataforma, post, status (pendente/respondido/oculto), sentimento (após Fase 3)
-- Ações por comentário: responder inline, ocultar, marcar como tratado, abrir post original
-- Resposta envia via Graph API (`POST /{comment-id}/replies` no IG, `POST /{comment-id}/comments` no FB) e grava localmente
+### Backend
 
-**Backend**:
-- Tabelas novas:
-  - `social_posts_cache` — id, connection_id, platform, external_id, caption, thumb, posted_at, metrics jsonb
-  - `social_comments` — id, connection_id, platform, post_external_id, comment_external_id, author_name, text, posted_at, status enum(`pending`,`replied`,`hidden`,`handled`), parent_comment_id, raw jsonb
-- ServerFns:
-  - `syncMetaComments` — busca comentários novos dos últimos N posts e faz upsert
-  - `listSocialComments` — lê do banco com filtros
-  - `replySocialComment` — chama Graph e grava resposta
-  - `updateCommentStatus` — muda status local
-- Cron endpoint `/api/public/social/comments-sync-tick` (HMAC) chamado a cada 10min para puxar novos comentários de todas as conexões ativas
+Tudo em server functions novas, protegidas por `requireSupabaseAuth` + checagem manual de role admin (mesmo padrão do `admin.candidatos.index.tsx`):
 
----
+`src/lib/meta-diag.functions.ts`:
+- `listMetaConnectionsForDiag()` — lista todas as `social_connections` com `platform='meta'` e `status='connected'` (admin vê todas)
+- `getMetaAppInfo({ connectionId })` — chama `/{app-id}` e `/debug_token`
+- `getMetaDiagSample({ connectionId })` — puxa posts + comentários + hidrata individuais sem `from.name`, devolve estatística agregada
 
-### Fase 3 — Sentimento com IA
+Helpers Graph reaproveitam `src/lib/meta-graph.server.ts` e `meta-comments.server.ts` que já existem.
 
-Coluna de sentimento no inbox + painel de resumo.
+### Segurança / privacidade
 
-**Pipeline (custo baixo)**:
-1. Comentários novos entram com `sentiment = NULL`
-2. Job em batch processa em lotes de 20 comentários por chamada → Lovable AI Gateway com `google/gemini-2.5-flash-lite` retornando JSON estruturado: `{ sentiment: positive|neutral|negative, emotion: string, topics: string[] }`
-3. Grava em `social_comments` (colunas `sentiment`, `emotion`, `topics text[]`, `ai_processed_at`)
+- Gate por role admin em todas as 3 server fns (não confiar só no layout)
+- Não persiste nada novo no banco — tudo em memória, request-response
+- Não loga conteúdo dos comentários
+- Página tem banner no topo: "🔧 Ferramenta interna de diagnóstico — não divulgar"
 
-**UX**:
-- Badge colorido no comentário (verde/amarelo/vermelho)
-- Filtro por sentimento e emoção no inbox
-- Card de resumo no topo da Central: % positivo/neutro/negativo dos últimos 7 dias, top 5 tópicos recorrentes, gráfico de evolução
-- Botão "Resumo executivo" → chama Gemini com amostra clusterizada para gerar parágrafo curto sobre a percepção pública
+### Como remover depois
 
-**Backend**:
-- `analyzeSocialComments` serverFn (chamada pelo cron tick logo após o sync)
-- `getSentimentSummary` serverFn para o card de resumo
+Quando o diagnóstico fechar, apagar `src/routes/admin.diag-meta.tsx` e `src/lib/meta-diag.functions.ts`. Nenhum schema, nenhuma migration — remoção trivial.
 
----
+### Fora de escopo
 
-### Pré-requisitos
-
-- Confirmar que os escopos do OAuth atual já incluem `instagram_manage_insights` e `instagram_manage_comments`. Se não, ajustar `META_SCOPES` em `src/lib/meta-oauth.ts` — exigirá reconexão por usuário.
-- Segredo `SOCIAL_HMAC_SECRET` já existe → reaproveitar para o cron tick.
-- Configurar pg_cron (ou cron externo do VPS) chamando `https://project--7a279b36-7b6b-4e1c-bf0e-253f1a812c48.lovable.app/api/public/social/comments-sync-tick` a cada 10 min.
-
----
-
-### Detalhes técnicos
-
-```
-src/lib/
-├── meta-graph.server.ts          (cliente Graph v23 + retry/refresh)
-├── meta-insights.functions.ts    (Fase 1)
-├── meta-comments.functions.ts    (Fase 2)
-└── social-ai.functions.ts        (Fase 3)
-
-src/routes/
-├── painel.redes-sociais.tsx              (atualiza cards → tabs reais)
-├── painel.redes-sociais.metricas.tsx     (Fase 1)
-└── painel.redes-sociais.comentarios.tsx  (Fase 2 + 3)
-
-src/routes/api/public/
-└── social.comments-sync-tick.ts  (cron HMAC)
-```
-
-Tabelas novas: `social_insights_cache`, `social_posts_cache`, `social_comments` — todas com RLS `user_id = auth.uid()` via join em `social_connections`.
-
----
-
-### Ordem de execução proposta
-
-1. **Sprint 1** — Fase 1 completa (métricas). Entrega visível rápida, valida que o token funciona pra Graph API.
-2. **Sprint 2** — Fase 2 (comentários: sync + listar + responder). Sem IA ainda.
-3. **Sprint 3** — Fase 3 (sentimento + resumo IA).
-
-Posso começar pela Fase 1 assim que aprovar.
+- Não mexe no inbox de comentários atual
+- Não muda escopos do OAuth (`meta-oauth.ts`) — isso fica como ação seguinte se o diagnóstico apontar escopo faltando
+- Não cria fallback "Usuário do Facebook" no inbox agora — decisão depende do resultado

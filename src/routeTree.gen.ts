@@ -26,6 +26,7 @@ import { Route as PainelLeadsRouteImport } from './routes/painel.leads'
 import { Route as PainelCentralWhatsappRouteImport } from './routes/painel.central-whatsapp'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AdminWhatsappRouteImport } from './routes/admin.whatsapp'
+import { Route as AdminDiagMetaRouteImport } from './routes/admin.diag-meta'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as PainelTemplatesIndexRouteImport } from './routes/painel.templates.index'
 import { Route as AdminCandidatosIndexRouteImport } from './routes/admin.candidatos.index'
@@ -123,6 +124,11 @@ const AdminWhatsappRoute = AdminWhatsappRouteImport.update({
   path: '/whatsapp',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDiagMetaRoute = AdminDiagMetaRouteImport.update({
+  id: '/diag-meta',
+  path: '/diag-meta',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/diag-meta': typeof AdminDiagMetaRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
   '/painel/central-whatsapp': typeof PainelCentralWhatsappRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/diag-meta': typeof AdminDiagMetaRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
   '/painel/central-whatsapp': typeof PainelCentralWhatsappRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/diag-meta': typeof AdminDiagMetaRoute
   '/admin/whatsapp': typeof AdminWhatsappRoute
   '/p/$slug': typeof PSlugRoute
   '/painel/central-whatsapp': typeof PainelCentralWhatsappRoute
@@ -284,6 +293,7 @@ export interface FileRouteTypes {
     | '/politica-de-privacidade'
     | '/termos-de-uso'
     | '/admin/configuracoes'
+    | '/admin/diag-meta'
     | '/admin/whatsapp'
     | '/p/$slug'
     | '/painel/central-whatsapp'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/politica-de-privacidade'
     | '/termos-de-uso'
     | '/admin/configuracoes'
+    | '/admin/diag-meta'
     | '/admin/whatsapp'
     | '/p/$slug'
     | '/painel/central-whatsapp'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/politica-de-privacidade'
     | '/termos-de-uso'
     | '/admin/configuracoes'
+    | '/admin/diag-meta'
     | '/admin/whatsapp'
     | '/p/$slug'
     | '/painel/central-whatsapp'
@@ -500,6 +512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminWhatsappRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/diag-meta': {
+      id: '/admin/diag-meta'
+      path: '/diag-meta'
+      fullPath: '/admin/diag-meta'
+      preLoaderRoute: typeof AdminDiagMetaRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/configuracoes': {
       id: '/admin/configuracoes'
       path: '/configuracoes'
@@ -582,6 +601,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminDiagMetaRoute: typeof AdminDiagMetaRoute
   AdminWhatsappRoute: typeof AdminWhatsappRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCandidatosIndexRoute: typeof AdminCandidatosIndexRoute
@@ -591,6 +611,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminDiagMetaRoute: AdminDiagMetaRoute,
   AdminWhatsappRoute: AdminWhatsappRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCandidatosIndexRoute: AdminCandidatosIndexRoute,
@@ -645,13 +666,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
