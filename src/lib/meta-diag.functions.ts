@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { graphGet, MetaGraphError } from "./meta-graph.server";
 import { META_APP_ID } from "./meta-oauth";
 import {
@@ -18,25 +18,23 @@ const CRITICAL_SCOPES = [
   "instagram_manage_insights",
 ];
 
-async function ensureAdmin(userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
+async function ensureAdmin(supabase: SupabaseClient, userId: string) {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Acesso negado: requer role admin.");
 }
 
-async function loadConn(connectionId: string) {
-  const { data, error } = await supabaseAdmin
+async function loadConn(supabase: SupabaseClient, connectionId: string) {
+  const { data, error } = await supabase
     .from("social_connections")
     .select("id, user_id, platform, access_token, page_id, page_name, instagram_business_id, instagram_username, status, expires_at")
     .eq("id", connectionId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Conexão não encontrada.");
+  if (!data) throw new Error("Conexão não encontrada (ou sem permissão RLS).");
   if (!data.access_token) throw new Error("Conexão sem token.");
   return data;
 }
