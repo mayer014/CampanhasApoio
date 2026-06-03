@@ -35,12 +35,15 @@ export function ConnectionPanel({
   const [quietStart, setQuietStart] = useState(22);
   const [quietEnd, setQuietEnd] = useState(7);
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const fetchStatus = async () => {
     if (!accessToken) return;
     try {
       const res = await getInstanceStatus({
         data: { access_token: accessToken, candidate_id: candidateId },
       });
+      setErrorMessage(null);
       if (!res.configured) {
         setConfigured(false);
         setStatus("disconnected");
@@ -54,7 +57,8 @@ export function ConnectionPanel({
     } catch (e: any) {
       console.error("[fetchStatus] error:", e);
       const msg = e?.message || "";
-      if (msg.includes("API") || msg.includes("expirada") || msg.includes("inválida")) {
+      setErrorMessage(msg);
+      if (msg.includes("API") || msg.includes("expirada") || msg.includes("inválida") || msg.includes("não encontrada")) {
         setConfigured(false);
         setStatus("disconnected");
         setQrcode(null);
@@ -294,6 +298,11 @@ export function ConnectionPanel({
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {errorMessage && (
+          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive text-sm flex items-center gap-2">
+            <span className="font-bold">Aviso:</span> {errorMessage}
           </div>
         )}
       </Card>
