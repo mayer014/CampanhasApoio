@@ -122,9 +122,10 @@ export function ConnectionPanel({
       toast.success(res.reused ? "Instância recuperada" : "Instância criada");
       setConfigured(true);
       setStatus(res.status as any);
-      setQrcode(res.qrcode);
-      // start polling
-      setTimeout(fetchStatus, 1500);
+      if (res.qrcode) setQrcode(res.qrcode);
+      
+      // Espera um pouco mais antes da primeira busca para garantir que o motor processou
+      setTimeout(fetchStatus, 3000);
     } catch (e: any) {
       toast.error(e?.message || "Falha ao criar instância");
     } finally {
