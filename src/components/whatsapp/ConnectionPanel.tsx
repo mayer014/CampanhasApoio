@@ -113,14 +113,17 @@ export function ConnectionPanel({
   const onReconnect = async () => {
     if (!accessToken) return;
     setBusy(true);
+    setStatus("connecting"); // Set immediate connecting state
     try {
       await reconnectInstance({
         data: { access_token: accessToken, candidate_id: candidateId },
       });
       toast.success("Reconectando…");
-      setTimeout(fetchStatus, 1500);
+      // start polling
+      setTimeout(fetchStatus, 1000);
     } catch (e: any) {
       toast.error(e?.message || "Falha");
+      fetchStatus(); // Try to get actual status back
     } finally {
       setBusy(false);
     }
@@ -190,9 +193,14 @@ export function ConnectionPanel({
                 <Plug className="mr-2 h-4 w-4" /> Conectar WhatsApp
               </Button>
             )}
-            {configured && status !== "connected" && (
+            {configured && status === "disconnected" && (
               <Button onClick={onReconnect} disabled={busy}>
                 <PlugZap className="mr-2 h-4 w-4" /> Reconectar
+              </Button>
+            )}
+            {configured && status === "connecting" && (
+              <Button disabled variant="outline">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Conectando…
               </Button>
             )}
             {configured && (
@@ -208,11 +216,23 @@ export function ConnectionPanel({
           </div>
         </div>
 
-        {qrcode && status === "connecting" && (
-          <div className="mt-6 flex flex-col items-center gap-3 rounded-lg border bg-muted/30 p-6">
-            <p className="text-sm font-medium">Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho e escaneie:</p>
-            <img src={qrcode} alt="QR Code" className="h-64 w-64" />
-            <p className="text-xs text-muted-foreground">Atualizando automaticamente…</p>
+        {status === "connecting" && (
+          <div className="mt-6 flex flex-col items-center gap-3 rounded-lg border bg-muted/30 p-6 text-center">
+            {qrcode ? (
+              <>
+                <p className="text-sm font-medium">Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho e escaneie:</p>
+                <div className="bg-white p-4 rounded-xl shadow-sm border mt-2">
+                  <img src={qrcode} alt="QR Code" className="h-64 w-64" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 animate-pulse">Aguardando leitura do QR Code…</p>
+              </>
+            ) : (
+              <div className="flex flex-col items-center py-8">
+                <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                <p className="font-medium">Gerando QR Code…</p>
+                <p className="text-xs text-muted-foreground mt-1">Isso pode levar alguns segundos dependendo da conexão.</p>
+              </div>
+            )}
           </div>
         )}
       </Card>
