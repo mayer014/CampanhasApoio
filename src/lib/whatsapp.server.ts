@@ -136,7 +136,7 @@ export async function getInstanceForUser(
   const { data, error } = await sb
     .from("whatsapp_instances")
     .select(
-      "id, candidate_id, instance_id, api_key, status, phone_number, webhook_registered, daily_cap, quiet_hours_start, quiet_hours_end, hour_cap, warmup_enabled, warmup_started_at, warmup_day"
+      "id, candidate_id, instance_id, api_key, status, phone_number, webhook_registered, daily_cap, quiet_hours_start, quiet_hours_end, hour_cap, warmup_enabled, warmup_started_at, warmup_day, last_qr, last_connected_at"
     )
     .eq("candidate_id", candidateId)
     .maybeSingle();
