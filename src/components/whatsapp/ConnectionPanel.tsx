@@ -157,6 +157,31 @@ export function ConnectionPanel({
     }
   };
 
+  const onReset = async () => {
+    if (!accessToken) return;
+    if (!confirm("Isso irá limpar os dados da conexão atual e permitir uma nova configuração. Deseja continuar?")) return;
+    setBusy(true);
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase
+        .from("whatsapp_instances")
+        .update({
+          api_key: null,
+          instance_id: null,
+          status: "disconnected",
+          last_qr: null
+        })
+        .eq("candidate_id", candidateId);
+      
+      toast.success("Conexão resetada");
+      fetchStatus();
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao resetar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveSettings = async () => {
     if (!accessToken) return;
     setBusy(true);
@@ -227,6 +252,11 @@ export function ConnectionPanel({
             {configured && status === "connected" && (
               <Button variant="destructive" onClick={onDisconnect} disabled={busy} size="lg" className="w-full md:w-auto">
                 Desconectar WhatsApp
+              </Button>
+            )}
+            {configured && (
+              <Button variant="ghost" onClick={onReset} disabled={busy} size="sm" className="text-muted-foreground hover:text-destructive">
+                Resetar Dados de Conexão
               </Button>
             )}
           </div>
