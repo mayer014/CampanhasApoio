@@ -46,5 +46,6 @@ EXPOSE 3000
 WORKDIR /app
 
 # Serve the built Worker locally on 0.0.0.0:3000 using wrangler's local runtime
-# (workerd). Works on any Linux x64 host without a Cloudflare account.
-CMD ["wrangler", "dev", "--ip", "0.0.0.0", "--port", "3000", "--local", "--no-show-interactive-dev-session", "--config", ".output/server/wrangler.json"]
+# (workerd). Before boot, materialize runtime env into .dev.vars so workerd
+# always receives the VPS/EasyPanel secrets.
+CMD ["sh", "-lc", "set -eu; mkdir -p /app/.output/server; cat > /app/.output/server/.dev.vars <<EOF\nSUPABASE_URL=${SUPABASE_URL:-}\nSUPABASE_PUBLISHABLE_KEY=${SUPABASE_PUBLISHABLE_KEY:-}\nSUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-${SUPABASE_PUBLISHABLE_KEY:-}}\nSUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}\nAPP_BASE_URL=${APP_BASE_URL:-}\nWHATSHUB_MASTER_TOKEN=${WHATSHUB_MASTER_TOKEN:-}\nMETA_APP_SECRET=${META_APP_SECRET:-}\nSOCIAL_HMAC_SECRET=${SOCIAL_HMAC_SECRET:-}\nEOF\nexec wrangler dev --ip 0.0.0.0 --port 3000 --local --no-show-interactive-dev-session --config .output/server/wrangler.json"]

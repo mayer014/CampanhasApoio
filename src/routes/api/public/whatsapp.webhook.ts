@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { detectOptOutKeyword } from "@/lib/whatsapp.server";
 
 
@@ -13,6 +12,7 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
     handlers: {
       POST: async ({ request }) => {
         try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const body = await request.json();
 
           if (body.event === "ping") {
