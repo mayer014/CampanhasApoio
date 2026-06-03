@@ -65,6 +65,7 @@ export const createInstance = createServerFn({ method: "POST" })
     const apiKey = (res?.api_key ?? res?.apiKey) as string | undefined;
     const instanceId = (res?.instance?.id ?? res?.instance?.instance_id) as string | undefined;
     const phone = (res?.instance?.phone_number ?? res?.phone_number) || null;
+    const qrcode = (res?.qrcode ?? res?.instance?.qrcode) as string | undefined;
     let remoteStatus =
       (res?.instance?.status as "connected" | "connecting" | "disconnected") ||
       "connecting";
@@ -73,7 +74,6 @@ export const createInstance = createServerFn({ method: "POST" })
     if (qrcode && remoteStatus === "disconnected") {
       remoteStatus = "connecting";
     }
-    const qrcode = (res?.qrcode ?? res?.instance?.qrcode) as string | undefined;
 
 
     const row = {
