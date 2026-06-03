@@ -158,7 +158,7 @@ export function ConnectionPanel({
   };
 
   const onReset = async () => {
-    if (!accessToken) return;
+    if (!accessToken || !candidateId) return;
     if (!confirm("Isso irá limpar os dados da conexão atual e permitir uma nova configuração. Deseja continuar?")) return;
     setBusy(true);
     try {
