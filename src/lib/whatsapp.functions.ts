@@ -117,9 +117,9 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
       {},
       { apiKey: inst.api_key }
     );
-    if (status === 401 || status === 403 || res?.error?.toLowerCase().includes("api key")) {
-      await sb.from("whatsapp_instances").update({ api_key: null, status: "disconnected" }).eq("candidate_id", candidateId);
-      throw new Error("Chave de API expirada ou inválida. Por favor, inicie uma nova conexão.");
+    if (status === 401 || status === 403 || status === 404 || res?.error?.toLowerCase().includes("api key") || res?.error?.toLowerCase().includes("not found")) {
+      await sb.from("whatsapp_instances").update({ api_key: null, status: "disconnected", instance_id: null }).eq("candidate_id", candidateId);
+      throw new Error("Conexão expirada ou instância não encontrada. Por favor, inicie uma nova conexão.");
     }
     if (status >= 400) {
       return {
@@ -166,10 +166,10 @@ export const reconnectInstance = createServerFn({ method: "POST" })
     
     const { status, data: res } = await bridge("reconnect", {}, { apiKey: inst.api_key });
     
-    if (status === 401 || status === 403 || res?.error?.toLowerCase().includes("api key")) {
-      // If the API key is invalid, we clear it so the user can "Create New"
-      await sb.from("whatsapp_instances").update({ api_key: null, status: "disconnected" }).eq("candidate_id", candidateId);
-      throw new Error("Chave de API inválida. A instância foi resetada, tente conectar novamente.");
+    if (status === 401 || status === 403 || status === 404 || res?.error?.toLowerCase().includes("api key") || res?.error?.toLowerCase().includes("not found")) {
+      // If the API key is invalid or instance not found, we clear it so the user can "Create New"
+      await sb.from("whatsapp_instances").update({ api_key: null, status: "disconnected", instance_id: null }).eq("candidate_id", candidateId);
+      throw new Error("Instância inválida ou não encontrada. O sistema foi resetado, tente conectar novamente.");
     }
     
     if (status >= 400) throw new Error(res?.error || `reconnect ${status}`);

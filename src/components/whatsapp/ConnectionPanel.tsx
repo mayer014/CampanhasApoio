@@ -35,12 +35,15 @@ export function ConnectionPanel({
   const [quietStart, setQuietStart] = useState(22);
   const [quietEnd, setQuietEnd] = useState(7);
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const fetchStatus = async () => {
     if (!accessToken) return;
     try {
       const res = await getInstanceStatus({
         data: { access_token: accessToken, candidate_id: candidateId },
       });
+      setErrorMessage(null);
       if (!res.configured) {
         setConfigured(false);
         setStatus("disconnected");
@@ -52,10 +55,18 @@ export function ConnectionPanel({
       setQrcode(res.qrcode);
       setPhone(res.phone_number);
     } catch (e: any) {
+      console.error("[fetchStatus] error:", e);
       const msg = e?.message || "";
-      if (msg.includes("API") || msg.includes("expirada")) {
+      setErrorMessage(msg);
+      if (msg.includes("API") || msg.includes("expirada") || msg.includes("inválida") || msg.includes("não encontrada")) {
         setConfigured(false);
+        setStatus("disconnected");
         setQrcode(null);
+      } else {
+        // Para outros erros, paramos o "connecting" para não ficar em loop infinito
+        if (status === "connecting") {
+          setStatus("disconnected");
+        }
       }
     } finally {
       setLoading(false);
@@ -126,8 +137,10 @@ export function ConnectionPanel({
       // start polling
       setTimeout(fetchStatus, 1000);
     } catch (e: any) {
-      toast.error(e?.message || "Falha");
-      fetchStatus(); // Try to get actual status back
+      console.error("[onReconnect] error:", e);
+      toast.error(e?.message || "Falha ao reconectar");
+      // Importante: se falhou, tentamos atualizar o status real para sair do "connecting"
+      await fetchStatus();
     } finally {
       setBusy(false);
     }
@@ -145,6 +158,31 @@ export function ConnectionPanel({
       fetchStatus();
     } catch (e: any) {
       toast.error(e?.message || "Falha");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onReset = async () => {
+    if (!accessToken || !candidateId) return;
+    if (!confirm("Isso irá limpar os dados da conexão atual e permitir uma nova configuração. Deseja continuar?")) return;
+    setBusy(true);
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase
+        .from("whatsapp_instances")
+        .update({
+          api_key: null,
+          instance_id: null,
+          status: "disconnected",
+          last_qr: null
+        })
+        .eq("candidate_id", candidateId);
+      
+      toast.success("Conexão resetada");
+      fetchStatus();
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao resetar");
     } finally {
       setBusy(false);
     }
@@ -222,6 +260,11 @@ export function ConnectionPanel({
                 Desconectar WhatsApp
               </Button>
             )}
+            {configured && (
+              <Button variant="ghost" onClick={onReset} disabled={busy} size="sm" className="text-muted-foreground hover:text-destructive">
+                Resetar Dados de Conexão
+              </Button>
+            )}
           </div>
         </div>
 
@@ -255,6 +298,11 @@ export function ConnectionPanel({
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {errorMessage && (
+          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive text-sm flex items-center gap-2">
+            <span className="font-bold">Aviso:</span> {errorMessage}
           </div>
         )}
       </Card>
