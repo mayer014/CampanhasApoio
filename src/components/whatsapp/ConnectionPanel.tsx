@@ -111,6 +111,7 @@ export function ConnectionPanel({
   const onConnect = async () => {
     if (!accessToken) return;
     setBusy(true);
+    setErrorMessage(null);
     try {
       const res = await createInstance({
         data: {
@@ -119,15 +120,30 @@ export function ConnectionPanel({
           name: defaultName,
         },
       });
+
+      if (!res.success) {
+        const msg = res.error || "Falha ao criar instância";
+        console.error("[onConnect] server returned error:", msg);
+        setErrorMessage(msg);
+        toast.error(msg);
+        return;
+      }
+
       toast.success(res.reused ? "Instância recuperada" : "Instância criada");
       setConfigured(true);
       setStatus(res.status as any);
       if (res.qrcode) setQrcode(res.qrcode);
-      
-      // Espera um pouco mais antes da primeira busca para garantir que o motor processou
+
+      // Espera um pouco antes da primeira busca para o motor processar
       setTimeout(fetchStatus, 3000);
     } catch (e: any) {
-      toast.error(e?.message || "Falha ao criar instância");
+      // Só cai aqui se a chamada RPC em si falhou (rede/SSR catastrófico)
+      console.error("[onConnect] RPC failed:", e);
+      const msg =
+        e?.message ||
+        "Falha de comunicação com o servidor. Verifique as variáveis de ambiente do deploy.";
+      setErrorMessage(msg);
+      toast.error(msg);
     } finally {
       setBusy(false);
     }

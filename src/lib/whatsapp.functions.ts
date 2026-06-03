@@ -26,6 +26,9 @@ export const createInstance = createServerFn({ method: "POST" })
     TokenInput.extend({ name: z.string().min(1).max(100) }).parse(input)
   )
   .handler(async ({ data }) => {
+    // IMPORTANTE: este handler NUNCA deve lançar. Retornamos sempre uma forma
+    // estruturada — assim o workerd/h3 da VPS não consegue engolir o erro e
+    // devolver "internal error; reference = ..." sem nada útil nos logs.
     try {
       const sb = await userClientFromToken(data.access_token);
       const callerId = await userIdFromToken(data.access_token);
@@ -52,21 +55,51 @@ export const createInstance = createServerFn({ method: "POST" })
         .eq("candidate_id", candidateId)
         .maybeSingle();
 
-      console.log("[createInstance] calling bridge", { candidateId, instanceName });
+      console.log("[createInstance] calling bridge", {
+        candidateId,
+        instanceName,
+        webhookUrl: webhookUrl(),
+        hasAppBaseUrl: !!process.env.APP_BASE_URL,
+      });
 
-      const { status, data: res } = await bridge(
-        "create_instance",
-        {
-          name: instanceName,
-          webhook_url: webhookUrl(),
-        },
-        { master: true, accessToken: data.access_token }
-      );
+      let bridgeResp: { status: number; data: any };
+      try {
+        bridgeResp = await bridge(
+          "create_instance",
+          { name: instanceName, webhook_url: webhookUrl() },
+          { master: true, accessToken: data.access_token }
+        );
+      } catch (bridgeErr: any) {
+        console.error("[createInstance] bridge() threw", {
+          message: bridgeErr?.message,
+          stack: bridgeErr?.stack,
+        });
+        return {
+          success: false as const,
+          error: `Falha de rede ao chamar o bridge: ${bridgeErr?.message || "desconhecido"}`,
+          status: "disconnected" as const,
+          qrcode: null,
+          reused: false,
+        };
+      }
 
-      console.log("[createInstance] bridge response", { status, hasApiKey: !!(res?.api_key ?? res?.apiKey), error: res?.error });
+      const { status, data: res } = bridgeResp;
+      console.log("[createInstance] bridge response", {
+        status,
+        hasApiKey: !!(res?.api_key ?? res?.apiKey),
+        hasInstance: !!res?.instance,
+        hasQrcode: !!(res?.qrcode ?? res?.instance?.qrcode),
+        error: res?.error,
+      });
 
       if (status >= 400 || res?.error) {
-        throw new Error(res?.error || `Bridge create_instance failed (${status})`);
+        return {
+          success: false as const,
+          error: res?.error || `Bridge create_instance failed (status ${status})`,
+          status: "disconnected" as const,
+          qrcode: null,
+          reused: false,
+        };
       }
 
       const apiKey = (res?.api_key ?? res?.apiKey) as string | undefined;
@@ -90,20 +123,33 @@ export const createInstance = createServerFn({ method: "POST" })
         api_key: apiKey || existing?.api_key || null,
         webhook_registered: true,
         last_qr: qrcode || null,
-        last_connected_at: remoteStatus === "connected" ? new Date().toISOString() : existing?.last_connected_at || null,
+        last_connected_at:
+          remoteStatus === "connected"
+            ? new Date().toISOString()
+            : existing?.last_connected_at || null,
       };
 
-      if (existing) {
-        await sb.from("whatsapp_instances").update(row).eq("id", existing.id);
-      } else {
-        await sb.from("whatsapp_instances").insert(row);
+      const { error: persistErr } = existing
+        ? await sb.from("whatsapp_instances").update(row).eq("id", existing.id)
+        : await sb.from("whatsapp_instances").insert(row);
+
+      if (persistErr) {
+        console.error("[createInstance] persist error", persistErr);
+        return {
+          success: false as const,
+          error: `Falha ao gravar instância: ${persistErr.message}`,
+          status: remoteStatus,
+          qrcode: qrcode || null,
+          reused: !!res?.reused,
+        };
       }
 
       return {
-        success: true,
-        reused: !!res.reused,
+        success: true as const,
+        reused: !!res?.reused,
         status: remoteStatus,
         qrcode: qrcode || null,
+        error: null,
       };
     } catch (e: any) {
       console.error("[createInstance] FATAL", {
@@ -111,7 +157,15 @@ export const createInstance = createServerFn({ method: "POST" })
         stack: e?.stack,
         name: e?.name,
       });
-      throw new Error(e?.message || "Falha ao criar instância WhatsApp");
+      return {
+        success: false as const,
+        error:
+          e?.message ||
+          "Falha ao criar instância WhatsApp (erro desconhecido no servidor)",
+        status: "disconnected" as const,
+        qrcode: null,
+        reused: false,
+      };
     }
   });
 
