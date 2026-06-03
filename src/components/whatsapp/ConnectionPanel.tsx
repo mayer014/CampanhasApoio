@@ -52,10 +52,17 @@ export function ConnectionPanel({
       setQrcode(res.qrcode);
       setPhone(res.phone_number);
     } catch (e: any) {
+      console.error("[fetchStatus] error:", e);
       const msg = e?.message || "";
-      if (msg.includes("API") || msg.includes("expirada")) {
+      if (msg.includes("API") || msg.includes("expirada") || msg.includes("inválida")) {
         setConfigured(false);
+        setStatus("disconnected");
         setQrcode(null);
+      } else {
+        // Para outros erros, paramos o "connecting" para não ficar em loop infinito
+        if (status === "connecting") {
+          setStatus("disconnected");
+        }
       }
     } finally {
       setLoading(false);
