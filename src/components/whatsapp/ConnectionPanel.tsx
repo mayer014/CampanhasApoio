@@ -69,10 +69,9 @@ export function ConnectionPanel({
         setStatus("disconnected");
         setQrcode(null);
       } else {
-        // Para outros erros, paramos o "connecting" para não ficar em loop infinito
-        if (status === "connecting") {
-          setStatus("disconnected");
-        }
+        // Não resetamos o status imediatamente em caso de erro transiente
+        // para evitar que o QR Code desapareça por uma falha de rede momentânea.
+        console.warn("[fetchStatus] Transient error, keeping status:", status);
       }
     } finally {
       setLoading(false);
