@@ -43,8 +43,8 @@ RUN npm install -g wrangler@4
 
 EXPOSE 3000
 
-WORKDIR /app/dist/server
+WORKDIR /app
 
 # Serve the built Worker locally on 0.0.0.0:3000 using wrangler's local runtime
 # (workerd). Works on any Linux x64 host without a Cloudflare account.
-CMD ["wrangler", "dev", "--ip", "0.0.0.0", "--port", "3000", "--local", "--no-show-interactive-dev-session"]
+CMD ["wrangler", "dev", "--ip", "0.0.0.0", "--port", "3000", "--local", "--no-show-interactive-dev-session", "--config", "dist/server/wrangler.json"]
