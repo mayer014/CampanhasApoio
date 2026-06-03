@@ -132,6 +132,8 @@ export async function getInstanceForUser(
   warmup_enabled: boolean;
   warmup_started_at: string | null;
   warmup_day: number;
+  last_qr: string | null;
+  last_connected_at: string | null;
 }> {
   const { data, error } = await sb
     .from("whatsapp_instances")
