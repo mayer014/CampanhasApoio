@@ -117,6 +117,10 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
       {},
       { apiKey: inst.api_key }
     );
+    if (status === 401 || status === 403 || res?.error?.toLowerCase().includes("api key")) {
+      await sb.from("whatsapp_instances").update({ api_key: null, status: "disconnected" }).eq("candidate_id", candidateId);
+      throw new Error("Chave de API expirada ou inválida. Por favor, inicie uma nova conexão.");
+    }
     if (status >= 400) {
       return {
         configured: true as const,
