@@ -102,9 +102,11 @@ export function ConnectionPanel({
   // Poll status when connecting
   useEffect(() => {
     if (status !== "connecting") return;
-    const t = setInterval(fetchStatus, 3000);
+    
+    // Polling a cada 5 segundos para não sobrecarregar e dar tempo do QR carregar
+    const t = setInterval(fetchStatus, 5000);
     return () => clearInterval(t);
-  }, [status, accessToken]);
+  }, [status, accessToken, qrcode]);
 
   const onConnect = async () => {
     if (!accessToken) return;
@@ -120,9 +122,10 @@ export function ConnectionPanel({
       toast.success(res.reused ? "Instância recuperada" : "Instância criada");
       setConfigured(true);
       setStatus(res.status as any);
-      setQrcode(res.qrcode);
-      // start polling
-      setTimeout(fetchStatus, 1500);
+      if (res.qrcode) setQrcode(res.qrcode);
+      
+      // Espera um pouco mais antes da primeira busca para garantir que o motor processou
+      setTimeout(fetchStatus, 3000);
     } catch (e: any) {
       toast.error(e?.message || "Falha ao criar instância");
     } finally {
