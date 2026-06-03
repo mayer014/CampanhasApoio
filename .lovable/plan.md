@@ -1,64 +1,128 @@
-## Diagnóstico
+# Plano de ação para resolver o erro da VPS
 
-A mensagem `internal error; reference = g78nupdkn1j2ufhrecu7pd8n` **não vem do seu código**. É a página de erro padrão do **workerd** (runtime do `wrangler dev --local` que roda dentro do seu container Docker no Easypanel). Ela aparece sempre que uma exceção **escapa** da função `fetch` do worker — o workerd engole o stacktrace e devolve esse HTML genérico, sem nada nos logs.
+## Diagnóstico principal
+O problema é de **ambiente/runtime na VPS**, não do fluxo funcional do botão em si.
 
-Por isso hoje você vê esse erro mas **não consegue saber qual é**.
+**Evidência concreta encontrada nos logs publicados:**
+- `Missing Supabase environment variable: SUPABASE_SERVICE_ROLE_KEY`
+- isso já está derrubando rotas do módulo WhatsApp em produção
+- o erro aparece junto do `supabaseAdmin` no runtime
 
-Causas possíveis (em ordem de probabilidade) para o `createInstance` quebrar no Easypanel mas funcionar no preview da Lovable:
+Arquivos que sustentam isso:
+- `src/integrations/supabase/client.server.ts` — lança erro fatal se `SUPABASE_SERVICE_ROLE_KEY` não existir
+- `src/routes/api/public/whatsapp.broadcast-tick.ts` — já está falhando em produção por depender de `supabaseAdmin`
+- `src/routes/api/public/whatsapp.webhook.ts` — também importa `supabaseAdmin` no topo e depende da mesma env
+- `src/lib/whatsapp.server.ts` — o fluxo de bridge e webhook depende de `APP_BASE_URL` correto e da Edge Function `whatsapp-bridge-proxy`
+- `src/lib/whatsapp.functions.ts` — o botão `Iniciar Nova Conexão` chama `createInstance`, que depende do bridge/proxy e de persistência consistente
 
-1. **Variável de ambiente faltando no runtime do Easypanel** — o `supabaseAdmin` (`client.server.ts` linha 34-38) faz `throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY...")`. Se essa variável não está setada no container, qualquer rota que carregue esse módulo morre. Mesma coisa vale para `SUPABASE_URL` se a fallback constant não bater.
-2. **Edge Function `whatsapp-bridge-proxy` indisponível ou sem o secret `WHATSHUB_MASTER_TOKEN`** no Supabase — o `bridge()` faz `fetch` para ela e, se der erro de rede/TLS dentro do workerd local, lança exceção não tratada.
-3. **Resposta não-JSON do bridge** virando `JSON.parse` que dispara antes do `try/catch`.
+## O que vamos fazer
 
-Sem o wrapper de SSR, qualquer uma dessas três falha cai na tela `internal error; reference = ...` e a gente fica cego.
+### 1) Corrigir a configuração da VPS/EasyPanel
+Garantir no **runtime** do container, não só no build:
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `APP_BASE_URL`
 
-## Plano de ação
+Valores esperados:
+- `SUPABASE_URL` = URL do projeto Supabase
+- `SUPABASE_PUBLISHABLE_KEY` = chave publishable/anon usada pelo app
+- `SUPABASE_SERVICE_ROLE_KEY` = chave server-only
+- `APP_BASE_URL` = domínio público real da VPS, usado para o webhook
 
-### 1. Implementar wrapper de erro SSR (essencial — isso é o que destrava tudo)
+Resultado esperado:
+- parar os 500 atuais do módulo WhatsApp
+- permitir persistência/admin queries sem crash silencioso
 
-Criar 4 arquivos seguindo o padrão oficial do TanStack Start para Cloudflare workerd:
+### 2) Blindar o fluxo de criação da instância para VPS
+Revisar e endurecer o caminho:
+- `ConnectionPanel -> createInstance -> bridge(master) -> whatsapp-bridge-proxy -> provider`
 
-- **`src/server.ts`** — wrapper que faz `import()` lazy do server-entry do TanStack, envolve em `try/catch`, e normaliza qualquer Response 500 com `{"unhandled":true}` para uma página HTML legível, logando o erro real.
-- **`src/lib/error-capture.ts`** — listeners `globalThis.error` / `unhandledrejection` para capturar exceções que o h3 engoliria silenciosamente; cache curto (5s) para correlacionar com a resposta.
-- **`src/lib/error-page.ts`** — HTML autocontido (sem imports de app) com botões "Tentar novamente" e "Voltar".
-- **`vite.config.ts`** — adicionar `tanstackStart: { server: { entry: "server" } }` para o plugin Vite usar nosso wrapper como entrada do worker.
+Ajustes previstos:
+- capturar e expor erro real do proxy/bridge de forma controlada
+- separar erro de configuração, erro de autenticação e erro do provedor
+- evitar que qualquer exceção vire só `internal error; reference = ...`
 
-Resultado: a partir da próxima build, o erro real aparece nos logs do container (`docker logs`) com stacktrace, e o usuário vê uma página branded em vez do `internal error; reference = ...`.
+Resultado esperado:
+- se a criação falhar, a tela mostrará a causa real
+- logs do servidor passarão a apontar o ponto exato da quebra
 
-### 2. Blindar o `createInstance` com try/catch explícito + log
+### 3) Validar a Edge Function `whatsapp-bridge-proxy`
+Checar se a função está operacional e se o secret já existente está realmente utilizável em produção:
+- `WHATSHUB_MASTER_TOKEN`
+- autenticação via `Authorization: Bearer <access_token>`
+- retorno JSON consistente do proxy
 
-No `src/lib/whatsapp.functions.ts`, envolver o handler do `createInstance` (e de outras chamadas que tocam `bridge`) em `try { ... } catch (e) { console.error("[createInstance]", e); throw e; }` para garantir que o erro chegue nos logs antes do TanStack/h3 serializar.
+Resultado esperado:
+- confirmar se a VPS falha antes do proxy, dentro do proxy, ou no provedor WhatsApp
 
-### 3. Checklist de variáveis no Easypanel
+### 4) Corrigir dependências que podem quebrar só na VPS
+Temos dois pontos secundários que precisam ser eliminados para estabilizar o ambiente:
+- rotas públicas do WhatsApp que importam `supabaseAdmin` no topo e morrem se a env faltar
+- dependência do `APP_BASE_URL` para registrar webhook correto no provedor
 
-No painel do Easypanel, na aba **Environment** do serviço, confirmar que **todas** estão preenchidas (não basta no `.env` do repo — o Docker runtime precisa delas):
+Ação:
+- revisar importações server-only críticas
+- garantir fallback/erros explícitos onde fizer sentido
+- validar URL final do webhook gerado
 
-- `SUPABASE_URL` = `https://pfppmkqsdqawvykkgafe.supabase.co`
-- `SUPABASE_PUBLISHABLE_KEY` = a chave anon do projeto
-- `SUPABASE_SERVICE_ROLE_KEY` = service role (sem isso `supabaseAdmin` quebra na primeira chamada — esse é o suspeito #1)
-- `APP_BASE_URL` = URL pública do Easypanel (ex.: `https://fotodeapoio.radioradar.site`) para o webhook do WhatsHub apontar pro lugar certo
-- `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` como **Build Args** (já estão no Dockerfile, mas precisam ser passados no Easypanel)
+Resultado esperado:
+- menos falhas catastróficas por diferença entre Lovable e VPS
+- comportamento previsível no self-host
 
-No Supabase, conferir que a Edge Function `whatsapp-bridge-proxy` tem o secret `WHATSHUB_MASTER_TOKEN` configurado.
+### 5) Verificação final ponta a ponta
+Depois das correções, validar esta sequência:
+1. clicar em `Iniciar Nova Conexão`
+2. confirmar criação da instância no banco
+3. confirmar resposta do bridge/proxy
+4. confirmar retorno de `qrcode`
+5. confirmar renderização do QR Code na tela
+6. confirmar que webhook público responde sem crash
 
-### 4. Verificação
+## Possíveis erros adicionais que podem continuar quebrando o trabalho
+Além do `SUPABASE_SERVICE_ROLE_KEY`, estes são os candidatos mais prováveis:
 
-Após deploy, clicar "Iniciar Nova Conexão" novamente. Cenários esperados:
-- **Sucesso** → instância criada normalmente.
-- **Falha controlada** → toast com mensagem real (ex.: "WHATSHUB_MASTER_TOKEN missing") em vez de tela em branco.
-- **Falha catastrófica** → página HTML branded; o erro real aparece nos logs do container (`docker logs <container>` no Easypanel).
+1. **`APP_BASE_URL` incorreto**
+- o provider recebe webhook errado
+- a instância pode até ser criada, mas eventos não retornam corretamente
+
+2. **proxy `whatsapp-bridge-proxy` com falha operacional**
+- secret presente no Supabase mas função não respondendo como esperado
+- erro JSON/timeout/rede mascarado pela VPS
+
+3. **diferença entre build env e runtime env**
+- `VITE_*` entra no build
+- `SUPABASE_SERVICE_ROLE_KEY` e `APP_BASE_URL` precisam existir no container rodando
+
+4. **crash silencioso por import server-only em rota pública**
+- qualquer uso de `supabaseAdmin` sem env completa derruba endpoints relacionados
+
+5. **resposta inválida do bridge/provedor**
+- criação pode retornar sem `api_key`, sem `instance_id` ou sem `qrcode`
+- hoje isso ainda pode virar erro genérico demais
+
+## Entregável da implementação
+Vou aplicar a correção em duas frentes:
+- **estabilização do código** para erro real aparecer e o fluxo não morrer silenciosamente
+- **checklist exato de variáveis e validação da VPS** para o deploy ficar definitivo
 
 ## Detalhes técnicos
+```text
+Botão UI
+  -> createInstance (serverFn)
+    -> userClientFromToken / resolveTargetCandidate
+    -> bridge(master)
+      -> Supabase Edge Function: whatsapp-bridge-proxy
+        -> WhatsHub bridge/provider
+    -> grava whatsapp_instances
+    -> retorna qrcode/status
+```
 
-- Wrapper segue a referência oficial do TanStack para Cloudflare workerd; o lazy `import()` é fundamental porque erros de inicialização de módulo (ex.: `throw` no `client.server.ts` quando `SUPABASE_SERVICE_ROLE_KEY` falta) precisam ser capturáveis pelo `try/catch`.
-- O ajuste em `vite.config.ts` é obrigatório: só mudar `wrangler.json` não basta porque o `@cloudflare/vite-plugin` reconstrói o entry a partir do virtual module do TanStack.
-- Nenhuma alteração de schema do banco. Nenhuma quebra de API existente.
+```text
+Falha já comprovada em produção:
+route/public whatsapp -> supabaseAdmin -> client.server.ts
+-> SUPABASE_SERVICE_ROLE_KEY ausente
+-> erro fatal no runtime da VPS
+```
 
-## Arquivos a alterar / criar
-
-- **CRIAR** `src/server.ts`
-- **CRIAR** `src/lib/error-capture.ts`
-- **CRIAR** `src/lib/error-page.ts`
-- **EDITAR** `vite.config.ts` (adicionar `tanstackStart.server.entry`)
-- **EDITAR** `src/lib/whatsapp.functions.ts` (try/catch + log no `createInstance`)
-- **EDITAR** `wrangler.jsonc` (opcional, alinhar `main` com `src/server.ts`)
+Se você aprovar, eu implemento agora a correção definitiva no código e te deixo também com o checklist exato da EasyPanel para subir sem voltar esse erro.
