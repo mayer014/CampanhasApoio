@@ -36,13 +36,17 @@ export const createInstance = createServerFn({ method: "POST" })
 
     const { data: prof } = await sb
       .from("candidate_profiles")
-      .select("full_name")
+      .select("full_name, email")
       .eq("id", candidateId)
       .maybeSingle();
 
-    const instanceName =
-      data.name ||
-      (prof?.full_name ? `WhatsApp ${prof.full_name}` : `WhatsApp ${candidateId.slice(0, 6)}`);
+    // Criamos um nome mais descritivo para o gerenciador de instâncias
+    // Formato: [ID Curto] Nome do Usuário (email)
+    const shortId = candidateId.slice(0, 4).toUpperCase();
+    const userName = prof?.full_name || "Usuario";
+    const userEmail = prof?.email ? ` (${prof.email})` : "";
+    
+    const instanceName = `${shortId} - ${userName}${userEmail}`;
 
     const { data: existing } = await sb
       .from("whatsapp_instances")
