@@ -117,6 +117,10 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
       {},
       { apiKey: inst.api_key }
     );
+    if (status === 401 || status === 403 || res?.error?.toLowerCase().includes("api key")) {
+      await sb.from("whatsapp_instances").update({ api_key: null, status: "disconnected" }).eq("candidate_id", candidateId);
+      throw new Error("Chave de API expirada ou inválida. Por favor, inicie uma nova conexão.");
+    }
     if (status >= 400) {
       return {
         configured: true as const,
@@ -155,8 +159,19 @@ export const reconnectInstance = createServerFn({ method: "POST" })
     const callerId = await userIdFromToken(data.access_token);
     const candidateId = await resolveTargetCandidate(sb, callerId, data.candidate_id);
     const inst = await getInstanceForUser(sb, candidateId);
+    
+    // If we have an API key, we call reconnect. If it fails with 401/403 (Invalid API Key), 
+    // we should probably allow the user to create a new one.
     if (!inst.api_key) throw new Error("Instância sem API key");
+    
     const { status, data: res } = await bridge("reconnect", {}, { apiKey: inst.api_key });
+    
+    if (status === 401 || status === 403 || res?.error?.toLowerCase().includes("api key")) {
+      // If the API key is invalid, we clear it so the user can "Create New"
+      await sb.from("whatsapp_instances").update({ api_key: null, status: "disconnected" }).eq("candidate_id", candidateId);
+      throw new Error("Chave de API inválida. A instância foi resetada, tente conectar novamente.");
+    }
+    
     if (status >= 400) throw new Error(res?.error || `reconnect ${status}`);
     return { success: true };
   });
