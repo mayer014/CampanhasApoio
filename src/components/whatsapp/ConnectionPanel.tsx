@@ -102,9 +102,11 @@ export function ConnectionPanel({
   // Poll status when connecting
   useEffect(() => {
     if (status !== "connecting") return;
-    const t = setInterval(fetchStatus, 3000);
+    
+    // Polling a cada 5 segundos para não sobrecarregar e dar tempo do QR carregar
+    const t = setInterval(fetchStatus, 5000);
     return () => clearInterval(t);
-  }, [status, accessToken]);
+  }, [status, accessToken, qrcode]);
 
   const onConnect = async () => {
     if (!accessToken) return;
