@@ -7,12 +7,14 @@ import { ConnectionPanel } from "@/components/whatsapp/ConnectionPanel";
 import { ChatPanel } from "@/components/whatsapp/ChatPanel";
 import { GroupsPanel } from "@/components/whatsapp/GroupsPanel";
 import { OptOutsPanel } from "@/components/whatsapp/OptOutsPanel";
-import { MessageSquare, Send, Sparkles, Settings, Users, ShieldAlert } from "lucide-react";
+import { MessageSquare, Send, Sparkles, Settings, Users, ShieldAlert, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getInstanceStatus } from "@/lib/whatsapp.functions";
 
 // Components from our other pages
 import { AIMissionsPanel } from "@/components/social/AIMissionsPanel";
 import { PortalMissionsPanel } from "@/components/social/PortalMissionsPanel";
-import DisparosTab from "@/components/social/DisparosTab"; // I'll extract this from painel.disparos.tsx
+import DisparosTab from "@/components/social/DisparosTab";
 
 export const Route = createFileRoute("/painel/central-whatsapp")({
   component: CentralWhatsApp,
@@ -21,8 +23,38 @@ export const Route = createFileRoute("/painel/central-whatsapp")({
 function CentralWhatsApp() {
   const { user } = useAuth();
   const token = useAccessToken();
+  const [activeTab, setActiveTab] = useState<string>("disparos");
+  const [checkingConnection, setCheckingConnection] = useState(true);
 
-  if (!user) return <div className="p-8 text-center text-muted-foreground">Carregando…</div>;
+  useEffect(() => {
+    if (!token || !user) return;
+    
+    const checkInitialConnection = async () => {
+      try {
+        const res = await getInstanceStatus({
+          data: { access_token: token, candidate_id: user.id },
+        });
+        if (!res.configured || res.status !== "connected") {
+          setActiveTab("conexao");
+        }
+      } catch (e) {
+        setActiveTab("conexao");
+      } finally {
+        setCheckingConnection(false);
+      }
+    };
+
+    checkInitialConnection();
+  }, [token, user]);
+
+  if (!user || checkingConnection) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <p>Carregando Central de WhatsApp…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -33,7 +65,7 @@ function CentralWhatsApp() {
         </p>
       </div>
 
-      <Tabs defaultValue="disparos" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-8 h-auto flex-wrap">
           <TabsTrigger value="disparos" className="gap-2 py-3">
             <Send className="h-4 w-4" /> <span className="hidden md:inline">Disparos</span>
