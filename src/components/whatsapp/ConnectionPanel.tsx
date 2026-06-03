@@ -52,8 +52,14 @@ export function ConnectionPanel({
       }
       setConfigured(true);
       setStatus(res.status);
-      setQrcode(res.qrcode);
       setPhone(res.phone_number);
+      
+      // Apenas atualizamos o QR Code se ele existir ou se a conexão foi estabelecida/perdida
+      if (res.qrcode) {
+        setQrcode(res.qrcode);
+      } else if (res.status === "connected" || res.status === "disconnected") {
+        setQrcode(null);
+      }
     } catch (e: any) {
       console.error("[fetchStatus] error:", e);
       const msg = e?.message || "";
