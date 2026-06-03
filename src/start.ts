@@ -27,6 +27,7 @@ try {
     describeEnv("VITE_SUPABASE_PUBLISHABLE_KEY"),
     describeEnv("SUPABASE_ANON_KEY"),
     describeEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    describeEnv("WHATSHUB_MASTER_TOKEN"),
     describeEnv("META_APP_SECRET"),
     describeEnv("META_BUSINESS_LOGIN_CONFIG_ID"),
   ]);
