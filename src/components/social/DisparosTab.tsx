@@ -15,7 +15,7 @@ import {
   Send, 
   Image as ImageIcon, 
   History, 
-  Clock, 
+  RefreshCw, 
   CheckCircle2, 
   AlertCircle, 
   X, 
@@ -170,10 +170,15 @@ export default function DisparosTab({ clientId }: { clientId: string }) {
           {bridgeStatus === 'checking' ? <Loader2 className="h-4 w-4 animate-spin" /> : 
            bridgeStatus === 'connected' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <span className="text-sm font-medium">
-            Status: {bridgeStatus === 'checking' ? 'Verificando...' : bridgeStatus === 'connected' ? 'Conectado' : 'Desconectado'}
+            {bridgeStatus === 'checking' ? 'Verificando...' : bridgeStatus === 'connected' ? 'Conectado' : 'Desconectado'}
           </span>
+          {bridgeStatus === 'disconnected' && (
+            <p className="text-[10px] bg-amber-200/50 px-2 py-0.5 rounded ml-2 hidden sm:block">
+              Vá em "Conexão" para ligar
+            </p>
+          )}
           <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={() => checkBridge(clientId)}>
-            <Clock className="h-3 w-3" />
+            <RefreshCw className="h-3 w-3" />
           </Button>
         </Card>
       </div>
