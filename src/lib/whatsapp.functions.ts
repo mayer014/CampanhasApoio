@@ -122,10 +122,27 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
       {},
       { apiKey: inst.api_key }
     );
-    if (status === 401 || status === 403 || status === 404 || res?.error?.toLowerCase().includes("api key") || res?.error?.toLowerCase().includes("not found")) {
-      await sb.from("whatsapp_instances").update({ api_key: null, status: "disconnected", instance_id: null }).eq("candidate_id", candidateId);
-      throw new Error("Conexão expirada ou instância não encontrada. Por favor, inicie uma nova conexão.");
+    
+    // Tratamento de erros críticos (API Key inválida ou instância não encontrada no provedor)
+    if (status === 401 || status === 403 || status === 404 || 
+        res?.error?.toLowerCase().includes("api key") || 
+        res?.error?.toLowerCase().includes("not found")) {
+      
+      console.warn("[getInstanceStatus] Invalid API Key or Instance not found. Resetting local state.", { status, res });
+      
+      await sb.from("whatsapp_instances")
+        .update({ api_key: null, status: "disconnected", instance_id: null, last_qr: null })
+        .eq("candidate_id", candidateId);
+        
+      return {
+        configured: false as const,
+        status: "disconnected" as const,
+        qrcode: null,
+        phone_number: inst.phone_number,
+        error: "Sessão expirada. Por favor, conecte novamente."
+      };
     }
+    
     if (status >= 400) {
       return {
         configured: true as const,
@@ -135,6 +152,7 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
         error: res?.error || `status ${status}`,
       };
     }
+
     let newStatus = (res.status || "disconnected") as
       | "connected"
       | "connecting"
@@ -142,19 +160,23 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
 
     // Se temos um QR Code, para o nosso frontend o status deve ser 'connecting'
     // para que a interface continue exibindo o QR Code e permitindo o scan.
-    if (res.qrcode && newStatus === "disconnected") {
+    if (res.qrcode && (newStatus === "disconnected" || newStatus === "connecting")) {
       newStatus = "connecting";
     }
+
+    // Se o status mudou para conectado, limpamos o QR Code do banco
+    const updateData: any = {
+      status: newStatus,
+      phone_number: res.phone_number || inst.phone_number,
+      last_qr: newStatus === "connected" ? null : (res.qrcode || inst.last_qr),
+      last_connected_at: newStatus === "connected" ? new Date().toISOString() : inst.last_connected_at,
+    };
+
     await sb
       .from("whatsapp_instances")
-      .update({
-        status: newStatus,
-        phone_number: res.phone_number || inst.phone_number,
-        last_qr: res.qrcode || null,
-        last_connected_at:
-          newStatus === "connected" ? new Date().toISOString() : inst.status === "connected" ? new Date().toISOString() : null,
-      })
+      .update(updateData)
       .eq("candidate_id", candidateId);
+
     return {
       configured: true as const,
       status: newStatus,
