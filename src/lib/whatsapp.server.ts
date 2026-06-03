@@ -43,9 +43,15 @@ function resolveSupabaseUrl(): string {
 function resolveSupabaseAnonKey(): string {
   return (
     process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmcHBta3FzZHFhd3Z5a2tnYWZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjM3MzcsImV4cCI6MjA5MzE5OTczN30.LkEeROQWXN2HkRsEiiI4sjzBQf4OdDVuuCep48wL3Rg"
   );
+}
+
+function resolveBridgeMasterToken(): string | undefined {
+  return process.env.WHATSHUB_MASTER_TOKEN || undefined;
 }
 
 /** Low-level call to the WhatsHub Bridge.
@@ -62,18 +68,61 @@ export async function bridge(
     if (!auth.accessToken) {
       throw new Error("Bridge master call requires user access token");
     }
+
+    const masterToken = resolveBridgeMasterToken();
+
+    if (masterToken) {
+      console.log("[bridge] master call via direct token", { action });
+      try {
+        const res = await fetch(BRIDGE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Bridge-Token": masterToken,
+          },
+          body: JSON.stringify({ action, ...payload }),
+        });
+        const text = await res.text();
+        let data: any = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          data = { raw: text };
+        }
+        return { status: res.status, data };
+      } catch (error: any) {
+        throw new Error(
+          `Bridge direto indisponível (${BRIDGE_URL}): ${error?.message || "erro desconhecido"}`
+        );
+      }
+    }
+
     const supabaseUrl = resolveSupabaseUrl();
     const anonKey = resolveSupabaseAnonKey();
     const proxyUrl = `${supabaseUrl}/functions/v1/whatsapp-bridge-proxy`;
-    const res = await fetch(proxyUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: anonKey,
-        Authorization: `Bearer ${auth.accessToken}`,
-      },
-      body: JSON.stringify({ action, payload }),
+    console.log("[bridge] master call via supabase proxy", {
+      action,
+      proxyUrl,
+      hasAnonKey: !!anonKey,
     });
+
+    let res: Response;
+    try {
+      res = await fetch(proxyUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: anonKey,
+          Authorization: `Bearer ${auth.accessToken}`,
+        },
+        body: JSON.stringify({ action, payload }),
+      });
+    } catch (error: any) {
+      throw new Error(
+        `Proxy do bridge indisponível (${proxyUrl}). Defina WHATSHUB_MASTER_TOKEN no runtime da VPS para bypass do proxy ou verifique o acesso ao Supabase Functions. Motivo: ${error?.message || "erro desconhecido"}`
+      );
+    }
+
     const text = await res.text();
     let parsed: any = null;
     try {
