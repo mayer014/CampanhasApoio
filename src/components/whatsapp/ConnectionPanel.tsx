@@ -175,62 +175,80 @@ export function ConnectionPanel({
     );
 
   return (
-    <div className="space-y-4">
-      <Card className="p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-semibold">Status da conexão</h3>
-            <div className="mt-2 flex items-center gap-2">
+    <div className="space-y-4 animate-in fade-in duration-500">
+      <Card className="p-6 border-primary/20 shadow-lg bg-gradient-to-br from-background to-muted/20">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-6">
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold tracking-tight">Conexão do WhatsApp</h3>
+            <p className="text-sm text-muted-foreground">
+              Vincule seu número para habilitar disparos e automações.
+            </p>
+            <div className="mt-4 flex items-center gap-3">
               <StatusBadge status={configured ? status : "disconnected"} />
               {phone && (
-                <span className="text-sm text-muted-foreground">📱 {phone}</span>
+                <span className="text-sm font-medium bg-muted px-2 py-1 rounded-md border flex items-center gap-2">
+                  📱 {phone}
+                </span>
               )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
             {!configured && (
-              <Button onClick={onConnect} disabled={busy}>
-                <Plug className="mr-2 h-4 w-4" /> Conectar WhatsApp
+              <Button onClick={onConnect} disabled={busy} size="lg" className="w-full md:w-auto shadow-sm">
+                <Plug className="mr-2 h-4 w-4" /> Iniciar Nova Conexão
               </Button>
             )}
             {configured && status === "disconnected" && (
-              <Button onClick={onReconnect} disabled={busy}>
-                <PlugZap className="mr-2 h-4 w-4" /> Reconectar
+              <Button onClick={onReconnect} disabled={busy} size="lg" className="w-full md:w-auto shadow-sm">
+                <PlugZap className="mr-2 h-4 w-4" /> Reconectar Agora
               </Button>
             )}
             {configured && status === "connecting" && (
-              <Button disabled variant="outline">
+              <Button disabled variant="outline" size="lg" className="w-full md:w-auto">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Conectando…
               </Button>
             )}
             {configured && (
-              <Button variant="outline" onClick={fetchStatus} disabled={busy}>
-                <RefreshCw className="mr-2 h-4 w-4" /> Atualizar
+              <Button variant="outline" onClick={fetchStatus} disabled={busy} size="lg" className="w-full md:w-auto">
+                <RefreshCw className="mr-2 h-4 w-4" /> Atualizar Status
               </Button>
             )}
             {configured && status === "connected" && (
-              <Button variant="destructive" onClick={onDisconnect} disabled={busy}>
-                Desconectar
+              <Button variant="destructive" onClick={onDisconnect} disabled={busy} size="lg" className="w-full md:w-auto">
+                Desconectar WhatsApp
               </Button>
             )}
           </div>
         </div>
 
         {status === "connecting" && (
-          <div className="mt-6 flex flex-col items-center gap-3 rounded-lg border bg-muted/30 p-6 text-center">
+          <div className="mt-8 flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-primary/20 bg-primary/5 p-8 text-center animate-in zoom-in-95 duration-300">
             {qrcode ? (
               <>
-                <p className="text-sm font-medium">Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho e escaneie:</p>
-                <div className="bg-white p-4 rounded-xl shadow-sm border mt-2">
+                <div className="space-y-2 max-w-sm mx-auto">
+                  <h4 className="font-bold text-lg">Escaneie o QR Code</h4>
+                  <p className="text-sm text-muted-foreground">Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho</p>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-xl border-4 border-white mt-2 ring-1 ring-muted">
                   <img src={qrcode} alt="QR Code" className="h-64 w-64" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 animate-pulse">Aguardando leitura do QR Code…</p>
+                <div className="flex items-center gap-2 text-primary font-medium animate-pulse mt-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <p className="text-sm">Aguardando leitura do QR Code…</p>
+                </div>
               </>
             ) : (
-              <div className="flex flex-col items-center py-8">
-                <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-                <p className="font-medium">Gerando QR Code…</p>
-                <p className="text-xs text-muted-foreground mt-1">Isso pode levar alguns segundos dependendo da conexão.</p>
+              <div className="flex flex-col items-center py-12 space-y-4">
+                <div className="relative">
+                  <Loader2 className="h-16 w-16 animate-spin text-primary opacity-20" />
+                  <Loader2 className="h-16 w-16 animate-spin text-primary absolute inset-0" style={{ animationDuration: '2s' }} />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-bold text-lg">Gerando QR Code…</p>
+                  <p className="text-sm text-muted-foreground max-w-[280px]">
+                    Estamos preparando sua instância segura. Isso pode levar até 15 segundos.
+                  </p>
+                </div>
               </div>
             )}
           </div>

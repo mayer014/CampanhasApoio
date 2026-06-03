@@ -23,7 +23,7 @@ export const Route = createFileRoute("/painel/central-whatsapp")({
 function CentralWhatsApp() {
   const { user } = useAuth();
   const token = useAccessToken();
-  const [activeTab, setActiveTab] = useState<string>("disparos");
+  const [activeTab, setActiveTab] = useState<string>("conexao"); // Default to connection while loading/checking
   const [checkingConnection, setCheckingConnection] = useState(true);
 
   useEffect(() => {
@@ -34,7 +34,9 @@ function CentralWhatsApp() {
         const res = await getInstanceStatus({
           data: { access_token: token, candidate_id: user.id },
         });
-        if (!res.configured || res.status !== "connected") {
+        if (res.configured && res.status === "connected") {
+          setActiveTab("disparos");
+        } else {
           setActiveTab("conexao");
         }
       } catch (e) {
