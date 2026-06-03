@@ -26,84 +26,93 @@ export const createInstance = createServerFn({ method: "POST" })
     TokenInput.extend({ name: z.string().min(1).max(100) }).parse(input)
   )
   .handler(async ({ data }) => {
-    const sb = await userClientFromToken(data.access_token);
-    const callerId = await userIdFromToken(data.access_token);
-    const candidateId = await resolveTargetCandidate(
-      sb,
-      callerId,
-      data.candidate_id
-    );
+    try {
+      const sb = await userClientFromToken(data.access_token);
+      const callerId = await userIdFromToken(data.access_token);
+      const candidateId = await resolveTargetCandidate(
+        sb,
+        callerId,
+        data.candidate_id
+      );
 
-    const { data: prof } = await sb
-      .from("candidate_profiles")
-      .select("full_name, email")
-      .eq("id", candidateId)
-      .maybeSingle();
+      const { data: prof } = await sb
+        .from("candidate_profiles")
+        .select("full_name, email")
+        .eq("id", candidateId)
+        .maybeSingle();
 
-    // Criamos um nome mais descritivo para o gerenciador de instâncias
-    // Formato: [ID Curto] Nome do Usuário (email)
-    const shortId = candidateId.slice(0, 4).toUpperCase();
-    const userName = prof?.full_name || "Usuario";
-    const userEmail = prof?.email ? ` (${prof.email})` : "";
-    
-    const instanceName = `${shortId} - ${userName}${userEmail}`;
+      const shortId = candidateId.slice(0, 4).toUpperCase();
+      const userName = prof?.full_name || "Usuario";
+      const userEmail = prof?.email ? ` (${prof.email})` : "";
+      const instanceName = `${shortId} - ${userName}${userEmail}`;
 
-    const { data: existing } = await sb
-      .from("whatsapp_instances")
-      .select("*")
-      .eq("candidate_id", candidateId)
-      .maybeSingle();
+      const { data: existing } = await sb
+        .from("whatsapp_instances")
+        .select("*")
+        .eq("candidate_id", candidateId)
+        .maybeSingle();
 
-    const { status, data: res } = await bridge(
-      "create_instance",
-      {
+      console.log("[createInstance] calling bridge", { candidateId, instanceName });
+
+      const { status, data: res } = await bridge(
+        "create_instance",
+        {
+          name: instanceName,
+          webhook_url: webhookUrl(),
+        },
+        { master: true, accessToken: data.access_token }
+      );
+
+      console.log("[createInstance] bridge response", { status, hasApiKey: !!(res?.api_key ?? res?.apiKey), error: res?.error });
+
+      if (status >= 400 || res?.error) {
+        throw new Error(res?.error || `Bridge create_instance failed (${status})`);
+      }
+
+      const apiKey = (res?.api_key ?? res?.apiKey) as string | undefined;
+      const instanceId = (res?.instance?.id ?? res?.instance?.instance_id) as string | undefined;
+      const phone = (res?.instance?.phone_number ?? res?.phone_number) || null;
+      const qrcode = (res?.qrcode ?? res?.instance?.qrcode) as string | undefined;
+      let remoteStatus =
+        (res?.instance?.status as "connected" | "connecting" | "disconnected") ||
+        "connecting";
+
+      if (qrcode && remoteStatus === "disconnected") {
+        remoteStatus = "connecting";
+      }
+
+      const row = {
+        candidate_id: candidateId,
+        instance_id: instanceId || existing?.instance_id || null,
         name: instanceName,
-        webhook_url: webhookUrl(),
-      },
-      { master: true, accessToken: data.access_token }
-    );
-    if (status >= 400 || res?.error) {
-      throw new Error(res?.error || `Bridge create_instance failed (${status})`);
+        phone_number: phone,
+        status: remoteStatus,
+        api_key: apiKey || existing?.api_key || null,
+        webhook_registered: true,
+        last_qr: qrcode || null,
+        last_connected_at: remoteStatus === "connected" ? new Date().toISOString() : existing?.last_connected_at || null,
+      };
+
+      if (existing) {
+        await sb.from("whatsapp_instances").update(row).eq("id", existing.id);
+      } else {
+        await sb.from("whatsapp_instances").insert(row);
+      }
+
+      return {
+        success: true,
+        reused: !!res.reused,
+        status: remoteStatus,
+        qrcode: qrcode || null,
+      };
+    } catch (e: any) {
+      console.error("[createInstance] FATAL", {
+        message: e?.message,
+        stack: e?.stack,
+        name: e?.name,
+      });
+      throw new Error(e?.message || "Falha ao criar instância WhatsApp");
     }
-
-    const apiKey = (res?.api_key ?? res?.apiKey) as string | undefined;
-    const instanceId = (res?.instance?.id ?? res?.instance?.instance_id) as string | undefined;
-    const phone = (res?.instance?.phone_number ?? res?.phone_number) || null;
-    const qrcode = (res?.qrcode ?? res?.instance?.qrcode) as string | undefined;
-    let remoteStatus =
-      (res?.instance?.status as "connected" | "connecting" | "disconnected") ||
-      "connecting";
-    
-    // Se temos um QR Code, o status efetivo para o usuário deve ser 'connecting'
-    if (qrcode && remoteStatus === "disconnected") {
-      remoteStatus = "connecting";
-    }
-
-
-    const row = {
-      candidate_id: candidateId,
-      instance_id: instanceId || existing?.instance_id || null,
-      name: instanceName,
-      phone_number: phone,
-      status: remoteStatus,
-      api_key: apiKey || existing?.api_key || null,
-      webhook_registered: true,
-      last_qr: qrcode || null,
-      last_connected_at: remoteStatus === "connected" ? new Date().toISOString() : existing?.last_connected_at || null,
-    };
-
-    if (existing) {
-      await sb.from("whatsapp_instances").update(row).eq("id", existing.id);
-    } else {
-      await sb.from("whatsapp_instances").insert(row);
-    }
-
-    return {
-      success: true,
-      reused: !!res.reused,
-      status: remoteStatus,
-      qrcode: qrcode || null,
-    };
   });
 
 export const getInstanceStatus = createServerFn({ method: "POST" })
