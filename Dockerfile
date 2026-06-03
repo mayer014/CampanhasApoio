@@ -34,9 +34,9 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV CLOUDFLARE_INCLUDE_PROCESS_ENV=true
 
-# The build emits a self-contained Worker bundle in dist/server (with its own
-# wrangler.json) and static assets in dist/client. We only need those + wrangler.
-COPY --from=builder /app/dist ./dist
+# The build emits a self-contained Worker bundle in .output/server (with its own
+# wrangler.json) and static assets in .output/public.
+COPY --from=builder /app/.output ./.output
 
 # Install only wrangler at runtime (much smaller than copying all node_modules)
 RUN npm install -g wrangler@4
@@ -47,4 +47,4 @@ WORKDIR /app
 
 # Serve the built Worker locally on 0.0.0.0:3000 using wrangler's local runtime
 # (workerd). Works on any Linux x64 host without a Cloudflare account.
-CMD ["wrangler", "dev", "--ip", "0.0.0.0", "--port", "3000", "--local", "--no-show-interactive-dev-session", "--config", "dist/server/wrangler.json"]
+CMD ["wrangler", "dev", "--ip", "0.0.0.0", "--port", "3000", "--local", "--no-show-interactive-dev-session", "--config", ".output/server/wrangler.json"]
