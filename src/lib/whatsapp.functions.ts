@@ -65,10 +65,15 @@ export const createInstance = createServerFn({ method: "POST" })
     const apiKey = (res?.api_key ?? res?.apiKey) as string | undefined;
     const instanceId = (res?.instance?.id ?? res?.instance?.instance_id) as string | undefined;
     const phone = (res?.instance?.phone_number ?? res?.phone_number) || null;
-    const remoteStatus =
+    const qrcode = (res?.qrcode ?? res?.instance?.qrcode) as string | undefined;
+    let remoteStatus =
       (res?.instance?.status as "connected" | "connecting" | "disconnected") ||
       "connecting";
-    const qrcode = (res?.qrcode ?? res?.instance?.qrcode) as string | undefined;
+    
+    // Se temos um QR Code, o status efetivo para o usuário deve ser 'connecting'
+    if (qrcode && remoteStatus === "disconnected") {
+      remoteStatus = "connecting";
+    }
 
 
     const row = {
@@ -130,10 +135,16 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
         error: res?.error || `status ${status}`,
       };
     }
-    const newStatus = (res.status || "disconnected") as
+    let newStatus = (res.status || "disconnected") as
       | "connected"
       | "connecting"
       | "disconnected";
+
+    // Se temos um QR Code, para o nosso frontend o status deve ser 'connecting'
+    // para que a interface continue exibindo o QR Code e permitindo o scan.
+    if (res.qrcode && newStatus === "disconnected") {
+      newStatus = "connecting";
+    }
     await sb
       .from("whatsapp_instances")
       .update({
