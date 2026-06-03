@@ -44,6 +44,7 @@ export function ConnectionPanel({
       if (!res.configured) {
         setConfigured(false);
         setStatus("disconnected");
+        setQrcode(null);
         return;
       }
       setConfigured(true);
@@ -51,8 +52,11 @@ export function ConnectionPanel({
       setQrcode(res.qrcode);
       setPhone(res.phone_number);
     } catch (e: any) {
-      // Not configured yet
-      setConfigured(false);
+      const msg = e?.message || "";
+      if (msg.includes("API") || msg.includes("expirada")) {
+        setConfigured(false);
+        setQrcode(null);
+      }
     } finally {
       setLoading(false);
     }
