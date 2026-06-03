@@ -133,8 +133,10 @@ export function ConnectionPanel({
       // start polling
       setTimeout(fetchStatus, 1000);
     } catch (e: any) {
-      toast.error(e?.message || "Falha");
-      fetchStatus(); // Try to get actual status back
+      console.error("[onReconnect] error:", e);
+      toast.error(e?.message || "Falha ao reconectar");
+      // Importante: se falhou, tentamos atualizar o status real para sair do "connecting"
+      await fetchStatus();
     } finally {
       setBusy(false);
     }
