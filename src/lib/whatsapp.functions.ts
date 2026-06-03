@@ -130,10 +130,16 @@ export const getInstanceStatus = createServerFn({ method: "POST" })
         error: res?.error || `status ${status}`,
       };
     }
-    const newStatus = (res.status || "disconnected") as
+    let newStatus = (res.status || "disconnected") as
       | "connected"
       | "connecting"
       | "disconnected";
+
+    // Se temos um QR Code, para o nosso frontend o status deve ser 'connecting'
+    // para que a interface continue exibindo o QR Code e permitindo o scan.
+    if (res.qrcode && newStatus === "disconnected") {
+      newStatus = "connecting";
+    }
     await sb
       .from("whatsapp_instances")
       .update({
