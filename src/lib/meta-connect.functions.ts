@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   META_APP_ID,
   META_REDIRECT_URI,
@@ -37,7 +37,6 @@ async function debugTokenRaw(token: string, appAccess: string): Promise<unknown>
 }
 
 async function exchangeCodeAndSave(
-  supabase: SupabaseClient<Database>,
   userId: string,
   code: string,
 ) {
@@ -280,10 +279,10 @@ async function exchangeCodeAndSave(
     },
   };
 
-  const { error: upErr } = await supabase
+  const { error: upErr } = await supabaseAdmin
     .from("social_connections")
-    .upsert(row as never, { onConflict: "user_id,platform" });
-  if (upErr) throw new Error(upErr.message);
+    .upsert(row as any, { onConflict: "user_id,platform" });
+  if (upErr) throw new Error(`Falha ao salvar social_connection: ${upErr.message}`);
 
   // Lista de TODAS as páginas retornadas pelo Graph, para o usuário saber
   // quais ficaram disponíveis (mas não foram conectadas, pois só guardamos 1
@@ -333,6 +332,6 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
     z.object({ code: z.string().min(10).max(2000) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    return exchangeCodeAndSave(context.supabase, context.userId, data.code);
+    return exchangeCodeAndSave(context.userId, data.code);
   });
 

@@ -87,35 +87,51 @@ function RedesSociaisPage() {
   }
 
   async function load() {
-    if (!user) return;
+    if (!user) {
+      pushDiag({ kind: "info", label: "load() ignorado: usuário não autenticado", detail: "" });
+      return;
+    }
     setLoading(true);
+    pushDiag({ kind: "info", label: "Iniciando load() do banco", detail: `user_id=${user.id}` });
+    
     const { data, error } = await supabase
       .from("social_connections")
       .select("*")
       .eq("user_id", user.id)
       .eq("platform", "meta")
       .maybeSingle();
+
     if (error) {
       toast.error(error.message);
       pushDiag({ kind: "error", label: "Falha ao consultar social_connections", detail: error.message });
     } else {
       pushDiag({
         kind: data ? "success" : "info",
-        label: data ? `Conexão carregada do banco: ${data.page_name ?? data.page_id ?? "(sem nome)"}` : "Nenhuma conexão Meta encontrada para este usuário",
-        detail: data ? `status=${data.status} · page_id=${data.page_id} · ig=${data.instagram_username ?? "-"}` : `user_id=${user.id}`,
+        label: data ? `Conexão carregada: ${data.page_name ?? data.page_id ?? "(sem nome)"}` : "Nenhuma conexão encontrada",
+        detail: data 
+          ? `status=${data.status} · page_id=${data.page_id} · updated_at=${data.updated_at ?? "-"}` 
+          : "Certifique-se de que a conexão foi salva corretamente no banco de dados."
       });
     }
+    
     setConn((data as Connection | null) ?? null);
     setLoading(false);
   }
 
-  useEffect(() => { void load(); }, [user?.id]);
+  useEffect(() => { 
+    if (user?.id) {
+      void load(); 
+    }
+  }, [user?.id]);
 
   useEffect(() => {
+    let active = true;
     function onMsg(ev: MessageEvent) {
       if (!ev.data || typeof ev.data !== "object") return;
       const type = (ev.data as { type?: string }).type;
-      if (type !== "meta-oauth-callback" && type !== "meta-oauth-success") return;
+      
+      // We only care about the callback signal
+      if (type !== "meta-oauth-callback") return;
 
       pushDiag({
         kind: "info",
@@ -125,11 +141,6 @@ function RedesSociaisPage() {
 
       if (ev.origin !== window.location.origin) {
         pushDiag({ kind: "warn", label: "Mensagem ignorada (origem diferente)", detail: `esperado=${window.location.origin} · recebido=${ev.origin}` });
-        return;
-      }
-
-      if (type === "meta-oauth-success") {
-        void load();
         return;
       }
 
@@ -163,6 +174,7 @@ function RedesSociaisPage() {
       setBusy(true);
       void connectFn({ data: { code } })
         .then((result) => {
+          if (!active) return;
           sessionStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
           pushDiag({
             kind: "success",
@@ -173,22 +185,25 @@ function RedesSociaisPage() {
           if (result?.warning) {
             toast.warning(result.warning, { duration: 12000 });
           }
+          // Ensure we reload data after success
           void load();
         })
-
         .catch((error) => {
+          if (!active) return;
           const message = error instanceof Error ? error.message : "Falha ao concluir conexão com a Meta.";
           pushDiag({ kind: "error", label: "serverFn connectMetaAccount falhou", detail: message });
           toast.error(message);
         })
         .finally(() => {
-          setBusy(false);
+          if (active) setBusy(false);
         });
     }
 
     window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      active = false;
+      window.removeEventListener("message", onMsg);
+    };
   }, [user?.id]);
 
 
@@ -240,8 +255,11 @@ function RedesSociaisPage() {
       const timer = setInterval(() => {
         if (popup.closed) {
           clearInterval(timer);
-          pushDiag({ kind: "info", label: "Popup fechada, recarregando conexão", detail: "" });
-          void load();
+          pushDiag({ kind: "info", label: "Popup fechada", detail: "Recarregando conexão em 1s para garantir que DB está atualizado..." });
+          // Pequeno delay para evitar race condition entre fechar popup e o serverFn terminar
+          setTimeout(() => {
+            void load();
+          }, 1000);
         }
       }, 800);
       return;
