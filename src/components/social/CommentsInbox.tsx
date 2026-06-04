@@ -376,14 +376,17 @@ export function CommentsInbox() {
   const syncMut = useMutation({
     mutationFn: () => sync({ data: { postLimit: 5 } }),
     onSuccess: (r) => {
-      if (r.commentsSynced === 0 && r.warnings.length > 0) {
-        toast.warning(`Sincronizado, mas nenhum comentário novo. Avisos: ${r.warnings.slice(0, 2).join(" | ")}`);
-      } else if (r.commentsSynced === 0) {
-        toast.info(`Sincronizado: nenhum comentário novo em ${r.postsSynced} post(s).`);
+      const postsSynced = r?.postsSynced ?? 0;
+      const commentsSynced = r?.commentsSynced ?? 0;
+      const warnings = Array.isArray(r?.warnings) ? r!.warnings : [];
+      if (commentsSynced === 0 && warnings.length > 0) {
+        toast.warning(`Sincronizado, mas nenhum comentário novo. Avisos: ${warnings.slice(0, 2).join(" | ")}`);
+      } else if (commentsSynced === 0) {
+        toast.info(`Sincronizado: nenhum comentário novo em ${postsSynced} post(s).`);
       } else {
-        toast.success(`Sincronizado: ${r.commentsSynced} comentário(s) em ${r.postsSynced} post(s).`);
+        toast.success(`Sincronizado: ${commentsSynced} comentário(s) em ${postsSynced} post(s).`);
       }
-      if (r.warnings.length > 0) console.warn("sync warnings", r.warnings);
+      if (warnings.length > 0) console.warn("sync warnings", warnings);
       qc.invalidateQueries({ queryKey: ["social-comments"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao sincronizar"),
