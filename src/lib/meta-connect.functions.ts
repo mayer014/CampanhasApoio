@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
@@ -9,7 +8,27 @@ import {
   META_REDIRECT_URI,
   META_GRAPH_VERSION,
 } from "./meta-oauth";
-...
+
+const GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
+
+type TokenResponse = { access_token: string; token_type?: string; expires_in?: number };
+type FbError = { error?: { message?: string; type?: string; code?: number; error_subcode?: number } };
+
+async function fbJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  const json = (await res.json()) as T & FbError;
+  if (!res.ok || (json as FbError).error) {
+    const msg = (json as FbError).error?.message || `Erro Graph API (${res.status})`;
+    throw new Error(msg);
+  }
+  return json;
+}
+
+function tokenFingerprint(t: string): string {
+  if (!t) return "";
+  return `${t.slice(0, 6)}…${t.slice(-4)} (len=${t.length})`;
+}
+
 async function debugTokenRaw(token: string, appAccess: string): Promise<unknown> {
   const url = `${GRAPH}/debug_token?` + new URLSearchParams({ input_token: token, access_token: appAccess }).toString();
   const res = await fetch(url);
