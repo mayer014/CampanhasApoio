@@ -87,29 +87,42 @@ function RedesSociaisPage() {
   }
 
   async function load() {
-    if (!user) return;
+    if (!user) {
+      pushDiag({ kind: "info", label: "load() ignorado: usuário não autenticado", detail: "" });
+      return;
+    }
     setLoading(true);
+    pushDiag({ kind: "info", label: "Iniciando load() do banco", detail: `user_id=${user.id}` });
+    
     const { data, error } = await supabase
       .from("social_connections")
       .select("*")
       .eq("user_id", user.id)
       .eq("platform", "meta")
       .maybeSingle();
+
     if (error) {
       toast.error(error.message);
       pushDiag({ kind: "error", label: "Falha ao consultar social_connections", detail: error.message });
     } else {
       pushDiag({
         kind: data ? "success" : "info",
-        label: data ? `Conexão carregada do banco: ${data.page_name ?? data.page_id ?? "(sem nome)"}` : "Nenhuma conexão Meta encontrada para este usuário",
-        detail: data ? `status=${data.status} · page_id=${data.page_id} · ig=${data.instagram_username ?? "-"}` : `user_id=${user.id}`,
+        label: data ? `Conexão carregada: ${data.page_name ?? data.page_id ?? "(sem nome)"}` : "Nenhuma conexão encontrada",
+        detail: data 
+          ? `status=${data.status} · page_id=${data.page_id} · updated_at=${data.updated_at ?? "-"}` 
+          : "Certifique-se de que a conexão foi salva corretamente no banco de dados."
       });
     }
+    
     setConn((data as Connection | null) ?? null);
     setLoading(false);
   }
 
-  useEffect(() => { void load(); }, [user?.id]);
+  useEffect(() => { 
+    if (user?.id) {
+      void load(); 
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     let active = true;
