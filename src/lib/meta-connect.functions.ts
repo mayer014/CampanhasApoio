@@ -280,7 +280,7 @@ async function exchangeCodeAndSave(
     },
   };
 
-  const { error: upErr } = await supabaseAdmin
+  const { error: upErr } = await db
     .from("social_connections")
     .upsert(row as any, { onConflict: "user_id,platform" });
   if (upErr) throw new Error(`Falha ao salvar social_connection: ${upErr.message}`);
