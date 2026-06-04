@@ -333,6 +333,6 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
     z.object({ code: z.string().min(10).max(2000) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    return exchangeCodeAndSave(context.userId, data.code);
+    return exchangeCodeAndSave(context.userId, data.code, context.supabase as SupabaseClient<Database>);
   });
 
