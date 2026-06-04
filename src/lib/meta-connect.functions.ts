@@ -39,6 +39,7 @@ async function debugTokenRaw(token: string, appAccess: string): Promise<unknown>
 async function exchangeCodeAndSave(
   userId: string,
   code: string,
+  db: SupabaseClient<Database>,
 ) {
   const appSecret = process.env.META_APP_SECRET;
   if (!appSecret) throw new Error("META_APP_SECRET não configurado no servidor.");
