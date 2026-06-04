@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   META_APP_ID,
   META_REDIRECT_URI,
@@ -39,6 +39,7 @@ async function debugTokenRaw(token: string, appAccess: string): Promise<unknown>
 async function exchangeCodeAndSave(
   userId: string,
   code: string,
+  db: SupabaseClient<Database>,
 ) {
   const appSecret = process.env.META_APP_SECRET;
   if (!appSecret) throw new Error("META_APP_SECRET não configurado no servidor.");
@@ -279,7 +280,7 @@ async function exchangeCodeAndSave(
     },
   };
 
-  const { error: upErr } = await supabaseAdmin
+  const { error: upErr } = await db
     .from("social_connections")
     .upsert(row as any, { onConflict: "user_id,platform" });
   if (upErr) throw new Error(`Falha ao salvar social_connection: ${upErr.message}`);
@@ -332,6 +333,6 @@ export const connectMetaAccount = createServerFn({ method: "POST" })
     z.object({ code: z.string().min(10).max(2000) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    return exchangeCodeAndSave(context.userId, data.code);
+    return exchangeCodeAndSave(context.userId, data.code, context.supabase as SupabaseClient<Database>);
   });
 
