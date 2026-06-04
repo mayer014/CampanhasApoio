@@ -242,8 +242,11 @@ function RedesSociaisPage() {
       const timer = setInterval(() => {
         if (popup.closed) {
           clearInterval(timer);
-          pushDiag({ kind: "info", label: "Popup fechada, recarregando conexão", detail: "" });
-          void load();
+          pushDiag({ kind: "info", label: "Popup fechada", detail: "Recarregando conexão em 1s para garantir que DB está atualizado..." });
+          // Pequeno delay para evitar race condition entre fechar popup e o serverFn terminar
+          setTimeout(() => {
+            void load();
+          }, 1000);
         }
       }, 800);
       return;
