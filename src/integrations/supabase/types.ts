@@ -883,6 +883,27 @@ export type Database = {
         }
         Relationships: []
       }
+      socialapi_oauth_states: {
+        Row: {
+          created_at: string
+          platform: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          platform: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          platform?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           candidate_id: string
