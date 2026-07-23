@@ -8,9 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { createMetaOAuthState, META_OAUTH_STATE_STORAGE_KEY, parseMetaOAuthState } from "@/lib/meta-oauth";
 import { useServerFn } from "@tanstack/react-start";
-import { connectMetaAccount } from "@/lib/meta-connect.functions";
+import { startSocialConnect } from "@/lib/socialapi-connect.functions";
 import {
   Share2, Facebook, Instagram, CheckCircle2, AlertTriangle,
   MessageSquare, Sparkles, Clock, Unplug, RefreshCw, ShieldCheck,
@@ -77,7 +76,7 @@ function RedesSociaisPage() {
   const [conn, setConn] = useState<Connection | null>(null);
   const [busy, setBusy] = useState(false);
   const [diag, setDiag] = useState<DiagStep[]>([]);
-  const connectFn = useServerFn(connectMetaAccount);
+  const startConnect = useServerFn(startSocialConnect);
 
   function pushDiag(step: Omit<DiagStep, "at">) {
     const entry: DiagStep = { at: new Date().toISOString(), ...step };
@@ -124,149 +123,56 @@ function RedesSociaisPage() {
     }
   }, [user?.id]);
 
+  // Reload when the callback tab signals success via localStorage.
   useEffect(() => {
-    let active = true;
-    function onMsg(ev: MessageEvent) {
-      if (!ev.data || typeof ev.data !== "object") return;
-      const type = (ev.data as { type?: string }).type;
-      
-      // We only care about the callback signal
-      if (type !== "meta-oauth-callback") return;
-
-      pushDiag({
-        kind: "info",
-        label: `postMessage recebido: ${type}`,
-        detail: `origin=${ev.origin} · windowOrigin=${window.location.origin}`,
-      });
-
-      if (ev.origin !== window.location.origin) {
-        pushDiag({ kind: "warn", label: "Mensagem ignorada (origem diferente)", detail: `esperado=${window.location.origin} · recebido=${ev.origin}` });
-        return;
+    function onStorage(ev: StorageEvent) {
+      if (ev.key === "socialapi:connected") {
+        pushDiag({ kind: "info", label: "Callback SocialAPI concluído", detail: "Recarregando conexão…" });
+        void load();
       }
-
-      const storedState = sessionStorage.getItem(META_OAUTH_STATE_STORAGE_KEY);
-      const parsedStored = storedState ? parseMetaOAuthState(storedState) : null;
-      const parsedIncoming = typeof ev.data.state === "string" ? parseMetaOAuthState(ev.data.state) : null;
-      const nonceOk = !!parsedStored && !!parsedIncoming && parsedStored.nonce === parsedIncoming.nonce;
-
-      pushDiag({
-        kind: nonceOk ? "success" : "warn",
-        label: nonceOk ? "State OAuth validado (nonce confere)" : "State OAuth NÃO confere",
-        detail: `hasStored=${!!storedState} · parsedStoredOk=${!!parsedStored} · parsedIncomingOk=${!!parsedIncoming}`,
-      });
-
-      if (!nonceOk) {
-        toast.error("State OAuth inválido no retorno da Meta.");
-        return;
-      }
-
-      const code = typeof ev.data.code === "string" ? ev.data.code : "";
-      if (!code) {
-        const errorMessage = typeof ev.data.error === "string" && ev.data.error
-          ? ev.data.error
-          : "Código de autorização não retornado pela Meta.";
-        pushDiag({ kind: "error", label: "Sem code no retorno", detail: errorMessage });
-        toast.error(errorMessage);
-        return;
-      }
-
-      pushDiag({ kind: "info", label: "Chamando connectMetaAccount serverFn…", detail: `code length=${code.length}` });
-      setBusy(true);
-      void connectFn({ data: { code } })
-        .then((result) => {
-          if (!active) return;
-          sessionStorage.removeItem(META_OAUTH_STATE_STORAGE_KEY);
-          pushDiag({
-            kind: "success",
-            label: `serverFn OK · page=${result?.page_name ?? "?"}`,
-            detail: `page_id=${result?.page_id} · ig=${result?.instagram_username ?? "-"} · expires_at=${result?.expires_at ?? "-"}${result?.warning ? ` · warning=${result.warning}` : ""}`,
-          });
-          toast.success(result?.page_name ? `Página conectada: ${result.page_name}` : "Conta Meta conectada com sucesso.");
-          if (result?.warning) {
-            toast.warning(result.warning, { duration: 12000 });
-          }
-          // Ensure we reload data after success
-          void load();
-        })
-        .catch((error) => {
-          if (!active) return;
-          const message = error instanceof Error ? error.message : "Falha ao concluir conexão com a Meta.";
-          pushDiag({ kind: "error", label: "serverFn connectMetaAccount falhou", detail: message });
-          toast.error(message);
-        })
-        .finally(() => {
-          if (active) setBusy(false);
-        });
     }
-
-    window.addEventListener("message", onMsg);
-    return () => {
-      active = false;
-      window.removeEventListener("message", onMsg);
-    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, [user?.id]);
-
 
   async function handleConnect() {
     if (!user) {
       toast.error("Você precisa estar autenticado.");
       return;
     }
-    const state = createMetaOAuthState(window.location.origin);
-    sessionStorage.setItem(META_OAUTH_STATE_STORAGE_KEY, state);
-    pushDiag({ kind: "info", label: "Iniciando OAuth Meta", detail: `origin=${window.location.origin}` });
-
-    const response = await fetch(`/api/public/meta/oauth?state=${encodeURIComponent(state)}`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    let data: { url?: string; error?: string; stack?: string; env?: unknown } | null = null;
+    setBusy(true);
+    pushDiag({ kind: "info", label: "Iniciando OAuth via SocialAPI", detail: "" });
     try {
-      data = await response.json();
+      const { auth_url } = await startConnect({ data: { platform: "facebook" } });
+      pushDiag({ kind: "success", label: "auth_url recebida", detail: new URL(auth_url).host });
+
+      const w = 600, h = 750;
+      const left = window.screenX + (window.outerWidth - w) / 2;
+      const top = window.screenY + (window.outerHeight - h) / 2;
+      const popup = window.open(
+        auth_url,
+        "socialapi-oauth",
+        `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
+      );
+      if (popup && !popup.closed) {
+        const timer = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(timer);
+            pushDiag({ kind: "info", label: "Popup fechada", detail: "Recarregando conexão…" });
+            setTimeout(() => void load(), 800);
+          }
+        }, 800);
+      } else {
+        pushDiag({ kind: "warn", label: "Popup bloqueada, redirecionando na mesma aba" });
+        window.location.href = auth_url;
+      }
     } catch (e) {
-      pushDiag({ kind: "error", label: "Resposta /api/public/meta/oauth não é JSON", detail: String(e) });
+      const msg = e instanceof Error ? e.message : "Falha ao iniciar OAuth.";
+      pushDiag({ kind: "error", label: "startSocialConnect falhou", detail: msg });
+      toast.error(msg);
+    } finally {
+      setBusy(false);
     }
-
-    if (!response.ok) {
-      pushDiag({ kind: "error", label: `HTTP ${response.status} em /api/public/meta/oauth`, detail: data?.error ?? "" });
-      toast.error(data?.error || `Erro ${response.status} ao iniciar conexão Meta.`);
-      return;
-    }
-
-    if (!data?.url) {
-      pushDiag({ kind: "error", label: "Servidor não retornou OAuth URL", detail: JSON.stringify(data) });
-      toast.error("OAuth URL ausente na resposta do servidor.");
-      return;
-    }
-
-    pushDiag({ kind: "success", label: "OAuth URL recebida, abrindo popup", detail: new URL(data.url).host });
-
-    const w = 600, h = 750;
-    const left = window.screenX + (window.outerWidth - w) / 2;
-    const top = window.screenY + (window.outerHeight - h) / 2;
-
-    const popup = window.open(
-      data.url,
-      "meta-oauth",
-      `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
-    );
-    if (popup && !popup.closed) {
-      const timer = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(timer);
-          pushDiag({ kind: "info", label: "Popup fechada", detail: "Recarregando conexão em 1s para garantir que DB está atualizado..." });
-          // Pequeno delay para evitar race condition entre fechar popup e o serverFn terminar
-          setTimeout(() => {
-            void load();
-          }, 1000);
-        }
-      }, 800);
-      return;
-    }
-
-    pushDiag({ kind: "warn", label: "Popup bloqueada, redirecionando na mesma aba", detail: "" });
-    window.location.href = data.url;
   }
 
 
