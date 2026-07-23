@@ -32,6 +32,7 @@ import { Route as PainelTemplatesIndexRouteImport } from './routes/painel.templa
 import { Route as AdminCandidatosIndexRouteImport } from './routes/admin.candidatos.index'
 import { Route as PainelTemplatesTplIdRouteImport } from './routes/painel.templates.$tplId'
 import { Route as PainelRedesSociaisComentariosRouteImport } from './routes/painel.redes-sociais_.comentarios'
+import { Route as AuthSocialapiCallbackRouteImport } from './routes/auth.socialapi.callback'
 import { Route as AuthMetaCallbackRouteImport } from './routes/auth.meta.callback'
 import { Route as AdminCandidatosIdIndexRouteImport } from './routes/admin.candidatos.$id.index'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
@@ -155,6 +156,11 @@ const PainelRedesSociaisComentariosRoute =
     path: '/redes-sociais/comentarios',
     getParentRoute: () => PainelRoute,
   } as any)
+const AuthSocialapiCallbackRoute = AuthSocialapiCallbackRouteImport.update({
+  id: '/auth/socialapi/callback',
+  path: '/auth/socialapi/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthMetaCallbackRoute = AuthMetaCallbackRouteImport.update({
   id: '/auth/meta/callback',
   path: '/auth/meta/callback',
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
   '/auth/meta/callback': typeof AuthMetaCallbackRoute
+  '/auth/socialapi/callback': typeof AuthSocialapiCallbackRoute
   '/painel/redes-sociais/comentarios': typeof PainelRedesSociaisComentariosRoute
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/painel': typeof PainelIndexRoute
   '/auth/meta/callback': typeof AuthMetaCallbackRoute
+  '/auth/socialapi/callback': typeof AuthSocialapiCallbackRoute
   '/painel/redes-sociais/comentarios': typeof PainelRedesSociaisComentariosRoute
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos': typeof AdminCandidatosIndexRoute
@@ -271,6 +279,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/painel/': typeof PainelIndexRoute
   '/auth/meta/callback': typeof AuthMetaCallbackRoute
+  '/auth/socialapi/callback': typeof AuthSocialapiCallbackRoute
   '/painel/redes-sociais_/comentarios': typeof PainelRedesSociaisComentariosRoute
   '/painel/templates/$tplId': typeof PainelTemplatesTplIdRoute
   '/admin/candidatos/': typeof AdminCandidatosIndexRoute
@@ -304,6 +313,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/painel/'
     | '/auth/meta/callback'
+    | '/auth/socialapi/callback'
     | '/painel/redes-sociais/comentarios'
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
@@ -333,6 +343,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/painel'
     | '/auth/meta/callback'
+    | '/auth/socialapi/callback'
     | '/painel/redes-sociais/comentarios'
     | '/painel/templates/$tplId'
     | '/admin/candidatos'
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/painel/'
     | '/auth/meta/callback'
+    | '/auth/socialapi/callback'
     | '/painel/redes-sociais_/comentarios'
     | '/painel/templates/$tplId'
     | '/admin/candidatos/'
@@ -386,6 +398,7 @@ export interface RootRouteChildren {
   TermosDeUsoRoute: typeof TermosDeUsoRoute
   PSlugRoute: typeof PSlugRoute
   AuthMetaCallbackRoute: typeof AuthMetaCallbackRoute
+  AuthSocialapiCallbackRoute: typeof AuthSocialapiCallbackRoute
   ApiPublicMetaOauthRoute: typeof ApiPublicMetaOauthRoute
   ApiPublicWhatsappBroadcastTickRoute: typeof ApiPublicWhatsappBroadcastTickRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
@@ -554,6 +567,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelRedesSociaisComentariosRouteImport
       parentRoute: typeof PainelRoute
     }
+    '/auth/socialapi/callback': {
+      id: '/auth/socialapi/callback'
+      path: '/auth/socialapi/callback'
+      fullPath: '/auth/socialapi/callback'
+      preLoaderRoute: typeof AuthSocialapiCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/meta/callback': {
       id: '/auth/meta/callback'
       path: '/auth/meta/callback'
@@ -659,6 +679,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosDeUsoRoute: TermosDeUsoRoute,
   PSlugRoute: PSlugRoute,
   AuthMetaCallbackRoute: AuthMetaCallbackRoute,
+  AuthSocialapiCallbackRoute: AuthSocialapiCallbackRoute,
   ApiPublicMetaOauthRoute: ApiPublicMetaOauthRoute,
   ApiPublicWhatsappBroadcastTickRoute: ApiPublicWhatsappBroadcastTickRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
@@ -666,13 +687,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
