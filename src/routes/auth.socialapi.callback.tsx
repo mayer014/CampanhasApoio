@@ -40,7 +40,11 @@ function SocialApiCallbackPage() {
     void complete({ data: { code, state: st } })
       .then(() => {
         setState({ kind: "ok" });
-        setTimeout(() => navigate({ to: "/painel/redes-sociais" }), 900);
+        try { localStorage.setItem("socialapi:connected", String(Date.now())); } catch { /* ignore */ }
+        setTimeout(() => {
+          if (window.opener && !window.opener.closed) window.close();
+          else navigate({ to: "/painel/redes-sociais" });
+        }, 900);
       })
       .catch((e) => {
         setState({ kind: "error", message: e instanceof Error ? e.message : "Falha ao concluir." });
